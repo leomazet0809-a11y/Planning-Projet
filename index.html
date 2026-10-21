@@ -747,8 +747,13 @@ const Store = {
    Fichiers .proj : ouvrir, créer, enregistrer en temps réel
    (Chrome / Edge : écriture directe dans le fichier ; autres navigateurs : téléchargement)
    ============================================================ */
-const PROJ_EXT = ".proj";
-const FILE_TYPES = [{ description: "Projet Plan Projet", accept: { "application/x-plan-projet": [PROJ_EXT] } }];
+// Le projet est un vrai classeur Excel : feuille « Planning » visible + feuille masquée avec les données de l'application.
+// L'ancien format .proj (texte JSON) reste lisible et enregistrable.
+const PROJ_EXT = ".xlsx";
+const LEGACY_EXT = ".proj";
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const FILE_TYPES = [{ description: "Projet Plan Projet (classeur Excel)", accept: { [XLSX_MIME]: [PROJ_EXT] } }];
+const OPEN_TYPES = [{ description: "Projet Plan Projet", accept: { [XLSX_MIME]: [PROJ_EXT], "application/x-plan-projet": [LEGACY_EXT] } }];
 
 const Files = {
   supported: typeof window.showOpenFilePicker === "function" && typeof window.showSaveFilePicker === "function",
@@ -769,6 +774,15 @@ const Files = {
   toText(p) {
     const { title, createdAt, updatedAt, ui, tasks, links } = p;
     return JSON.stringify({ app: "Plan Projet", version: 1, title, createdAt, updatedAt, ui, tasks, links }, null, 2);
+  },
+  isLegacy(name) { return /\.proj$/i.test(name || ""); },
+  extOf(name) { return this.isLegacy(name) ? LEGACY_EXT : PROJ_EXT; },
+  // contenu écrit dans le fichier : classeur Excel (ou texte JSON pour un ancien .proj)
+  toBytes(p, name) { return this.isLegacy(name) ? this.toText(p) : Exchange.toXLSX(p, true); },
+  // lit un fichier de projet → { p, foreign, edited }
+  async fromFile(file, name) {
+    if (this.isLegacy(name)) return { p: this.fromText(await file.text(), this.baseName(name)) };
+    return Exchange.projectFromXLSX(await file.arrayBuffer(), this.baseName(name));
   },
   fromText(text, fallbackTitle) {
     const raw = JSON.parse(text);
@@ -818,15 +832,17 @@ const Files = {
       const file = await new Promise((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = PROJ_EXT;
+        input.accept = PROJ_EXT + "," + LEGACY_EXT;
         input.onchange = () => resolve(input.files[0] || null);
         input.click();
       });
       if (!file) return null;
-      return this.register(this.fromText(await file.text(), this.baseName(file.name)), null);
+      const res = await this.fromFile(file, file.name);
+      if (res.foreign && !(await this.confirmForeign(file.name))) return null;
+      return this.register(res.p, null);
     }
     let handle;
-    try { [handle] = await window.showOpenFilePicker({ types: FILE_TYPES, multiple: false }); }
+    try { [handle] = await window.showOpenFilePicker({ types: OPEN_TYPES, multiple: false }); }
     catch (e) { return null; }
     try { await handle.requestPermission({ mode: "readwrite" }); } catch (e) { /* demandé plus tard */ }
     return this.openHandle(handle);
@@ -837,12 +853,33 @@ const Files = {
       try { if (await h.isSameEntry(handle)) return Store.getProject(id); } catch (e) { /* ignoré */ }
     }
     const file = await handle.getFile();
-    const p = this.register(this.fromText(await file.text(), this.baseName(handle.name)), handle);
+    const res = await this.fromFile(file, handle.name);
+    if (res.foreign) {
+      // classeur qui ne vient pas de Plan Projet : l'importer, ou l'ouvrir en acceptant de le réécrire
+      const choice = await this.confirmForeign(handle.name, true);
+      if (!choice) return null;
+      if (choice === "import") return this.createFrom(this.baseName(handle.name) + " (projet)", (q) => { q.tasks = res.p.tasks; q.links = res.p.links; });
+    }
+    const p = this.register(res.p, handle);
     p.title = this.baseName(handle.name);   // fichier renommé sur le PC : le projet prend son nom
+    if (res.edited) toast("Les modifications faites dans Excel ont été reprises (la mise en forme Excel n'est pas conservée)");
     const perm = await handle.queryPermission?.({ mode: "readwrite" });
     if (perm && perm !== "granted") this.setState(p.id, "permission");
     this.recentKeys.set(p.id, await Recents.add(handle, p.title));
     return p;
+  },
+
+  // classeur Excel qui n'a pas été créé par Plan Projet
+  async confirmForeign(name, canImport) {
+    const choices = [{ label: "Annuler", value: null }, { label: "Ouvrir et réécrire ce classeur", value: "rewrite" }];
+    if (canImport) choices.push({ label: "Importer dans un nouveau projet", value: "import", primary: true });
+    else choices[1].primary = true;
+    return choiceDialog({
+      title: "Ce classeur n'a pas été créé par Plan Projet",
+      message: `« ${name} » sera lu comme un planning (colonnes 1 à 4, Responsable, Heures…).\n` +
+        "L'ouvrir comme projet le réécrira au format de l'application : sa mise en forme et ses autres feuilles seront perdues.",
+      choices,
+    });
   },
 
   // enregistrement en temps réel : quelques instants après la dernière modification
@@ -860,7 +897,7 @@ const Files = {
     if (!handle) return false;
     const job = (this.chains.get(p.id) || Promise.resolve()).then(async () => {
       const w = await handle.createWritable();
-      await w.write(this.toText(p));
+      await w.write(this.toBytes(p, handle.name));
       await w.close();
     });
     this.chains.set(p.id, job.catch(() => {}));
@@ -902,7 +939,7 @@ const Files = {
   async rename(p) {
     const handle = this.handles.get(p.id);
     if (!handle) return "same";
-    const newName = this.safeName(p.title) + PROJ_EXT;
+    const newName = this.safeName(p.title) + this.extOf(handle.name);
     if (handle.name === newName) return "same";
     if (typeof handle.move !== "function") return "unsupported";
     clearTimeout(this.timers.get(p.id));
@@ -934,7 +971,7 @@ const Files = {
 
   download(p) {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([this.toText(p)], { type: "application/octet-stream" }));
+    a.href = URL.createObjectURL(new Blob([this.toBytes(p, PROJ_EXT)], { type: XLSX_MIME }));
     a.download = this.safeName(p.title) + PROJ_EXT;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -1290,7 +1327,7 @@ const MenuView = {
         <div class="menu-head">
           <div>
             <h1>Mes projets</h1>
-            <p>Chaque projet est un fichier <b>${PROJ_EXT}</b> enregistré sur votre ordinateur, dans le dossier de votre choix.</p>
+            <p>Chaque projet est un classeur Excel <b>${PROJ_EXT}</b> enregistré sur votre ordinateur, dans le dossier de votre choix : il s'ouvre aussi dans Excel.</p>
           </div>
           <div class="spacer"></div>
           <button class="btn" data-act="open">${ICONS.folder} Ouvrir un fichier</button>
@@ -1314,7 +1351,7 @@ const MenuView = {
       let res;
       try { res = Exchange.toTasks(await Exchange.readFile(file)); }
       catch (e) { toast(e.message && !/^(zip|xlsx)$/.test(e.message) ? e.message : "Fichier illisible : choisissez un .xlsx ou un .csv"); return; }
-      const p = await Files.createFrom(file.name.replace(/\.[^.]+$/, ""), (np) => { np.tasks = res.tasks; Exchange.applyLinks(np, res.links, res.warnings); });
+      const p = await Files.createFrom(file.name.replace(/\.[^.]+$/, "") + " (projet)", (np) => { np.tasks = res.tasks; Exchange.applyLinks(np, res.links, res.warnings); });
       if (!p) return;
       openProject(p);
       Exchange.report(res.tasks.length, res.warnings);
@@ -1329,7 +1366,7 @@ const MenuView = {
     if (!list.length) {
       slot.innerHTML = `<div class="empty">
         <h2>Aucun fichier récent</h2>
-        <p>Créez un nouveau projet ou ouvrez un fichier ${PROJ_EXT} existant.</p>
+        <p>Créez un nouveau projet ou ouvrez un projet existant (${PROJ_EXT}).</p>
       </div>`;
       return;
     }
@@ -1515,6 +1552,7 @@ const toTSVCell = (s) => (/[\t\n"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
    Le nom de la tâche est dans la colonne de son niveau ; « Dépend de » liste les N° des tâches d'origine.
    Les valeurs des tâches mères sont exportées (calculées) mais recalculées à l'import.
    ============================================================ */
+const DATA_SHEET = "PlanProjet_donnees";   // feuille masquée : données complètes de l'application
 const EX_HEADERS = ["N°", "1", "2", "3", "4", "Responsable", "Heures effectives", "Durée jours", "Date début", "Date fin", "Avancement", "Dépend de"];
 
 /* ---------- Archive ZIP minimale (format des fichiers .xlsx) ---------- */
@@ -1644,7 +1682,8 @@ const Exchange = {
   },
 
   /* ---------- XLSX ---------- */
-  toXLSX(p) {
+  // embed : ajoute la feuille masquée avec les données de l'application (fichier de projet)
+  toXLSX(p, embed = false) {
     const xmlEsc = (s) => esc(String(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ""));
     const colName = (i) => { let s = ""; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
     const serial = (iso) => { const [y, m, d] = iso.split("-").map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 864e5; };
@@ -1661,14 +1700,26 @@ const Exchange = {
     const widths = [6, 4, 4, 4, 40, 18, 10, 10, 12, 12, 12, 12];
     const sheetName = xmlEsc((p.title || "Planning").replace(/[\[\]:*?/\\]/g, "-").slice(0, 31));
     const NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
-    return Zip.create({
-      "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
+    const WS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet";
+    let dataSheet = "", dataRel = "", dataType = "", dataXml = "";
+    if (embed) {
+      const json = Files.toText(p), chunks = [];
+      for (let i = 0; i < json.length; i += 30000) chunks.push(json.slice(i, i + 30000));   // 32 767 caractères au plus par cellule
+      dataSheet = `<sheet name="${DATA_SHEET}" sheetId="2" state="veryHidden" r:id="rId3"/>`;
+      dataRel = `<Relationship Id="rId3" Type="${WS}" Target="worksheets/sheet2.xml"/>`;
+      dataType = `<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`;
+      dataXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ${NS}><sheetData>${chunks.map((c, i) => `<row r="${i + 1}"><c r="A${i + 1}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(c)}</t></is></c></row>`).join("")}</sheetData></worksheet>`;
+    }
+    const files = {
+      "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${dataType}</Types>`,
       "_rels/.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
-      "xl/workbook.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ${NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${sheetName}" sheetId="1" r:id="rId1"/></sheets><calcPr fullCalcOnLoad="1"/></workbook>`,
-      "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+      "xl/workbook.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ${NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${sheetName}" sheetId="1" r:id="rId1"/>${dataSheet}</sheets><calcPr fullCalcOnLoad="1"/></workbook>`,
+      "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${dataRel}</Relationships>`,
       "xl/styles.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet ${NS}><numFmts count="1"><numFmt numFmtId="164" formatCode="General&quot; %&quot;"/></numFmts><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><i/><sz val="11"/><color rgb="FF6B7189"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="14" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`,
       "xl/worksheets/sheet1.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ${NS}><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${head}${body}</sheetData></worksheet>`,
-    });
+    };
+    if (embed) files["xl/worksheets/sheet2.xml"] = dataXml;
+    return Zip.create(files);
   },
 
   /* ---------- Lecture d'un fichier → tableau de lignes ---------- */
@@ -1704,41 +1755,99 @@ const Exchange = {
     return rows;
   },
 
-  async readXLSX(buffer) {
+  // feuilles du classeur, dans l'ordre : [{ name, hidden, rows }]
+  async readWorkbook(buffer) {
     const zip = Zip.read(buffer);
     const xml = async (path) => (zip[path] ? new DOMParser().parseFromString(await zip[path](), "application/xml") : null);
-    // première feuille du classeur
-    let sheetPath = "xl/worksheets/sheet1.xml";
     const wb = await xml("xl/workbook.xml"), rels = await xml("xl/_rels/workbook.xml.rels");
-    const firstSheet = wb && wb.getElementsByTagName("sheet")[0];
-    if (firstSheet && rels) {
-      const rid = firstSheet.getAttribute("r:id") || firstSheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
-      const rel = [...rels.getElementsByTagName("Relationship")].find((r) => r.getAttribute("Id") === rid);
-      if (rel) { const target = rel.getAttribute("Target"); sheetPath = target.startsWith("/") ? target.slice(1) : "xl/" + target; }
-    }
     const shared = [];
     const ss = await xml("xl/sharedStrings.xml");
     if (ss) for (const si of ss.getElementsByTagName("si")) shared.push([...si.getElementsByTagName("t")].map((t) => t.textContent).join(""));
-    const sheet = await xml(sheetPath);
-    if (!sheet) throw new Error("xlsx");
     const colIndex = (ref) => { let n = 0; for (const ch of ref.replace(/\d+$/, "")) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; };
-    const rows = [];
-    for (const r of sheet.getElementsByTagName("row")) {
-      const ri = Number(r.getAttribute("r")) - 1;
-      const row = [];
-      for (const c of r.getElementsByTagName("c")) {
-        const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0], f = c.getElementsByTagName("f")[0];
-        let val = "";
-        if (t === "s") val = shared[Number(v && v.textContent)] ?? "";
-        else if (t === "inlineStr") val = [...c.getElementsByTagName("t")].map((x) => x.textContent).join("");
-        else if (t === "str" || t === "e") val = v ? v.textContent : "";
-        else if (t === "b") val = v && v.textContent === "1" ? "VRAI" : "FAUX";
-        else if (v) val = Number(v.textContent);
-        row[colIndex(c.getAttribute("r"))] = f && f.textContent ? { value: val, formula: "=" + f.textContent } : val;
+    const readSheet = (sheet) => {
+      const rows = [];
+      for (const r of sheet.getElementsByTagName("row")) {
+        const ri = Number(r.getAttribute("r")) - 1;
+        const row = [];
+        for (const c of r.getElementsByTagName("c")) {
+          const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0], f = c.getElementsByTagName("f")[0];
+          let val = "";
+          if (t === "s") val = shared[Number(v && v.textContent)] ?? "";
+          else if (t === "inlineStr") val = [...c.getElementsByTagName("t")].map((x) => x.textContent).join("");
+          else if (t === "str" || t === "e") val = v ? v.textContent : "";
+          else if (t === "b") val = v && v.textContent === "1" ? "VRAI" : "FAUX";
+          else if (v) val = Number(v.textContent);
+          row[colIndex(c.getAttribute("r"))] = f && f.textContent ? { value: val, formula: "=" + f.textContent } : val;
+        }
+        rows[ri] = row;
       }
-      rows[ri] = row;
+      return Array.from(rows, (r) => r || []);
+    };
+    const sheets = [];
+    const entries = wb ? [...wb.getElementsByTagName("sheet")] : [];
+    for (const [i, sh] of entries.entries()) {
+      const rid = sh.getAttribute("r:id") || sh.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+      const rel = rels && [...rels.getElementsByTagName("Relationship")].find((r) => r.getAttribute("Id") === rid);
+      let path = `xl/worksheets/sheet${i + 1}.xml`;
+      if (rel) { const target = rel.getAttribute("Target"); path = target.startsWith("/") ? target.slice(1) : "xl/" + target; }
+      const doc = await xml(path);
+      if (doc) sheets.push({ name: sh.getAttribute("name"), hidden: !!sh.getAttribute("state") && sh.getAttribute("state") !== "visible", rows: readSheet(doc) });
     }
-    return Array.from(rows, (r) => r || []);
+    if (!sheets.length) {
+      const doc = await xml("xl/worksheets/sheet1.xml");
+      if (!doc) throw new Error("xlsx");
+      sheets.push({ name: "Feuille1", hidden: false, rows: readSheet(doc) });
+    }
+    return sheets;
+  },
+
+  // première feuille visible (import d'un classeur quelconque)
+  async readXLSX(buffer) {
+    const sheets = await this.readWorkbook(buffer);
+    return (sheets.find((sh) => sh.name !== DATA_SHEET && !sh.hidden) || sheets[0]).rows;
+  },
+
+  // empreinte d'un planning (ce qui se voit dans la feuille), pour savoir s'il a été modifié dans Excel
+  signature(tasks, links) {
+    const q = { tasks, links: links || [] };
+    Tree.compute(q);
+    const idx = new Map(tasks.map((t, i) => [t.id, i]));
+    const num = (s) => { const v = String(s ?? "").trim(); const n = parseNum(v.replace(/\s*%$/, "")); return isNaN(n) ? v : String(n); };
+    const rows = tasks.map((t) => {
+      const parent = Task.isParent(t);
+      return [t.level, t.label, t.responsable || "", parent ? "" : num(t.heures), parent ? "" : t.start || "",
+        (t.avancement || "").startsWith("=") ? t.avancement.trim() : num(t.avancement)].join("\u0001");
+    });
+    const ls = q.links.map((l) => `${idx.get(l.from)}>${idx.get(l.to)}`).sort();
+    return rows.join("\n") + "\n#" + ls.join(",");
+  },
+
+  // classeur de projet → { p, foreign, edited }
+  //  - feuille masquée présente et planning inchangé : projet repris tel quel (rien n'est perdu)
+  //  - planning modifié dans Excel : les tâches sont relues depuis la feuille visible
+  //  - pas de feuille masquée : classeur « étranger », lu comme un import
+  async projectFromXLSX(buffer, title) {
+    const sheets = await this.readWorkbook(buffer);
+    const data = sheets.find((sh) => sh.name === DATA_SHEET);
+    const visible = sheets.find((sh) => sh !== data && !sh.hidden) || sheets.find((sh) => sh !== data);
+    let stored = null;
+    if (data) {
+      try { stored = Files.fromText(data.rows.map((r) => (r[0] == null ? "" : String(r[0]))).join(""), title); } catch (e) { stored = null; }
+    }
+    let imported = null, importError = null;
+    try { imported = visible ? this.toTasks(visible.rows) : null; } catch (e) { importError = e; }
+    if (!stored) {
+      if (!imported) throw importError || new Error("Ce classeur ne contient pas de planning.");
+      const p = Store.blank(title);
+      p.tasks = imported.tasks;
+      this.applyLinks(p, imported.links, imported.warnings);
+      return { p, foreign: true };
+    }
+    stored.title = title;
+    if (!imported || this.signature(stored.tasks, stored.links) === this.signature(imported.tasks, imported.links)) return { p: stored };
+    stored.tasks = imported.tasks;
+    this.applyLinks(stored, imported.links, imported.warnings);
+    return { p: stored, edited: true };
   },
 
   /* ---------- Tableau de lignes → tâches et liens ---------- */
@@ -2060,7 +2169,7 @@ const ProjectView = {
         el.status.querySelector("button").addEventListener("click", async () => {
           if (await Files.allow(p)) toast("Enregistrement en temps réel activé");
         });
-      } else if (st === "error") el.status.textContent = "Échec de l'enregistrement — Ctrl + S pour réessayer";
+      } else if (st === "error") el.status.textContent = "Échec de l'enregistrement : fichier ouvert dans Excel ? Fermez-le puis Ctrl + S";
       else el.status.textContent = Files.supported ? "Non enregistré — Ctrl + S" : "Ctrl + S pour télécharger le fichier";
     };
     Files.onStatus = (pid) => { if (pid === id) paintStatus(); };
@@ -2124,7 +2233,7 @@ const ProjectView = {
         renderAll();
         Exchange.report(n, res.warnings);   // Ctrl + Z ramène le projet d'avant l'import
       } else if (choice === "new") {
-        const np = await Files.createFrom(file.name.replace(/\.[^.]+$/, ""), (q) => { q.tasks = res.tasks; Exchange.applyLinks(q, res.links, res.warnings); });
+        const np = await Files.createFrom(file.name.replace(/\.[^.]+$/, "") + " (projet)", (q) => { q.tasks = res.tasks; Exchange.applyLinks(q, res.links, res.warnings); });
         if (!np) return;
         openProject(np);
         Exchange.report(n, res.warnings);
