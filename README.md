@@ -52,7 +52,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 - **Calculs** : dans Heures effectives et Durée jours, une saisie commençant par `=` est un calcul (`=2*5` affiche 10 ; + - * / et parenthèses) ; le calcul reste modifiable.
 - Une valeur non numérique dans Heures ou Durée s'affiche en rouge et bloque le calcul.
 - **Avancement** : affiché en pourcentage. Un nombre saisi (ex. `50`) affiche « 50 % » ; commencer par `=` pour un calcul (ex. `=32/3` affiche « 10,67 % » ; opérations + - * / et parenthèses). Un texte reste affiché tel quel. Une formule incorrecte s'affiche en rouge. Sur le planning, la partie réalisée de la barre est de la couleur de la tâche et le reste plus clair (barre pleine si l'avancement est vide).
-- **Boutons** : au survol, une infobulle donne le nom du bouton, son rôle et son raccourci clavier.
+- **Boutons** : au survol (après 2 secondes sans bouger), une infobulle donne le nom du bouton, son rôle et son raccourci clavier ; les autres bulles d'information (barres, cellules, liens) apparaissent aussi après 2 secondes.
 - Modifier Durée, Date début ou Date fin recalcule les heures (arrondies à l'heure entière).
 - **Tâches mères** (une tâche suivie de tâches de niveau inférieur) : Heures = somme des heures des tâches filles, Durée = somme de leurs durées, Début = début le plus tôt des filles, Date fin = fin la plus tardive des filles. Ces valeurs (en gris) ne se saisissent pas ; sur le planning, la tâche mère est une barre récapitulative gris clair qui couvre la période réelle de ses filles. La déplacer déplace toutes ses tâches filles.
 

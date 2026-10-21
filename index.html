@@ -1511,16 +1511,24 @@ const setTip = (el, name, desc = "", kbd = "") => {
   if (desc) el.dataset.desc = desc; else delete el.dataset.desc;
   if (kbd) el.dataset.kbd = kbd; else delete el.dataset.kbd;
 };
+// toutes les bulles d'information de l'application passent par ici (les bulles du navigateur, « title »,
+// sont converties au survol) : elles n'apparaissent qu'après 2 secondes immobile sur l'objet
+const TIP_DELAY = 2000;
 const Tip = {
-  el: null, timer: null, target: null,
+  el: null, timer: null, target: null, x: 0, y: 0,
   show(t) {
     this.target = t;
     if (!this.el) { this.el = document.createElement("div"); this.el.className = "tip"; this.el.setAttribute("role", "tooltip"); }
-    const kbd = t.dataset.kbd ? t.dataset.kbd.split("|").map((v) => v.split("+").map((k) => `<kbd>${esc(k.trim())}</kbd>`).join(" + ")).join(" ou ") : "";
-    this.el.innerHTML = `<b>${esc(t.dataset.tip)}</b>${t.dataset.desc ? `<div class="tip-desc">${esc(t.dataset.desc)}</div>` : ""}${kbd ? `<div class="tip-kbd">${kbd}</div>` : ""}`;
+    const rich = t.dataset.tip != null;
+    if (rich) {
+      const kbd = t.dataset.kbd ? t.dataset.kbd.split("|").map((v) => v.split("+").map((k) => `<kbd>${esc(k.trim())}</kbd>`).join(" + ")).join(" ou ") : "";
+      this.el.innerHTML = `<b>${esc(t.dataset.tip)}</b>${t.dataset.desc ? `<div class="tip-desc">${esc(t.dataset.desc)}</div>` : ""}${kbd ? `<div class="tip-kbd">${kbd}</div>` : ""}`;
+    } else this.el.innerHTML = esc(t.dataset.text).replace(/\n/g, "<br>");
     this.el.classList.remove("on");
     document.body.appendChild(this.el);
-    const r = t.getBoundingClientRect(), w = this.el.offsetWidth, h = this.el.offsetHeight;
+    const w = this.el.offsetWidth, h = this.el.offsetHeight;
+    // bouton : sous le bouton ; autre objet (barre, cellule…) : près du pointeur
+    const r = rich ? t.getBoundingClientRect() : { left: this.x - 8, width: 16, top: this.y - 10, bottom: this.y + 12 };
     const left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
     const top = r.bottom + 8 + h > window.innerHeight ? r.top - h - 8 : r.bottom + 8;
     Object.assign(this.el.style, { left: left + "px", top: top + "px" });
@@ -1533,11 +1541,20 @@ const Tip = {
   },
 };
 document.addEventListener("pointerover", (e) => {
-  const t = e.target.closest && e.target.closest("[data-tip]");
+  const t = e.target.closest && e.target.closest("[data-tip], [data-text], [title]");
+  if (t && t.hasAttribute("title")) {
+    // bulle du navigateur (immédiate) remplacée par la nôtre (différée)
+    if (t.getAttribute("title")) t.dataset.text = t.getAttribute("title");
+    t.removeAttribute("title");
+  }
   if (t === Tip.target) return;
   Tip.hide();
-  if (t && e.pointerType !== "touch") { Tip.target = t; Tip.timer = setTimeout(() => { if (t.isConnected) Tip.show(t); }, 350); }
+  if (t && (t.dataset.tip != null || t.dataset.text) && e.pointerType !== "touch") {
+    Tip.target = t;
+    Tip.timer = setTimeout(() => { if (t.isConnected && Tip.target === t) Tip.show(t); }, TIP_DELAY);
+  }
 });
+document.addEventListener("pointermove", (e) => { Tip.x = e.clientX; Tip.y = e.clientY; }, { passive: true });
 document.addEventListener("pointerdown", () => Tip.hide(), true);
 document.addEventListener("keydown", () => Tip.hide(), true);
 window.addEventListener("blur", () => Tip.hide());
@@ -3441,7 +3458,7 @@ const ProjectView = {
         if (!d) return "";
         const gap = Links.slack(p, l);
         const info = gap ? `Commence ${gap} jour${gap > 1 ? "s" : ""} ouvré${gap > 1 ? "s" : ""} après le plus tôt possible\n` : "";
-        return `<path class="link-hit" data-link="${i}" d="${d}"><title>${info}Cliquer pour supprimer ce lien</title></path><path class="link${gap ? " slack" : ""}" d="${d}" marker-end="url(#arrow)"/>`;
+        return `<path class="link-hit" data-link="${i}" d="${d}" data-text="${esc(info + "Cliquer pour supprimer ce lien")}"></path><path class="link${gap ? " slack" : ""}" d="${d}" marker-end="url(#arrow)"/>`;
       }).join("");
       const today = Dates.diffDays(range.start, todayISO());
       const bg = dw >= 14
