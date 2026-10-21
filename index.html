@@ -137,7 +137,58 @@ button { font: inherit; color: inherit; }
 }
 .project-title:hover { border-color: var(--border); }
 .project-title:focus { outline: none; border-color: var(--accent); background: var(--surface-2); }
-.placeholder { padding: 48px 24px; color: var(--text-muted); text-align: center; }
+.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 34px; --head-h: 66px; }
+.toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.split { flex: 1; min-height: 0; display: flex; background: var(--surface); }
+.pane { display: flex; flex-direction: column; min-width: 0; }
+.pane-left { flex: 0 0 auto; }
+.pane-right { flex: 1 1 auto; }
+.pane-head {
+  flex: 0 0 auto; height: var(--head-h); overflow: hidden;
+  background: var(--surface-2); border-bottom: 1px solid var(--border);
+}
+.pane-body { flex: 1; min-height: 0; }
+/* une seule barre verticale : celle du planning, collée au bord droit de la fenêtre */
+.pane-left .pane-body { overflow-x: scroll; overflow-y: hidden; }
+.pane-right .pane-body { overflow: scroll; }
+
+/* ---------- Séparateur tableau / planning ---------- */
+.splitter {
+  flex: 0 0 7px; cursor: col-resize; position: relative;
+  background: var(--border); transition: background .15s;
+}
+.splitter::after {
+  content: ""; position: absolute; left: 2px; top: 50%; width: 3px; height: 32px;
+  transform: translateY(-50%); border-radius: 2px;
+  background: repeating-linear-gradient(var(--text-muted) 0 3px, transparent 3px 6px);
+  opacity: .6;
+}
+.splitter:hover, .splitter.dragging, .splitter:focus-visible { background: var(--accent); outline: none; }
+.splitter:hover::after, .splitter.dragging::after { background: repeating-linear-gradient(#fff 0 3px, transparent 3px 6px); opacity: 1; }
+body.resizing, body.resizing * { cursor: col-resize !important; user-select: none !important; }
+
+/* ---------- Tableau ---------- */
+.trow { display: flex; height: var(--row-h); border-bottom: 1px solid var(--border); width: max-content; min-width: 100%; }
+.tcell {
+  flex: 0 0 auto; border-right: 1px solid var(--border);
+  padding: 0 10px; line-height: var(--row-h);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.thead-row { height: var(--head-h); border-bottom: 0; }
+.thead-row .tcell {
+  display: flex; align-items: flex-end; padding-bottom: 8px; line-height: 1.25;
+  white-space: normal; font-size: 12px; font-weight: 600; color: var(--text-muted);
+}
+.tcell.num { text-align: right; }
+.trow:hover { background: var(--surface-2); }
+.table-empty { padding: 32px 24px; color: var(--text-muted); }
+
+/* ---------- Planning (contenu à l'étape 6) ---------- */
+.gantt-head-msg { height: 100%; display: flex; align-items: center; padding: 0 20px; color: var(--text-muted); font-size: 13px; }
+.grow { height: var(--row-h); border-bottom: 1px solid var(--border); }
 
 /* ---------- Fenêtre de confirmation ---------- */
 .modal-backdrop {
@@ -239,6 +290,14 @@ const Store = {
     const idx = this.data.projects.indexOf(src);
     this.data.projects.splice(idx + 1, 0, copy);
     this.save();
+  },
+
+  addTask(projectId) {
+    const p = this.getProject(projectId);
+    const t = { id: uid("t"), level: 1, label: "", realise: "", surveille: "", heures: "", start: null };
+    p.tasks.push(t);
+    this.updateProject(projectId, {});
+    return t;
   },
 
   deleteProject(id) {
@@ -401,23 +460,146 @@ const MenuView = {
 };
 
 /* ============================================================
-   Page Projet (contenu développé aux étapes suivantes)
+   Page Projet : tableau à gauche, planning à droite
    ============================================================ */
+const COLUMNS = [
+  { key: "niv1", label: "Niv 1", w: 170 },
+  { key: "niv2", label: "Niv 2", w: 150 },
+  { key: "niv3", label: "Niv 3", w: 150 },
+  { key: "niv4", label: "Niv 4", w: 150 },
+  { key: "realise", label: "Réalise", w: 110 },
+  { key: "surveille", label: "Surveille", w: 110 },
+  { key: "heures", label: "Heures effectives", w: 90, num: true },
+  { key: "duree", label: "Durée jours", w: 80, num: true },
+  { key: "debut", label: "Date début", w: 100 },
+  { key: "fin", label: "Date fin", w: 100 },
+];
+const DEFAULT_GRID_RATIO = 0.55;
+const MIN_PANE = 200;
+
+function cellValue(task, key) {
+  const m = key.match(/^niv(\d)$/);
+  if (m) return task.level === Number(m[1]) ? task.label : "";
+  if (key === "realise" || key === "surveille" || key === "heures") return task[key];
+  return ""; // Durée / dates : étapes suivantes
+}
+
 const ProjectView = {
   render(root, id) {
     const p = Store.getProject(id);
     if (!p) { Router.go(""); return; }
+    p.ui = p.ui || {};
     root.innerHTML = `
-      <header class="topbar">
-        <button class="btn" data-act="back">${ICONS.back} Menu</button>
-        <input class="project-title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
-        <div data-slot="theme"></div>
-      </header>
-      <div class="placeholder">Le tableau et le planning Gantt arrivent à l'étape suivante.</div>`;
+      <div class="project-page">
+        <header class="topbar">
+          <button class="btn" data-act="back">${ICONS.back} Menu</button>
+          <input class="project-title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
+          <div data-slot="theme"></div>
+        </header>
+        <div class="toolbar">
+          <button class="btn btn-primary" data-act="add">${ICONS.plus} Ajouter une tâche</button>
+        </div>
+        <div class="split">
+          <section class="pane pane-left">
+            <div class="pane-head"></div>
+            <div class="pane-body"></div>
+          </section>
+          <div class="splitter" tabindex="0" role="separator" aria-orientation="vertical"
+               title="Glisser pour agrandir le tableau ou le planning (double-clic : réinitialiser)"></div>
+          <section class="pane pane-right">
+            <div class="pane-head"><div class="gantt-head-msg">Le planning Gantt s'affichera ici (étape 6).</div></div>
+            <div class="pane-body"><div class="gantt-rows"></div></div>
+          </section>
+        </div>
+      </div>`;
     root.querySelector('[data-slot="theme"]').replaceWith(Theme.button());
     root.querySelector('[data-act="back"]').addEventListener("click", () => Router.go(""));
     bindInlineEdit(root.querySelector(".project-title"), (v) => Store.updateProject(id, { title: v }));
     document.title = p.title + " — Plan Projet";
+
+    const el = {
+      split: root.querySelector(".split"),
+      left: root.querySelector(".pane-left"),
+      leftHead: root.querySelector(".pane-left .pane-head"),
+      leftBody: root.querySelector(".pane-left .pane-body"),
+      rightHead: root.querySelector(".pane-right .pane-head"),
+      rightBody: root.querySelector(".pane-right .pane-body"),
+      ganttRows: root.querySelector(".gantt-rows"),
+      splitter: root.querySelector(".splitter"),
+    };
+
+    const renderRows = () => {
+      const widths = COLUMNS.map((c) => (p.ui.colWidths && p.ui.colWidths[c.key]) || c.w);
+      const cells = (fn) => COLUMNS.map((c, i) => fn(c, widths[i])).join("");
+      el.leftHead.innerHTML = `<div class="trow thead-row">${cells((c, w) => `<div class="tcell" style="width:${w}px">${esc(c.label)}</div>`)}</div>`;
+      el.leftBody.innerHTML = p.tasks.length
+        ? p.tasks.map((t) => `<div class="trow" data-id="${t.id}">${cells((c, w) =>
+            `<div class="tcell${c.num ? " num" : ""}" style="width:${w}px">${esc(cellValue(t, c.key))}</div>`)}</div>`).join("")
+        : `<div class="table-empty">Aucune tâche. Cliquez sur « Ajouter une tâche » pour commencer.</div>`;
+      el.ganttRows.innerHTML = p.tasks.map(() => `<div class="grow"></div>`).join("");
+    };
+    renderRows();
+
+    root.querySelector('[data-act="add"]').addEventListener("click", () => {
+      Store.addTask(id);
+      renderRows();
+      el.rightBody.scrollTop = el.rightBody.scrollHeight;
+    });
+
+    // --- Défilement : le planning porte la barre verticale, le tableau suit ---
+    el.rightBody.addEventListener("scroll", () => {
+      el.leftBody.scrollTop = el.rightBody.scrollTop;
+      el.rightHead.scrollLeft = el.rightBody.scrollLeft;
+    });
+    el.leftBody.addEventListener("scroll", () => { el.leftHead.scrollLeft = el.leftBody.scrollLeft; });
+    el.leftBody.addEventListener("wheel", (e) => {
+      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // défilement horizontal natif
+      e.preventDefault();
+      el.rightBody.scrollTop += e.deltaY;
+    }, { passive: false });
+
+    // --- Séparateur redimensionnable ---
+    const applyRatio = () => {
+      const total = el.split.clientWidth - el.splitter.offsetWidth;
+      const ratio = p.ui.gridRatio ?? DEFAULT_GRID_RATIO;
+      const w = Math.max(MIN_PANE, Math.min(total - MIN_PANE, Math.round(total * ratio)));
+      el.left.style.width = w + "px";
+    };
+    const setRatio = (r) => {
+      p.ui.gridRatio = Math.max(0.1, Math.min(0.9, r));
+      applyRatio();
+      Store.save();
+    };
+    applyRatio();
+    window.addEventListener("resize", applyRatio);
+    ProjectView.cleanup = () => window.removeEventListener("resize", applyRatio);
+
+    el.splitter.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      el.splitter.setPointerCapture(e.pointerId);
+      el.splitter.classList.add("dragging");
+      document.body.classList.add("resizing");
+      const startX = e.clientX, startW = el.left.offsetWidth;
+      const total = el.split.clientWidth - el.splitter.offsetWidth;
+      const move = (ev) => {
+        const w = Math.max(MIN_PANE, Math.min(total - MIN_PANE, startW + ev.clientX - startX));
+        el.left.style.width = w + "px";
+      };
+      const up = () => {
+        el.splitter.removeEventListener("pointermove", move);
+        el.splitter.classList.remove("dragging");
+        document.body.classList.remove("resizing");
+        setRatio(el.left.offsetWidth / total);
+      };
+      el.splitter.addEventListener("pointermove", move);
+      el.splitter.addEventListener("pointerup", up, { once: true });
+    });
+    el.splitter.addEventListener("dblclick", () => setRatio(DEFAULT_GRID_RATIO));
+    el.splitter.addEventListener("keydown", (e) => {
+      const step = e.shiftKey ? 0.1 : 0.02;
+      if (e.key === "ArrowLeft") { e.preventDefault(); setRatio((p.ui.gridRatio ?? DEFAULT_GRID_RATIO) - step); }
+      if (e.key === "ArrowRight") { e.preventDefault(); setRatio((p.ui.gridRatio ?? DEFAULT_GRID_RATIO) + step); }
+    });
   },
 };
 
@@ -431,6 +613,7 @@ const Router = {
     const path = location.hash.replace(/^#\/?/, "");
     const m = path.match(/^projet\/(.+)$/);
     document.title = "Plan Projet";
+    if (ProjectView.cleanup) { ProjectView.cleanup(); ProjectView.cleanup = null; }
     if (m) ProjectView.render(root, m[1]);
     else MenuView.render(root);
   },
