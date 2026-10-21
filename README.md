@@ -10,7 +10,7 @@ Ouvrir `index.html` dans Chrome ou Edge (ou l'adresse ci-dessus). Aucune install
 Les données sont enregistrées dans le navigateur ; **Exporter** (page Menu) crée un fichier de sauvegarde, **Importer** le recharge.
 
 ### Tableau
-Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe.
+Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » / « Tout réduire » (doubles chevrons) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
 
 | Action | Comment |
 |---|---|
