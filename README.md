@@ -30,6 +30,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 
 - **Durée jours** = Heures effectives × 1,5, arrondie à l'entier le plus proche (jours ouvrés, lundi → vendredi).
 - Une valeur non numérique dans Heures ou Durée s'affiche en rouge et bloque le calcul.
+- **Avancement** : texte libre (ex. « 50 % ») ; commencer par `=` pour un calcul (ex. `=32/3` affiche 10,67 ; opérations + - * / et parenthèses). Une formule incorrecte s'affiche en rouge.
 - Modifier Durée, Date début ou Date fin recalcule les heures (arrondies à l'heure entière).
 - **Tâches mères** (une tâche suivie de tâches de niveau inférieur) : Heures = somme des heures des tâches filles, Durée = somme de leurs durées, Début = début le plus tôt des filles, Date fin = fin la plus tardive des filles. Ces valeurs (en italique gris) ne se saisissent pas ; sur le planning, la tâche mère est une barre récapitulative noire qui couvre la période réelle de ses filles. La déplacer déplace toutes ses tâches filles.
 

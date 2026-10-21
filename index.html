@@ -468,6 +468,38 @@ const Dates = {
 const HOURS_TO_DAYS = 1.5;
 
 // nombre positif, virgule ou point acceptés ; NaN sinon
+// Formule de la colonne Avancement : « =32/3 » → 10,67. Opérations + - * / et parenthèses,
+// décimales avec virgule ou point. Renvoie null si la formule est incorrecte.
+function evalFormula(src) {
+  const toks = String(src).replace(/^=/, "").replace(/,/g, ".").match(/\d+(?:\.\d+)?|[-+*/()]|\S/g) || [];
+  let i = 0;
+  const peek = () => toks[i];
+  const expr = () => {
+    let v = term();
+    while (peek() === "+" || peek() === "-") v = toks[i++] === "+" ? v + term() : v - term();
+    return v;
+  };
+  const term = () => {
+    let v = factor();
+    while (peek() === "*" || peek() === "/") v = toks[i++] === "*" ? v * factor() : v / factor();
+    return v;
+  };
+  const factor = () => {
+    const tk = toks[i++];
+    if (tk === "-") return -factor();
+    if (tk === "+") return factor();
+    if (tk === "(") { const v = expr(); if (toks[i++] !== ")") throw 0; return v; }
+    if (/^\d/.test(tk || "")) return Number(tk);
+    throw 0;
+  };
+  try {
+    if (!toks.length) return null;
+    const v = expr();
+    return i === toks.length && isFinite(v) ? v : null;
+  } catch (e) { return null; }
+}
+const fmtNum = (v) => String(Math.round(v * 100) / 100).replace(".", ",");
+
 function parseNum(s) {
   const v = String(s).trim().replace(",", ".");
   return /^\d+(\.\d+)?$/.test(v) ? Number(v) : NaN;
@@ -1033,6 +1065,7 @@ const COLUMNS = [
   { key: "duree", label: "Durée jours", w: 80, align: "num" },
   { key: "debut", label: "Date début", w: 100, align: "center" },
   { key: "fin", label: "Date fin", w: 100, align: "center" },
+  { key: "avancement", label: "Avancement", w: 100, align: "center" },
 ];
 const COL = Object.fromEntries(COLUMNS.map((c, i) => [c.key, i]));
 const isNivCol = (c) => c <= COL.niv4;
@@ -1063,6 +1096,12 @@ function cellDisplay(t, key) {
   if (m) return { text: t.level === Number(m[1]) ? t.label : "" };
   switch (key) {
     case "realise": case "surveille": return { text: t[key] };
+    case "avancement": {
+      const raw = t.avancement || "";
+      if (!raw.startsWith("=")) return { text: raw };
+      const v = evalFormula(raw);
+      return v == null ? { text: raw, invalid: true, formulaError: true } : { text: fmtNum(v) };
+    }
     case "heures": return { text: t.heures, invalid: String(t.heures).trim() !== "" && isNaN(parseNum(t.heures)) };
     case "duree": {
       if (t.dureeText) return { text: t.dureeText, invalid: true };
@@ -1088,7 +1127,7 @@ function commitCell(t, key, raw) {
   }
   const ensureStart = () => { if (!t.start) { t.start = Dates.nextWorkday(todayISO()); delete t.debutText; } };
   switch (key) {
-    case "realise": case "surveille": t[key] = v; break;
+    case "realise": case "surveille": case "avancement": t[key] = v; break;
     case "heures":
       t.heures = v; delete t.dureeText; delete t.finText;
       if (v) ensureStart();
@@ -1388,7 +1427,7 @@ const ProjectView = {
                 inRows && i >= R.c1 && i <= R.c2 && (R.r1 !== R.r2 || R.c1 !== R.c2) ? "in-range" : "",
                 sel && sel.r === r && sel.c === i ? "sel" : "", spillCls].join(" ");
               const grip = i === 0 ? `<span class="grip" data-r="${r}" title="Glisser pour déplacer la tâche (avec ses sous-tâches)"></span>` : "";
-              const tip = d.invalid ? ' title="Valeur non numérique : le calcul est bloqué"' : d.calc ? ' title="Calculé à partir des tâches filles"' : "";
+              const tip = d.formulaError ? ' title="Formule incorrecte"' : d.invalid ? ' title="Valeur non numérique : le calcul est bloqué"' : d.calc ? ' title="Calculé à partir des tâches filles"' : "";
               return `<div class="${cls}" data-r="${r}" data-c="${i}" style="${style}"${tip}>${grip}${content}</div>`;
             }).join("")}</div>`;
           }).join("") + treeSVG()
@@ -1450,7 +1489,8 @@ const ProjectView = {
       const t = p.tasks[sel.r], key = COLUMNS[sel.c].key;
       const input = document.createElement("input");
       input.className = "cell-editor " + (COLUMNS[sel.c].align || "");
-      input.value = initial != null ? initial : cellDisplay(t, key).text;
+      const editValue = () => (key === "avancement" ? t.avancement || "" : cellDisplay(t, key).text);
+      input.value = initial != null ? initial : editValue();
       cell.textContent = "";
       cell.classList.remove("invalid");
       cell.appendChild(input);
@@ -1462,7 +1502,7 @@ const ProjectView = {
         if (!editor || editor.done) return;
         editor.done = true;
         editor = null;
-        if (commit && input.value !== cellDisplay(t, key).text) mutate(() => commitCell(t, key, input.value));
+        if (commit && input.value !== editValue()) mutate(() => commitCell(t, key, input.value));
         else renderRows();
         if (after) after();
         el.leftBody.focus({ preventScroll: true });
