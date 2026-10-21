@@ -76,19 +76,19 @@ button { font: inherit; color: inherit; }
 /* ---------- Barre du haut ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center; gap: 12px;
-  height: 60px; padding: 0 24px;
+  display: flex; align-items: center; gap: 10px;
+  height: 42px; padding: 0 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
-.brand-logo { width: 30px; height: 30px; display: block; }
+.brand-logo { width: 26px; height: 26px; display: block; flex: 0 0 auto; }
 .spacer { flex: 1; }
 
 /* ---------- Boutons ---------- */
 .btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 36px; padding: 0 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px;
   border: 1px solid var(--border); border-radius: 10px;
   background: var(--surface); cursor: pointer;
   font-weight: 500; white-space: nowrap;
@@ -104,12 +104,12 @@ button { font: inherit; color: inherit; }
 .btn-danger { color: var(--danger); }
 .btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
 .icon-btn {
-  width: 36px; height: 36px; border-radius: 10px; flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto;
   display: grid; place-items: center;
   border: 1px solid var(--border); background: var(--surface); cursor: pointer;
 }
 .icon-btn:hover { background: var(--surface-2); }
-.icon-btn svg, .btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.icon-btn svg, .btn svg { width: 16px; height: 16px; flex: 0 0 auto; }
 
 /* ---------- Page Menu ---------- */
 .menu-page { max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px; }
@@ -144,19 +144,19 @@ button { font: inherit; color: inherit; }
 
 /* ---------- Page Projet ---------- */
 .project-title {
-  flex: 1; min-width: 0; font-size: 18px; font-weight: 600;
+  flex: 1; min-width: 0; font-size: 16px; font-weight: 600;
   border: 1px solid transparent; border-radius: var(--radius-sm);
-  background: transparent; color: var(--text); font-family: inherit; padding: 6px 10px;
+  background: transparent; color: var(--text); font-family: inherit; padding: 3px 8px;
 }
 .project-title:hover { border-color: var(--border); }
 .project-title:focus { outline: none; border-color: var(--accent); background: var(--surface-2); }
 .save-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
-.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 24px; --bar-h: 16px; --cell-font: 12px; --head-h: 88px; }
+.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 24px; --bar-h: 16px; --cell-font: 12px; --head-h: 72px; }
 .toolbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 4px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
 }
-.toolbar .sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+.toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 .hint { font-size: 12px; color: var(--text-muted); }
 .zoom-label { font-size: 12px; color: var(--text-muted); min-width: 64px; text-align: center; }
 .split { flex: 1; min-height: 0; display: flex; background: var(--surface); }
@@ -213,6 +213,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .trow.row-sel { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .thead-row { height: var(--head-h); border-bottom: 0; }
 .thead-row .tcell { border-right-color: var(--border); }
+.thead-row .tcell[data-fixed] { padding: 0 2px 8px; justify-content: center; text-align: center; }
 .thead-row .tcell {
   display: flex; align-items: flex-end; padding-bottom: 8px; line-height: 1.25;
   white-space: normal; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: default;
@@ -230,13 +231,21 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 /* poignée pour déplacer une tâche (et ses sous-tâches) dans le tableau */
 .pane-left .pane-body { position: relative; }
 .tcell[data-c="0"] { padding-left: 18px; }
-.tcell[data-c="0"] .spill-text { left: 18px; }
-.tcell.child { padding-left: 26px; }
-.tcell.child .spill-text { left: 26px; }
 .tree-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; overflow: visible; }
-.tree-svg path { fill: none; stroke-width: 1.4; opacity: .75; }
+.tree-svg { opacity: .45; }
+.tree-svg .tree-line { fill: none; stroke: var(--text-muted); stroke-width: 1.2; }
+.tree-svg marker path { fill: var(--text-muted); }
+/* bouton réduire / déployer d'une tâche mère */
+.twisty {
+  position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -6px; z-index: 3;
+  display: grid; place-items: center; cursor: pointer; border-radius: 3px; color: var(--text-muted);
+}
+.twisty:hover { background: var(--surface-2); color: var(--text); }
+.twisty svg { width: 10px; height: 10px; transition: transform .15s; }
+.twisty.closed svg { transform: rotate(-90deg); }
 .grip {
-  position: absolute; left: 2px; top: 50%; width: 14px; height: 16px; margin-top: -8px;
+  position: absolute; left: 2px; top: 50%; width: 14px;
+  height: min(16px, calc(var(--row-h) - 2px)); transform: translateY(-50%);
   border-radius: 4px; cursor: grab; opacity: 0; z-index: 2;
   background: radial-gradient(circle, var(--text-muted) 1.2px, transparent 1.6px) 0 0 / 7px 6px;
   background-origin: content-box; padding: 2px 1px;
@@ -249,12 +258,12 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 
 /* ---------- Planning Gantt ---------- */
 .gantt-head { position: relative; height: 100%; }
-.gh-row { position: relative; height: 22px; border-bottom: 1px solid var(--border); }
+.gh-row { position: relative; height: 18px; border-bottom: 1px solid var(--border); }
 .gh-row:last-child { border-bottom: 0; }
 .gh-cell {
   position: absolute; top: 0; height: 100%;
   border-left: 1px solid var(--border);
-  font-size: 11px; line-height: 21px; padding: 0 6px;
+  font-size: 11px; line-height: 17px; padding: 0 6px;
   white-space: nowrap; overflow: clip; color: var(--text-muted);
 }
 .gh-row.days .gh-cell { padding: 0; text-align: center; }
@@ -295,8 +304,8 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
   font-size: 12px; white-space: nowrap; color: var(--text); pointer-events: none;
 }
 /* tâche mère : barre récapitulative avec pointes aux extrémités */
-.bar.summary { height: 8px; top: calc((var(--row-h) - 8px) / 2 - 3px); border-radius: 2px 2px 0 0; background: var(--text); }
-.bar.summary::before, .bar.summary::after { content: ""; position: absolute; top: 100%; width: 0; height: 0; border-top: 6px solid var(--text); }
+.bar.summary { height: 8px; top: calc((var(--row-h) - 8px) / 2 - 3px); border-radius: 2px 2px 0 0; background: var(--summary, var(--text)); }
+.bar.summary::before, .bar.summary::after { content: ""; position: absolute; top: 100%; width: 0; height: 0; border-top: 6px solid var(--summary, var(--text)); }
 .bar.summary::before { left: 0; border-right: 6px solid transparent; }
 .bar.summary::after { right: 0; border-left: 6px solid transparent; }
 .bar.summary .h-end { display: none; }
@@ -317,6 +326,19 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
   background: var(--text); color: var(--bg); font-size: 12px; font-weight: 500;
   padding: 4px 8px; border-radius: 6px; white-space: nowrap;
 }
+
+/* ---------- Paramètres ---------- */
+.settings-panel {
+  position: fixed; top: 48px; right: 12px; z-index: 150; width: 290px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .18); padding: 16px;
+}
+.settings-panel h3 { margin: 0 0 12px; font-size: 15px; }
+.settings-panel h4 { margin: 14px 0 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; }
+.set-row input[type="color"] { width: 36px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
+.set-row select { flex: 1; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; padding: 0 8px; }
+.settings-panel .btn { margin-top: 14px; width: 100%; justify-content: center; }
 
 /* ---------- Message temporaire ---------- */
 .toast {
@@ -372,6 +394,7 @@ const ICONS = {
   save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h9V3M7 21v-7h10v7"/></svg>',
   eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
   eyeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a10.5 10.5 0 0 0 5.4-1.6M3 3l18 18M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>',
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>',
   upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></svg>',
@@ -710,6 +733,124 @@ const Store = {
 };
 
 /* ============================================================
+   Paramètres : couleurs (fond, tâches) et police d'écriture
+   ============================================================ */
+const Settings = {
+  FONTS: [
+    { name: "Inter", google: "Inter:wght@400;500;600;700" },
+    { name: "Roboto", google: "Roboto:wght@400;500;700" },
+    { name: "Open Sans", google: "Open+Sans:wght@400;500;600;700" },
+    { name: "Lato", google: "Lato:wght@400;700" },
+    { name: "Nunito", google: "Nunito:wght@400;600;700" },
+    { name: "Poppins", google: "Poppins:wght@400;500;600;700" },
+    { name: "Montserrat", google: "Montserrat:wght@400;500;600;700" },
+    { name: "Source Sans 3", google: "Source+Sans+3:wght@400;600;700" },
+    { name: "Arial" },
+    { name: "Segoe UI" },
+  ],
+  COLORS: [
+    { key: "lvl1", label: "Tâches de niveau 1" },
+    { key: "lvl2", label: "Tâches de niveau 2" },
+    { key: "lvl3", label: "Tâches de niveau 3" },
+    { key: "lvl4", label: "Tâches de niveau 4" },
+    { key: "summary", label: "Tâches mères" },
+  ],
+  get() { return (Store.data.settings = Store.data.settings || {}); },
+
+  loadFont(name) {
+    const f = this.FONTS.find((x) => x.name === name);
+    if (!f || !f.google || document.querySelector(`link[data-font="${name}"]`)) return;
+    const l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = `https://fonts.googleapis.com/css2?family=${f.google}&display=swap`;
+    l.dataset.font = name;
+    document.head.appendChild(l);
+  },
+
+  // applique les réglages ; le fond est propre à chaque mode (clair / sombre)
+  apply() {
+    const st = this.get(), root = document.documentElement.style;
+    if (st.font) { this.loadFont(st.font); root.setProperty("--font", `"${st.font}", system-ui, sans-serif`); }
+    else root.removeProperty("--font");
+    this.COLORS.forEach(({ key }) => { if (st[key]) root.setProperty("--" + key, st[key]); else root.removeProperty("--" + key); });
+    const bg = st["bg-" + Theme.current()];
+    if (bg) {
+      const dark = Theme.current() === "dark";
+      root.setProperty("--surface", bg);
+      root.setProperty("--bg", `color-mix(in srgb, ${bg} ${dark ? 80 : 95}%, ${dark ? "#000" : "#5a6080"})`);
+      root.setProperty("--surface-2", `color-mix(in srgb, ${bg} 92%, ${dark ? "#fff" : "#5a6080"})`);
+    } else ["--surface", "--bg", "--surface-2"].forEach((v) => root.removeProperty(v));
+  },
+
+  set(key, value) {
+    const st = this.get();
+    if (value == null) delete st[key]; else st[key] = value;
+    Store.save();
+    this.apply();
+  },
+
+  // couleur actuelle d'une variable CSS, au format #rrggbb pour les sélecteurs de couleur
+  current(varName) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    if (/^#[0-9a-f]{6}$/i.test(v)) return v;
+    const c = document.createElement("canvas").getContext("2d");
+    c.fillStyle = v || "#000";
+    return /^#[0-9a-f]{6}$/i.test(c.fillStyle) ? c.fillStyle : "#000000";
+  },
+
+  open(anchor) {
+    document.querySelector(".settings-panel")?.remove();
+    const st = this.get();
+    const panel = document.createElement("div");
+    panel.className = "settings-panel";
+    const font = st.font || "Inter";
+    panel.innerHTML = `
+      <h3>Paramètres</h3>
+      <h4>Police d'écriture</h4>
+      <div class="set-row"><select data-k="font" aria-label="Police d'écriture">${this.FONTS.map((f) =>
+        `<option${f.name === font ? " selected" : ""} style="font-family:'${f.name}'">${f.name}</option>`).join("")}</select></div>
+      <h4>Fond (mode ${Theme.current() === "dark" ? "sombre" : "clair"})</h4>
+      <div class="set-row"><span>Couleur de fond</span><input type="color" data-k="bg" value="${this.current("--surface")}"></div>
+      <h4>Couleurs des tâches</h4>
+      ${this.COLORS.map((c) => `<div class="set-row"><span>${c.label}</span><input type="color" data-k="${c.key}" value="${this.current(c.key === "summary" ? (st.summary ? "--summary" : "--text") : "--" + c.key)}"></div>`).join("")}
+      <button class="btn" data-act="reset">Rétablir les réglages d'origine</button>`;
+    panel.querySelector('[data-k="font"]').addEventListener("change", (e) => this.set("font", e.target.value === "Inter" ? null : e.target.value));
+    panel.querySelectorAll('input[type="color"]').forEach((inp) => inp.addEventListener("input", () => {
+      const k = inp.dataset.k === "bg" ? "bg-" + Theme.current() : inp.dataset.k;
+      this.set(k, inp.value);
+    }));
+    panel.querySelector('[data-act="reset"]').addEventListener("click", () => {
+      Store.data.settings = {};
+      Store.save();
+      this.apply();
+      this.open(anchor);
+    });
+    document.body.appendChild(panel);
+    const close = (e) => {
+      if (e.type === "keydown" ? e.key !== "Escape" : panel.contains(e.target) || anchor.contains(e.target)) return;
+      panel.remove();
+      document.removeEventListener("mousedown", close, true);
+      document.removeEventListener("keydown", close, true);
+    };
+    document.addEventListener("mousedown", close, true);
+    document.addEventListener("keydown", close, true);
+  },
+
+  button() {
+    const b = document.createElement("button");
+    b.className = "icon-btn";
+    b.innerHTML = ICONS.gear;
+    b.title = "Paramètres : couleurs et police d'écriture";
+    b.setAttribute("aria-label", "Paramètres");
+    b.addEventListener("click", () => {
+      if (document.querySelector(".settings-panel")) document.querySelector(".settings-panel").remove();
+      else this.open(b);
+    });
+    return b;
+  },
+};
+
+/* ============================================================
    Thème clair / sombre
    ============================================================ */
 const Theme = {
@@ -719,13 +860,14 @@ const Theme = {
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     this.apply(saved || (prefersDark ? "dark" : "light"));
   },
-  apply(t) { document.documentElement.dataset.theme = t; },
+  apply(t) { document.documentElement.dataset.theme = t; Settings.apply(); },
   toggle() {
     const next = this.current() === "dark" ? "light" : "dark";
     this.apply(next);
     Store.data.theme = next;
     Store.save();
     document.querySelectorAll("[data-theme-btn]").forEach((b) => this.paintButton(b));
+    document.querySelector(".settings-panel")?.remove();
   },
   paintButton(btn) {
     const dark = this.current() === "dark";
@@ -819,7 +961,7 @@ const MenuView = {
           </div>`}
       </main>`;
 
-    root.querySelector('[data-slot="theme"]').replaceWith(Theme.button());
+    root.querySelector('[data-slot="theme"]').replaceWith(Settings.button(), Theme.button());
 
     root.querySelectorAll('[data-act="new"]').forEach((b) => b.addEventListener("click", () => {
       Store.createProject();
@@ -882,9 +1024,9 @@ const MenuView = {
    ============================================================ */
 const COLUMNS = [
   // Niv 1 à 3 : colonnes étroites et fixes (retrait des niveaux) ; le libellé déborde sur les suivantes
-  { key: "niv1", label: "Niv 1", w: 60, fixed: true },
-  { key: "niv2", label: "Niv 2", w: 60, fixed: true },
-  { key: "niv3", label: "Niv 3", w: 60, fixed: true },
+  { key: "niv1", label: "Niv 1", w: 40, fixed: true },
+  { key: "niv2", label: "Niv 2", w: 40, fixed: true },
+  { key: "niv3", label: "Niv 3", w: 40, fixed: true },
   { key: "niv4", label: "Niv 4", w: 220 },
   { key: "realise", label: "Réalise", w: 110 },
   { key: "surveille", label: "Surveille", w: 110 },
@@ -899,7 +1041,7 @@ const DEFAULT_GRID_RATIO = 0.55;
 const MIN_PANE = 200;
 const MIN_COL = 50;
 const DEFAULT_ROW_H = 24;
-const MIN_ROW_H = 18;
+const MIN_ROW_H = 14;
 const MAX_ROW_H = 60;
 const ROW_H_STEP = 2;
 const ZOOMS = [6, 10, 14, 20, 28, 40, 56];
@@ -1049,7 +1191,7 @@ const ProjectView = {
           </section>
         </div>
       </div>`;
-    root.querySelector('[data-slot="theme"]').replaceWith(Theme.button());
+    root.querySelector('[data-slot="theme"]').replaceWith(Settings.button(), Theme.button());
     root.querySelector('[data-act="back"]').addEventListener("click", () => Router.go(""));
     bindInlineEdit(root.querySelector(".project-title"), (v) => { Store.updateProject(id, { title: v }); document.title = v + " — Plan Projet"; });
     document.title = p.title + " — Plan Projet";
@@ -1095,12 +1237,13 @@ const ProjectView = {
        ======================================================== */
     delete p.ui.rowH;   // ancien réglage (lignes plus hautes)
     let rowH = p.ui.rowHeight || DEFAULT_ROW_H;   // hauteur des lignes en pixels
+    const barH = () => Math.max(6, Math.min(20, rowH - 8));
     // taille du texte du tableau proportionnelle à la hauteur des lignes
-    const cellFont = () => Math.max(9, Math.min(22, Math.round(rowH * 0.5)));
+    const cellFont = () => Math.max(8, Math.min(22, Math.round(rowH * 0.5)));
     const applyRowH = () => {
       el.page.style.setProperty("--row-h", rowH + "px");
       el.page.style.setProperty("--cell-font", cellFont() + "px");
-      el.page.style.setProperty("--bar-h", Math.max(8, Math.min(20, rowH - 8)) + "px");
+      el.page.style.setProperty("--bar-h", barH() + "px");
     };
     applyRowH();
 
@@ -1115,65 +1258,83 @@ const ProjectView = {
 
     const renderTableHead = () => {
       el.leftHead.innerHTML = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
-        `<div class="tcell" style="width:${colWidth(c)}px">${esc(c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
+        `<div class="tcell"${c.fixed ? " data-fixed" : ""} style="width:${colWidth(c)}px">${esc(c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
       el.leftHead.scrollLeft = el.leftBody.scrollLeft;
     };
 
-    // marges gauche + droite autour du libellé (poignée en Niv 1, flèche pour les sous-niveaux)
-    const labelPad = (t) => (t.level === 1 ? 28 : 36);
     const colLeft = (c) => { let x = 0; for (let k = 0; k < c; k++) x += colWidth(COLUMNS[k]); return x; };
+    // position (dans sa cellule) du bouton réduire/déployer et du libellé
+    const twistyLeft = (t) => (t.level === 1 ? 18 : 22);
+    const labelLeft = (t) => (t.level === 1 ? 18 : 26) + (Task.isParent(t) ? 14 : 0);
 
-    // flèches qui relient chaque tâche à sa tâche parente (niveau supérieur le plus proche au-dessus)
+    /* ---------- Lignes visibles (groupes réduits masqués) ---------- */
+    let vis = [], visPos = [];   // vis : indices des tâches affichées ; visPos[r] : rang affiché (-1 si masquée)
+    const refreshVis = () => {
+      vis = []; visPos = new Array(p.tasks.length).fill(-1);
+      for (let r = 0; r < p.tasks.length; ) {
+        visPos[r] = vis.length;
+        vis.push(r);
+        const t = p.tasks[r];
+        r = t.collapsed && Task.isParent(t) ? Tree.blockEnd(p, r) : r + 1;
+      }
+    };
+    // ligne affichée voisine (d = -1 au-dessus, +1 en dessous)
+    const stepRow = (r, d) => vis[Math.max(0, Math.min(vis.length - 1, (visPos[r] < 0 ? 0 : visPos[r]) + d))];
+
+    // flèches grises qui relient chaque tâche à sa tâche mère (niveau supérieur le plus proche au-dessus)
     const treeSVG = () => {
-      let paths = "", markers = "";
-      const used = new Set();
-      p.tasks.forEach((t, r) => {
+      let paths = "";
+      vis.forEach((r) => {
+        const t = p.tasks[r];
         if (t.level === 1) return;
         let pr = r - 1;
         while (pr >= 0 && p.tasks[pr].level >= t.level) pr--;
         if (pr < 0) return;
-        const P = p.tasks[pr].level - 1;
-        const x = colLeft(P) + (P === 0 ? 22 : 18);
-        const y0 = (pr + 1) * rowH - 4, y = r * rowH + rowH / 2;
+        const parent = p.tasks[pr], P = parent.level - 1;
+        const x = colLeft(P) + twistyLeft(parent) + 6;
+        const y0 = visPos[pr] * rowH + rowH / 2 + 6, y = visPos[r] * rowH + rowH / 2;
         const x2 = colLeft(t.level - 1) + 20;
-        used.add(t.level);
-        paths += `<path d="M${x} ${y0} V${y - 4} Q${x} ${y} ${x + 4} ${y} H${x2}" style="stroke:var(--lvl${t.level})" marker-end="url(#tree-arrow-${t.level})"/>`;
+        paths += `<path class="tree-line" d="M${x} ${y0} V${y - 3} Q${x} ${y} ${x + 3} ${y} H${x2}" marker-end="url(#tree-arrow)"/>`;
       });
       if (!paths) return "";
-      used.forEach((l) => {
-        markers += `<marker id="tree-arrow-${l}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--lvl${l});stroke:none"/></marker>`;
-      });
-      return `<svg class="tree-svg" width="${colLeft(COL.niv4 + 1)}" height="${p.tasks.length * rowH}"><defs>${markers}</defs>${paths}</svg>`;
+      return `<svg class="tree-svg" width="${colLeft(COL.niv4 + 1)}" height="${vis.length * rowH}"><defs><marker id="tree-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>${paths}</svg>`;
     };
+    const CHEVRON = '<svg viewBox="0 0 10 10"><path d="M2 3.5L5 6.5L8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // nombre de colonnes Niv suivantes (toujours vides sur cette ligne) sur lesquelles s'étend le libellé
     const spillCount = (t) => (t.label ? COL.niv4 - (t.level - 1) : 0);
 
     const renderRows = () => {
       Tree.compute(p);
+      refreshVis();
       const R = rect();
       el.leftBody.innerHTML = p.tasks.length
-        ? p.tasks.map((t, r) => {
+        ? vis.map((r) => {
+            const t = p.tasks[r];
             const inRows = R && r >= R.r1 && r <= R.r2;
-            const c0 = t.level - 1, spill = spillCount(t);
+            const c0 = t.level - 1, spill = spillCount(t), parent = Task.isParent(t);
             return `<div class="trow${inRows ? " row-sel" : ""}">${COLUMNS.map((c, i) => {
               const d = cellDisplay(t, c.key);
               let content = esc(d.text), spillCls = "";
-              if (spill && i === c0) {
-                let w = -labelPad(t);
-                for (let k = c0; k <= c0 + spill; k++) w += colWidth(COLUMNS[k]);
-                content = `<span class="spill-text" style="width:${w}px">${content}</span>`;
-                spillCls = "spill-from";
+              let style = `width:${colWidth(c)}px`;
+              if (i === c0) {
+                style += `;padding-left:${labelLeft(t)}px`;
+                if (spill) {
+                  let w = -labelLeft(t) - 10;
+                  for (let k = c0; k <= c0 + spill; k++) w += colWidth(COLUMNS[k]);
+                  content = `<span class="spill-text" style="left:${labelLeft(t)}px;width:${w}px">${content}</span>`;
+                  spillCls = "spill-from";
+                }
+                if (parent) content = `<span class="twisty${t.collapsed ? " closed" : ""}" data-r="${r}" style="left:${twistyLeft(t)}px" title="${t.collapsed ? "Déployer" : "Réduire"} le groupe">${CHEVRON}</span>` + content;
               } else if (spill && i > c0 && i < c0 + spill) spillCls = "spill-over";
               const cls = ["tcell", c.align || "",
                 d.invalid ? "invalid" : "", d.calc ? "calc" : "",
                 isNivCol(i) && t.level === 1 ? "lvl1" : "",
                 inRows && i >= R.c1 && i <= R.c2 && (R.r1 !== R.r2 || R.c1 !== R.c2) ? "in-range" : "",
-                sel && sel.r === r && sel.c === i ? "sel" : "", spillCls,
-                i === c0 && t.level > 1 ? "child" : ""].join(" ");
+                sel && sel.r === r && sel.c === i ? "sel" : "", spillCls].join(" ");
               const grip = i === 0 ? `<span class="grip" data-r="${r}" title="Glisser pour déplacer la tâche (avec ses sous-tâches)"></span>` : "";
               const tip = d.invalid ? ' title="Valeur non numérique : le calcul est bloqué"' : d.calc ? ' title="Calculé à partir des tâches filles"' : "";
-              return `<div class="${cls}" data-r="${r}" data-c="${i}" style="width:${colWidth(c)}px"${tip}>${grip}${content}</div>`;
+              return `<div class="${cls}" data-r="${r}" data-c="${i}" style="${style}"${tip}>${grip}${content}</div>`;
             }).join("")}</div>`;
           }).join("") + treeSVG()
         : `<div class="table-empty">Aucune tâche. Cliquez sur « Ajouter une tâche » pour commencer.</div>`;
@@ -1187,7 +1348,7 @@ const ProjectView = {
     const ensureVisible = (r, c) => {
       const cell = cellEl(r, c);
       if (!cell) return;
-      const top = r * rowH, bottom = top + rowH, vb = el.rightBody;
+      const top = Math.max(0, visPos[r]) * rowH, bottom = top + rowH, vb = el.rightBody;
       if (top < vb.scrollTop) vb.scrollTop = top;
       else if (bottom > vb.scrollTop + vb.clientHeight) vb.scrollTop = bottom - vb.clientHeight;
       const lb = el.leftBody;
@@ -1201,6 +1362,8 @@ const ProjectView = {
     const select = (r, c, extend = false) => {
       if (!p.tasks.length) { sel = null; renderRows(); highlightGantt(); return; }
       r = clampR(r); c = clampC(c);
+      Tree.compute(p); refreshVis();
+      while (r > 0 && visPos[r] < 0) r--;   // ligne masquée : on remonte à sa tâche mère
       if (extend && sel) { sel.r2 = r; sel.c2 = c; }
       else sel = { r, c, r2: r, c2: c };
       renderRows();
@@ -1252,15 +1415,15 @@ const ProjectView = {
       input.addEventListener("keydown", (e) => {
         e.stopPropagation();
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); finish(true); saveNow(); }
-        else if (e.key === "Enter") { e.preventDefault(); finish(true, () => select(sel.r + (e.shiftKey ? -1 : 1), sel.c)); }
+        else if (e.key === "Enter") { e.preventDefault(); finish(true, () => select(stepRow(sel.r, e.shiftKey ? -1 : 1), sel.c)); }
         else if (e.key === "Escape") { e.preventDefault(); finish(false); }
         else if (e.key === "Tab") {
           e.preventDefault();
           if (isNivCol(sel.c)) finish(true, () => indent(e.shiftKey ? -1 : 1));
           else finish(true, () => select(sel.r, sel.c + (e.shiftKey ? -1 : 1)));
         }
-        else if (e.key === "ArrowUp") { e.preventDefault(); finish(true, () => select(sel.r - 1, sel.c)); }
-        else if (e.key === "ArrowDown") { e.preventDefault(); finish(true, () => select(sel.r + 1, sel.c)); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); finish(true, () => select(stepRow(sel.r, -1), sel.c)); }
+        else if (e.key === "ArrowDown") { e.preventDefault(); finish(true, () => select(stepRow(sel.r, 1), sel.c)); }
       });
       input.addEventListener("blur", () => finish(true));
     };
@@ -1285,8 +1448,7 @@ const ProjectView = {
     const startRowDrag = (e, r) => {
       if (editor) editor.input.blur();
       const end = blockEnd(r);
-      const rows = [...el.leftBody.querySelectorAll(".trow")];
-      for (let k = r; k < end; k++) rows[k]?.classList.add("moving");
+      for (let k = r; k < end; k++) el.leftBody.querySelector(`.tcell[data-r="${k}"]`)?.parentElement.classList.add("moving");
       const line = document.createElement("div");
       line.className = "drop-line";
       line.style.display = "none";
@@ -1298,10 +1460,11 @@ const ProjectView = {
       const update = () => {
         const box = el.leftBody.getBoundingClientRect();
         const y = lastY - box.top + el.leftBody.scrollTop;
-        target = Math.max(0, Math.min(p.tasks.length, Math.round(y / rowH)));
+        const pos = Math.max(0, Math.min(vis.length, Math.round(y / rowH)));
+        target = pos < vis.length ? vis[pos] : p.tasks.length;
         const inside = target >= r && target <= end;   // dans son propre bloc : rien ne bouge
         line.style.display = inside ? "none" : "block";
-        line.style.top = target * rowH + "px";
+        line.style.top = pos * rowH + "px";
         if (inside) target = null;
       };
       const autoScroll = () => {
@@ -1335,7 +1498,17 @@ const ProjectView = {
       scrollTimer = setInterval(autoScroll, 30);
     };
 
+    const toggleGroup = (r) => {
+      const t = p.tasks[r];
+      t.collapsed = !t.collapsed;
+      save();
+      renderRows(); renderGantt();
+      if (sel && visPos[sel.r] < 0) select(r, sel.c);
+    };
+
     el.leftBody.addEventListener("mousedown", (e) => {
+      const tw = e.target.closest(".twisty");
+      if (tw && e.button === 0) { e.preventDefault(); if (editor) editor.input.blur(); toggleGroup(+tw.dataset.r); return; }
       const grip = e.target.closest(".grip");
       if (grip && e.button === 0) { e.preventDefault(); startRowDrag(e, +grip.dataset.r); return; }
       const cell = e.target.closest(".tcell[data-r]");
@@ -1368,8 +1541,8 @@ const ProjectView = {
       if (moves[e.key]) {
         e.preventDefault();
         const [dr, dc] = moves[e.key];
-        if (e.shiftKey) select(sel.r2 + dr, sel.c2 + dc, true);
-        else select(sel.r + dr, sel.c + dc);
+        if (e.shiftKey) select(dr ? stepRow(sel.r2, dr) : sel.r2, sel.c2 + dc, true);
+        else select(dr ? stepRow(sel.r, dr) : sel.r, sel.c + dc);
         return;
       }
       if (e.key === "Tab") {
@@ -1427,10 +1600,16 @@ const ProjectView = {
       }
       const r0 = R.r1, c0 = R.c1;
       const width = Math.min(Math.max(...data.map((row) => row.length)), COLUMNS.length - c0);
-      // ajoute les lignes manquantes
-      while (p.tasks.length < r0 + data.length) p.tasks.push(Task.create(1));
       const pasted = (key) => COL[key] >= c0 && COL[key] < c0 + width;
-      const tasks = p.tasks.slice(r0, r0 + data.length);
+      // lignes affichées à partir de la sélection ; ajoute les lignes manquantes en fin de tableau
+      const pos0 = Math.max(0, visPos[r0]);
+      const tasks = data.map((_, i) => {
+        const r = vis[pos0 + i];
+        if (r != null) return p.tasks[r];
+        const t = Task.create(1);
+        p.tasks.push(t);
+        return t;
+      });
       mutate(() => data.forEach((row, i) => {
         const t = tasks[i];
         for (let j = 0; j < width; j++) {
@@ -1441,7 +1620,7 @@ const ProjectView = {
           commitCell(t, key, row[j] ?? "");
         }
       }));
-      sel = { r: r0, c: c0, r2: r0 + data.length - 1, c2: c0 + width - 1 };
+      sel = { r: r0, c: c0, r2: p.tasks.indexOf(tasks[tasks.length - 1]), c2: c0 + width - 1 };
       renderRows(); highlightGantt();
       toast(`${data.length} ligne${data.length > 1 ? "s" : ""} collée${data.length > 1 ? "s" : ""}`);
     });
@@ -1450,7 +1629,8 @@ const ProjectView = {
     root.querySelector('[data-act="add"]').addEventListener("click", () => {
       if (editor) editor.input.blur();
       const R = rect();
-      const at = R ? R.r2 + 1 : p.tasks.length;
+      // une nouvelle tâche se place après le groupe de la tâche sélectionnée (pas au milieu de ses filles)
+      const at = R ? Tree.blockEnd(p, R.r2) : p.tasks.length;
       const level = R ? p.tasks[R.r2].level : 1;
       p.tasks.splice(at, 0, Task.create(level));
       save();
@@ -1461,7 +1641,9 @@ const ProjectView = {
     el.del.addEventListener("click", async () => {
       if (!sel) return;
       const R = rect();
-      const victims = p.tasks.slice(R.r1, R.r2 + 1);
+      let end = R.r2 + 1;
+      for (let r = R.r1; r <= R.r2; r++) if (p.tasks[r].collapsed && Task.isParent(p.tasks[r])) end = Math.max(end, Tree.blockEnd(p, r));
+      const victims = p.tasks.slice(R.r1, end);
       const named = victims.filter((t) => t.label.trim());
       if (named.length) {
         const ok = await confirmDialog({
@@ -1580,25 +1762,32 @@ const ProjectView = {
     };
 
     const linkPath = (a, b) => {
-      const ra = p.tasks.indexOf(a), rb = p.tasks.indexOf(b);
+      const ra = visPos[p.tasks.indexOf(a)], rb = visPos[p.tasks.indexOf(b)];
       const ea = Task.end(a), da = Task.duration(a), db = Task.duration(b), sa = Task.start(a), sb = Task.start(b);
-      if (ra < 0 || rb < 0 || !ea || !sb || db == null) return null;
-      const x1 = da === 0 && !Task.isParent(a) ? dayX(sa) + dw / 2 + 8 : dayX(ea) + dw;
+      if (ra == null || rb == null || ra < 0 || rb < 0 || !ea || !sb || db == null) return null;
+      const msA = da === 0 && !Task.isParent(a), msB = db === 0 && !Task.isParent(b);
+      const x1 = msA ? dayX(sa) + dw / 2 + 8 : dayX(ea) + dw;
       const y1 = ra * rowH + rowH / 2;
-      const x2 = db === 0 && !Task.isParent(b) ? dayX(sb) + dw / 2 - 8 : dayX(sb);
+      const x2 = msB ? dayX(sb) + dw / 2 - 8 : dayX(sb);
       const y2 = rb * rowH + rowH / 2;
       if (x2 - x1 >= 16) return `M${x1} ${y1} H${x1 + 8} V${y2} H${x2 - 1}`;
-      const ym = rb > ra ? rb * rowH : (rb + 1) * rowH;
-      return `M${x1} ${y1} H${x1 + 8} V${ym} H${x2 - 10} V${y2} H${x2 - 1}`;
+      // tâches très proches : la flèche arrive par-dessus (ou par-dessous) la tâche liée
+      const wB = msB ? 14 : (Dates.diffDays(sb, Task.end(b)) + 1) * dw;
+      const xv = Math.max(x1 + 6, (msB ? dayX(sb) + dw / 2 : x2) + Math.min(10, wB / 2));
+      const half = Task.isParent(b) ? (rb > ra ? 4 : 10) : msB ? 6 : barH() / 2;
+      const yEnd = rb > ra ? y2 - half - 1 : y2 + half + 1;
+      return `M${x1} ${y1} H${xv} V${yEnd}`;
     };
 
     const renderGantt = () => {
       Tree.compute(p);
       computeRange();
       renderGanttHead();
-      const W = range.days * dw, H = p.tasks.length * rowH;
+      refreshVis();
+      const W = range.days * dw, H = vis.length * rowH;
       const R = rect();
-      const rows = p.tasks.map((t, r) => {
+      const rows = vis.map((r) => {
+        const t = p.tasks[r];
         const d = Task.duration(t), st = Task.start(t), parent = Task.isParent(t);
         let bar = "";
         if (d != null && st) {
@@ -1781,9 +1970,9 @@ const ProjectView = {
           resetBar();
           const box = canvasBox();
           const x = ev.clientX - box.left, y = ev.clientY - box.top;
-          const x0 = parseFloat(bar.style.left) + bar.offsetWidth, y0 = r * rowH + rowH / 2;
+          const x0 = parseFloat(bar.style.left) + bar.offsetWidth, y0 = visPos[r] * rowH + rowH / 2;
           ghost.setAttribute("d", `M${x0} ${y0} L${x} ${y}`);
-          const rr = Math.floor(y / rowH);
+          const rr = vis[Math.floor(y / rowH)];
           const target = p.tasks[rr];
           if (target && rr !== r && Task.start(target) && Task.duration(target) != null) {
             dropRow = rr;
