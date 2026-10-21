@@ -188,7 +188,9 @@ button { font: inherit; color: inherit; }
 .zoom-label { font-size: 12px; color: var(--text-muted); min-width: 64px; text-align: center; }
 .split { flex: 1; min-height: 0; display: flex; background: var(--surface); }
 .pane { display: flex; flex-direction: column; min-width: 0; }
-.pane-left { flex: 0 0 auto; }
+.pane-left { flex: 0 0 auto; position: relative; }
+/* boutons du tableau : dans l'en-tête du tableau, au-dessus des titres de colonnes */
+.table-tools { position: absolute; top: 7px; left: 28px; max-width: calc(100% - 36px); z-index: 5; display: flex; align-items: center; gap: 8px; overflow: hidden; padding-right: 8px; background: var(--surface-2); }
 .pane-right { flex: 1 1 auto; }
 .pane-head {
   flex: 0 0 auto; height: var(--head-h); overflow: hidden;
@@ -222,12 +224,12 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .pane-left .pane-body .tcell[data-c="0"] { overflow: visible; }
 .tcell {
   position: relative; flex: 0 0 auto; border-right: 1px solid var(--grid-line);
-  padding: 0 10px; line-height: calc(var(--row-h) - 1px);
+  padding: 0 calc(10px * var(--scale, 1)); line-height: calc(var(--row-h) - 1px);
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   user-select: none; cursor: cell; font-size: var(--cell-font);
 }
 .tcell.num { text-align: right; }
-.tcell.compact { padding-left: 6px; padding-right: 6px; }   /* colonnes de valeurs étroites : une date tient en entier */
+.tcell.compact { padding-left: calc(4px * var(--scale, 1)); padding-right: calc(4px * var(--scale, 1)); }   /* colonnes de valeurs étroites : une date tient en entier */
 .tcell.center { text-align: center; }
 .tcell.lvl1 { font-weight: 600; }
 /* libellé d'un niveau qui déborde sur les colonnes Niv suivantes (vides) */
@@ -263,7 +265,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .thead-row .tcell[data-fixed] { padding: 0 0 8px; justify-content: center; text-align: center; font-size: 11px; }
 .thead-row .tcell {
   display: flex; align-items: flex-end; padding-bottom: 8px; line-height: 1.25;
-  white-space: normal; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: default;
+  white-space: normal; font-size: var(--head-font, 12px); font-weight: 600; color: var(--text-muted); cursor: default;
 }
 .col-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 2; }
 .col-resize:hover { background: linear-gradient(to right, transparent 3px, var(--accent) 3px 5px, transparent 5px); }
@@ -1509,16 +1511,24 @@ const setTip = (el, name, desc = "", kbd = "") => {
   if (desc) el.dataset.desc = desc; else delete el.dataset.desc;
   if (kbd) el.dataset.kbd = kbd; else delete el.dataset.kbd;
 };
+// toutes les bulles d'information de l'application passent par ici (les bulles du navigateur, « title »,
+// sont converties au survol) : elles n'apparaissent qu'après 2 secondes immobile sur l'objet
+const TIP_DELAY = 2000;
 const Tip = {
-  el: null, timer: null, target: null,
+  el: null, timer: null, target: null, x: 0, y: 0,
   show(t) {
     this.target = t;
     if (!this.el) { this.el = document.createElement("div"); this.el.className = "tip"; this.el.setAttribute("role", "tooltip"); }
-    const kbd = t.dataset.kbd ? t.dataset.kbd.split("|").map((v) => v.split("+").map((k) => `<kbd>${esc(k.trim())}</kbd>`).join(" + ")).join(" ou ") : "";
-    this.el.innerHTML = `<b>${esc(t.dataset.tip)}</b>${t.dataset.desc ? `<div class="tip-desc">${esc(t.dataset.desc)}</div>` : ""}${kbd ? `<div class="tip-kbd">${kbd}</div>` : ""}`;
+    const rich = t.dataset.tip != null;
+    if (rich) {
+      const kbd = t.dataset.kbd ? t.dataset.kbd.split("|").map((v) => v.split("+").map((k) => `<kbd>${esc(k.trim())}</kbd>`).join(" + ")).join(" ou ") : "";
+      this.el.innerHTML = `<b>${esc(t.dataset.tip)}</b>${t.dataset.desc ? `<div class="tip-desc">${esc(t.dataset.desc)}</div>` : ""}${kbd ? `<div class="tip-kbd">${kbd}</div>` : ""}`;
+    } else this.el.innerHTML = esc(t.dataset.text).replace(/\n/g, "<br>");
     this.el.classList.remove("on");
     document.body.appendChild(this.el);
-    const r = t.getBoundingClientRect(), w = this.el.offsetWidth, h = this.el.offsetHeight;
+    const w = this.el.offsetWidth, h = this.el.offsetHeight;
+    // bouton : sous le bouton ; autre objet (barre, cellule…) : près du pointeur
+    const r = rich ? t.getBoundingClientRect() : { left: this.x - 8, width: 16, top: this.y - 10, bottom: this.y + 12 };
     const left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
     const top = r.bottom + 8 + h > window.innerHeight ? r.top - h - 8 : r.bottom + 8;
     Object.assign(this.el.style, { left: left + "px", top: top + "px" });
@@ -1531,11 +1541,20 @@ const Tip = {
   },
 };
 document.addEventListener("pointerover", (e) => {
-  const t = e.target.closest && e.target.closest("[data-tip]");
+  const t = e.target.closest && e.target.closest("[data-tip], [data-text], [title]");
+  if (t && t.hasAttribute("title")) {
+    // bulle du navigateur (immédiate) remplacée par la nôtre (différée)
+    if (t.getAttribute("title")) t.dataset.text = t.getAttribute("title");
+    t.removeAttribute("title");
+  }
   if (t === Tip.target) return;
   Tip.hide();
-  if (t && e.pointerType !== "touch") { Tip.target = t; Tip.timer = setTimeout(() => { if (t.isConnected) Tip.show(t); }, 350); }
+  if (t && (t.dataset.tip != null || t.dataset.text) && e.pointerType !== "touch") {
+    Tip.target = t;
+    Tip.timer = setTimeout(() => { if (t.isConnected && Tip.target === t) Tip.show(t); }, TIP_DELAY);
+  }
 });
+document.addEventListener("pointermove", (e) => { Tip.x = e.clientX; Tip.y = e.clientY; }, { passive: true });
 document.addEventListener("pointerdown", () => Tip.hide(), true);
 document.addEventListener("keydown", () => Tip.hide(), true);
 window.addEventListener("blur", () => Tip.hide());
@@ -2320,26 +2339,11 @@ const ProjectView = {
     Files.remember(p);
     root.innerHTML = `
       <div class="project-page">
-        <!-- ruban unique : infos du document · boutons du tableau · boutons du planning · boutons du fichier -->
+        <!-- ruban : infos du document · boutons du planning · boutons du fichier (ceux du tableau sont dans son en-tête) -->
         <header class="topbar ribbon">
           <div class="rb-block rb-doc">
             <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
             <h1 class="project-title"></h1>
-          </div>
-          <div class="rb-gap"></div>
-          <div class="rb-block" aria-label="Tableau">
-            <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
-            <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
-            <div class="btn-group">
-              <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
-              <button class="icon-btn" data-act="collapse-all" ${tipAttrs("Tout réduire", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.collapseAll}</button>
-            </div>
-            <button class="icon-btn filter-btn" data-act="filter" ${tipAttrs("Filtrer", "Une recherche par colonne · Échap efface le filtre en cours")}>${ICONS.filter}<span class="badge" hidden></span></button>
-            <div class="btn-group">
-              <button class="icon-btn" data-act="row-down" ${tipAttrs("Lignes moins hautes", "", "Ctrl+molette")}>${ICONS.minus}</button>
-              <span class="zoom-label">Hauteur</span>
-              <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
-            </div>
           </div>
           <div class="rb-gap"></div>
           <div class="rb-block" aria-label="Planning">
@@ -2365,6 +2369,20 @@ const ProjectView = {
         </header>
         <div class="split">
           <section class="pane pane-left">
+            <div class="table-tools" aria-label="Tableau">
+              <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
+              <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
+              <div class="btn-group">
+                <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
+                <button class="icon-btn" data-act="collapse-all" ${tipAttrs("Tout réduire", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.collapseAll}</button>
+              </div>
+              <button class="icon-btn filter-btn" data-act="filter" ${tipAttrs("Filtrer", "Une recherche par colonne · Échap efface le filtre en cours")}>${ICONS.filter}<span class="badge" hidden></span></button>
+              <div class="btn-group">
+                <button class="icon-btn" data-act="row-down" ${tipAttrs("Lignes moins hautes", "", "Ctrl+molette")}>${ICONS.minus}</button>
+                <span class="zoom-label">Hauteur</span>
+                <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
+              </div>
+            </div>
             <div class="pane-head"></div>
             <div class="pane-body" tabindex="0" aria-label="Tableau des tâches"></div>
           </section>
@@ -2589,9 +2607,13 @@ const ProjectView = {
     const barH = () => Math.max(6, Math.min(20, rowH - 8));
     // taille du texte du tableau proportionnelle à la hauteur des lignes
     const cellFont = () => Math.max(8, Math.min(22, Math.round(rowH * 0.5)));
+    // hauteur des lignes, police et largeur des colonnes suivent ensemble : échelle 1 pour 24 px
+    const scale = () => cellFont() / 12;   // police de 12 px à 24 px de hauteur
     const applyRowH = () => {
       el.page.style.setProperty("--row-h", rowH + "px");
       el.page.style.setProperty("--cell-font", cellFont() + "px");
+      el.page.style.setProperty("--head-font", Math.max(8, Math.min(15, Math.round(12 * scale()))) + "px");
+      el.page.style.setProperty("--scale", scale());
       el.page.style.setProperty("--bar-h", barH() + "px");
     };
     applyRowH();
@@ -2599,7 +2621,8 @@ const ProjectView = {
     let sel = null;      // sélection { r, c, r2, c2 } : (r, c) = cellule active, (r2, c2) = autre coin
     let editor = null;   // champ de saisie ouvert
 
-    const colWidth = (c) => (!c.fixed && p.ui.colWidths && p.ui.colWidths[c.key]) || c.w;
+    // largeur affichée = largeur de référence (réglée par l'utilisateur ou d'origine) × échelle des lignes
+    const colWidth = (c) => Math.round(((p.ui.colWidths && p.ui.colWidths[c.key]) || c.w) * scale());
     const rect = () => sel && {
       r1: Math.min(sel.r, sel.r2), r2: Math.max(sel.r, sel.r2),
       c1: Math.min(sel.c, sel.c2), c2: Math.max(sel.c, sel.c2),
@@ -2622,7 +2645,7 @@ const ProjectView = {
     // retrait du nom selon le niveau (24 px par niveau) ;
     // le bouton réduire/déployer est juste à gauche du nom (dans la marge pour le niveau 1)
     const GUTTER = 28, INDENT = 24;
-    const indentOf = (t) => (t.level - 1) * INDENT;
+    const indentOf = (t) => Math.round((t.level - 1) * INDENT * scale());   // retrait proportionnel à la hauteur des lignes
     const twistyLeft = () => -14;
     const labelLeft = () => 4;
 
@@ -2826,7 +2849,7 @@ const ProjectView = {
     // (les boutons du ruban, les lignes du planning et les fenêtres gardent la sélection)
     on(document, "pointerdown", (e) => {
       if (!sel || e.button !== 0) return;
-      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .pane-right .grow, .topbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .pane-right .grow, .topbar button, .table-tools button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
       deselect();
     });
 
@@ -3305,8 +3328,8 @@ const ProjectView = {
       document.body.classList.add("resizing");
       const move = (ev) => {
         p.ui.colWidths = p.ui.colWidths || {};
-        p.ui.colWidths[col.key] = Math.max(MIN_COL, Math.round(startW + ev.clientX - startX));
-        el.leftHead.querySelectorAll(".tcell")[+h.dataset.c].style.width = p.ui.colWidths[col.key] + "px";
+        p.ui.colWidths[col.key] = Math.max(MIN_COL, Math.round((startW + ev.clientX - startX) / scale()));
+        el.leftHead.querySelectorAll(".tcell")[+h.dataset.c].style.width = colWidth(col) + "px";
         renderRows();
       };
       const up = () => {
@@ -3440,7 +3463,7 @@ const ProjectView = {
         if (!d) return "";
         const gap = Links.slack(p, l);
         const info = gap ? `Commence ${gap} jour${gap > 1 ? "s" : ""} ouvré${gap > 1 ? "s" : ""} après le plus tôt possible\n` : "";
-        return `<path class="link-hit" data-link="${i}" d="${d}"><title>${info}Cliquer pour supprimer ce lien</title></path><path class="link${gap ? " slack" : ""}" d="${d}" marker-end="url(#arrow)"/>`;
+        return `<path class="link-hit" data-link="${i}" d="${d}" data-text="${esc(info + "Cliquer pour supprimer ce lien")}"></path><path class="link${gap ? " slack" : ""}" d="${d}" marker-end="url(#arrow)"/>`;
       }).join("");
       const today = Dates.diffDays(range.start, todayISO());
       const bg = dw >= 14
@@ -3671,6 +3694,7 @@ const ProjectView = {
       p.ui.rowHeight = rowH;
       Store.save();
       applyRowH();
+      renderTableHead();   // largeurs des colonnes
       renderRows();
       renderGantt();
       el.rightBody.scrollTop = top * rowH;
