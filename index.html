@@ -271,7 +271,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .col-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 2; }
 .col-resize:hover { background: linear-gradient(to right, transparent 3px, var(--accent) 3px 5px, transparent 5px); }
 .cell-editor {
-  position: absolute; inset: 0; width: 100%; height: 100%;
+  position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box;
   border: 2px solid var(--accent); padding: 0 8px; margin: 0;
   font: inherit; color: var(--text); background: var(--surface); outline: none;
 }
@@ -280,11 +280,8 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .table-empty { padding: 32px 24px; color: var(--text-muted); }
 /* poignée pour déplacer une tâche (et ses sous-tâches) dans le tableau */
 .pane-left .pane-body { position: relative; }
-/* colonnes Niv 1 à 3 (24 px) : aucune marge, sinon la cellule s'élargit et décale les colonnes suivantes */
-.tcell[data-c="0"], .tcell[data-c="1"], .tcell[data-c="2"] { padding: 0; }
-/* pas de trait vertical entre les colonnes Niv 1, 2, 3 et 4 */
-.tcell[data-c="0"], .tcell[data-c="1"], .tcell[data-c="2"],
-.thead-row .tcell[data-fixed] { border-right-color: transparent; }
+/* colonne Tâche : le nom est placé selon son niveau (retrait), dans un bloc qui s'arrête au bord de la colonne */
+.pane-left .pane-body .tcell[data-c="0"] { padding: 0; }
 .tree-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; overflow: visible; }
 .tree-svg { opacity: .45; }
 .tree-svg .tree-line { fill: none; stroke: var(--text-muted); stroke-width: 1.2; }
@@ -834,6 +831,9 @@ const Store = {
       delete p.name;
     }
     p.title = p.title || "Projet";
+    // ancienne colonne « 4 » (220 px) → colonne Tâche (avec les 3 colonnes de 24 px)
+    const cw = p.ui.colWidths;
+    if (cw && cw.niv4 != null) { if (cw.label == null) cw.label = cw.niv4 + 72; delete cw.niv4; }
     p.tasks.forEach((t) => {
       if ("realise" in t || "surveille" in t) {
         if (!t.responsable) t.responsable = [t.realise, t.surveille].map((x) => (x || "").trim()).filter(Boolean).join(" / ");
@@ -1670,11 +1670,8 @@ const MenuView = {
    Tableau : colonnes, affichage et saisie des cellules
    ============================================================ */
 const COLUMNS = [
-  // Niv 1 à 3 : colonnes étroites et fixes (retrait des niveaux) ; le libellé déborde sur les suivantes
-  { key: "niv1", label: "1", title: "Niveau 1", w: 24, fixed: true },
-  { key: "niv2", label: "2", title: "Niveau 2", w: 24, fixed: true },
-  { key: "niv3", label: "3", title: "Niveau 3", w: 24, fixed: true },
-  { key: "niv4", label: "4", title: "Niveau 4", w: 220 },
+  // une seule colonne « Tâche » : le niveau (1 à 4) se voit au retrait du nom ; Excel garde ses 4 colonnes de niveau
+  { key: "label", label: "Tâche", w: 292 },
   // largeurs par défaut : Responsable à la taille de son titre ; colonnes de valeurs toutes identiques et resserrées
   { key: "responsable", label: "Responsable", w: 96 },
   { key: "heures", label: "Heures effectives", w: 76, align: "num", compact: true },
@@ -1684,7 +1681,9 @@ const COLUMNS = [
   { key: "avancement", label: "Avancement", head: "Avance\u00adment", w: 76, align: "center", compact: true },
 ];
 const COL = Object.fromEntries(COLUMNS.map((c, i) => [c.key, i]));
-const isNivCol = (c) => c <= COL.niv4;
+const isTaskCol = (c) => c === COL.label;
+// colonnes d'Excel (copier / coller) : 4 colonnes de niveau à la place de « Tâche », puis les mêmes colonnes
+const XL_KEYS = ["niv1", "niv2", "niv3", "niv4", ...COLUMNS.slice(1).map((c) => c.key)];
 const DEFAULT_GRID_RATIO = 0.55;
 const MIN_PANE = 200;
 const MIN_COL = 50;
@@ -1708,6 +1707,7 @@ function cellDisplay(t, key) {
       : Dates.format(Task.end(t));
     return { text, calc: true };
   }
+  if (key === "label") return { text: t.label || "" };
   const m = key.match(/^niv(\d)$/);
   if (m) return { text: t.level === Number(m[1]) ? t.label : "" };
   switch (key) {
@@ -1746,6 +1746,7 @@ function commitCell(t, key, raw) {
   if (Task.isParent(t) && CALC_KEYS.includes(key)) return;   // calculé à partir des tâches filles
   raw = String(raw);
   const v = raw.trim();
+  if (key === "label") { t.label = v; return; }
   const m = key.match(/^niv(\d)$/);
   if (m) {
     const lvl = Number(m[1]);
@@ -2341,7 +2342,7 @@ const ProjectView = {
         </header>
         <div class="toolbar">
           <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
-          <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans une colonne 1 à 4)", "Suppr")}>${ICONS.trash}</button>
+          <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
           <div class="sep"></div>
           <div class="btn-group">
             <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
@@ -2353,7 +2354,7 @@ const ProjectView = {
             <span class="zoom-label">Hauteur</span>
             <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
           </div>
-          <span class="hint">Tab / Maj+Tab dans une colonne de niveau (1 à 4) : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
+          <span class="hint">Tab / Maj+Tab dans la colonne Tâche : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
           <div class="spacer"></div>
           <button class="icon-btn" data-act="today" ${tipAttrs("Aujourd'hui", "Afficher la date du jour sur le planning")}>${ICONS.today}</button>
           <div class="btn-group">
@@ -2606,10 +2607,9 @@ const ProjectView = {
       let html = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
         `<div class="tcell${c.compact ? " compact" : ""}"${c.fixed ? " data-fixed" : ""}${c.title ? ` title="${c.title}"` : ""} style="width:${colWidth(c)}px">${esc(c.head || c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
       if (showFilters) {
-        // colonnes 1 à 4 : une seule recherche « Tâche » ; puis une recherche par colonne
+        // une recherche par colonne
         const field = (k, w, ph) => `<div class="fcell" style="width:${w}px"><input class="filter-input${normTxt(filters[k]) ? " active" : ""}" data-k="${k}" value="${esc(filters[k] || "")}" placeholder="${ph}" title="Filtrer : ${ph}" spellcheck="false">${normTxt(filters[k]) ? `<button class="filter-clear" data-clear="${k}" title="Effacer ce filtre">×</button>` : ""}</div>`;
-        let cells = field("label", colLeft(COL.niv4 + 1), "Tâche…");
-        COLUMNS.forEach((c) => { if (!isNivCol(COL[c.key])) cells += field(c.key, colWidth(c), c.label + "…"); });
+        const cells = COLUMNS.map((c) => field(c.key, colWidth(c), c.label + "…")).join("");
         html += `<div class="trow filter-row">${cells}</div>`;
       }
       el.leftHead.innerHTML = html;
@@ -2617,14 +2617,15 @@ const ProjectView = {
     };
 
     const colLeft = (c) => { let x = 0; for (let k = 0; k < c; k++) x += colWidth(COLUMNS[k]); return x; };
-    // le libellé commence au bord gauche de la colonne de son niveau ;
-    // le bouton réduire/déployer est juste à gauche, dans la colonne précédente (ou la marge pour le niveau 1)
-    const GUTTER = 28;
+    // retrait du nom selon le niveau (24 px par niveau) ;
+    // le bouton réduire/déployer est juste à gauche du nom (dans la marge pour le niveau 1)
+    const GUTTER = 28, INDENT = 24;
+    const indentOf = (t) => (t.level - 1) * INDENT;
     const twistyLeft = () => -14;
     const labelLeft = () => 4;
 
     /* ---------- Filtres : une recherche texte par colonne ---------- */
-    // « label » cherche dans le nom des tâches (colonnes 1 à 4) ; les autres clés sont celles des colonnes
+    // « label » cherche dans le nom des tâches ; les autres clés sont celles des colonnes
     const FILTER_COLS = ["label", "responsable", "heures", "duree", "debut", "fin", "avancement"];
     let filters = {}, showFilters = false;
     const keepVisible = new Set();   // tâches ajoutées pendant un filtrage : restent visibles
@@ -2677,15 +2678,14 @@ const ProjectView = {
         let pr = r - 1;
         while (pr >= 0 && p.tasks[pr].level >= t.level) pr--;
         if (pr < 0) return;
-        const P = p.tasks[pr].level - 1;
-        const x = GUTTER + colLeft(P) + twistyLeft() + 6;
+        const x = GUTTER + indentOf(p.tasks[pr]) + twistyLeft() + 6;
         const y0 = visPos[pr] * rowH + rowH / 2 + 6, y = visPos[r] * rowH + rowH / 2;
         // la flèche s'arrête juste avant le bouton (tâche mère) ou le libellé (tâche simple)
-        const x2 = GUTTER + colLeft(t.level - 1) + (Task.isParent(t) ? twistyLeft() - 1 : labelLeft() - 2);
+        const x2 = GUTTER + indentOf(t) + (Task.isParent(t) ? twistyLeft() - 1 : labelLeft() - 2);
         paths += `<path class="tree-line" d="M${x} ${y0} V${y - 3} Q${x} ${y} ${x + 3} ${y} H${x2}" marker-end="url(#tree-arrow)"/>`;
       });
       if (!paths) return "";
-      return `<svg class="tree-svg" width="${GUTTER + colLeft(COL.niv4 + 1)}" height="${vis.length * rowH}"><defs><marker id="tree-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>${paths}</svg>`;
+      return `<svg class="tree-svg" width="${GUTTER + colLeft(COL.label + 1)}" height="${vis.length * rowH}"><defs><marker id="tree-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>${paths}</svg>`;
     };
     const CHEVRON = '<svg viewBox="0 0 10 10"><path d="M2 3.5L5 6.5L8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -2701,7 +2701,6 @@ const ProjectView = {
         mutate(() => { if (text) t.comment = text; else delete t.comment; });
       });
     };
-    const spillCount = (t) => (t.label ? COL.niv4 - (t.level - 1) : 0);
 
     const renderRows = () => {
       Tree.compute(p);
@@ -2713,28 +2712,24 @@ const ProjectView = {
         ? vis.map((r) => {
             const t = p.tasks[r];
             const inRows = R && r >= R.r1 && r <= R.r2;
-            const c0 = t.level - 1, spill = spillCount(t), parent = Task.isParent(t);
+            const parent = Task.isParent(t);
             return `<div class="trow${inRows ? " row-sel" : ""}${filterCtx.has(r) ? " filter-context" : ""}">${COLUMNS.map((c, i) => {
               const d = cellDisplay(t, c.key);
               let content = esc(d.text), spillCls = "";
               let style = `width:${colWidth(c)}px`;
-              if (i === c0) {
-                // colonnes 1 à 3 (24 px) : pas de marge, le libellé est placé par-dessus ; sinon la cellule
-                // s'élargirait et décalerait toutes les colonnes suivantes de la ligne
-                style += c0 < COL.niv4 ? ";padding:0" : `;padding-left:${labelLeft(t)}px`;
-                if (parent) spillCls = "spill-from";   // le bouton dépasse à gauche de la cellule
-                if (spill) {
-                  let w = -labelLeft(t) - 8;
-                  for (let k = c0; k <= c0 + spill; k++) w += colWidth(COLUMNS[k]);
-                  const cmt = t.comment ? `<span class="cmt-ico" title="${esc(commentPreview(t))}">${ICONS.comment}</span>` : "";
-                  content = `<span class="spill-text" style="left:${labelLeft(t)}px;width:${w}px"><span class="lbl">${content}</span>${cmt}</span>`;
-                  spillCls = "spill-from";
+              if (i === COL.label) {
+                // nom placé selon son niveau ; il s'arrête au bord de la colonne Tâche
+                const left = indentOf(t) + labelLeft(t);
+                const cmt = t.comment ? `<span class="cmt-ico" title="${esc(commentPreview(t))}">${ICONS.comment}</span>` : "";
+                content = `<span class="spill-text" style="left:${left}px;width:${Math.max(0, colWidth(c) - left - 6)}px"><span class="lbl">${content}</span>${cmt}</span>`;
+                if (parent) {
+                  spillCls = "spill-from";   // le bouton dépasse à gauche de la cellule (niveau 1)
+                  content = `<span class="twisty${t.collapsed ? " closed" : ""}" data-r="${r}" style="left:${indentOf(t) + twistyLeft(t)}px" title="${t.collapsed ? "Déployer" : "Réduire"} le groupe">${CHEVRON}</span>` + content;
                 }
-                if (parent) content = `<span class="twisty${t.collapsed ? " closed" : ""}" data-r="${r}" style="left:${twistyLeft(t)}px" title="${t.collapsed ? "Déployer" : "Réduire"} le groupe">${CHEVRON}</span>` + content;
-              } else if (spill && i > c0 && i < c0 + spill) spillCls = "spill-over";
+              }
               const cls = ["tcell", c.align || "", c.compact ? "compact" : "",
                 d.invalid ? "invalid" : "", d.calc ? "calc" : "",
-                isNivCol(i) && t.level === 1 ? "lvl1" : "",
+                isTaskCol(i) && t.level === 1 ? "lvl1" : "",
                 inRows && i >= R.c1 && i <= R.c2 && (R.r1 !== R.r2 || R.c1 !== R.c2) ? "in-range" : "",
                 sel && sel.r === r && sel.c === i ? "sel" : "", spillCls].join(" ");
               const grip = i === 0 ? `<span class="grip" data-r="${r}" title="Glisser pour déplacer la tâche (avec ses sous-tâches)"></span>` : "";
@@ -2894,6 +2889,7 @@ const ProjectView = {
       const editValue = () => (key === "avancement" ? t.avancement || "" : key === "heures" ? String(t.heures ?? "")
         : key === "duree" && t.dureeFormula ? t.dureeFormula : cellDisplay(t, key).text);
       input.value = initial != null ? initial : editValue();
+      if (key === "label") input.style.paddingLeft = indentOf(t) + labelLeft() - 2 + "px";   // le texte reste à sa place (retrait du niveau)
       cell.textContent = "";
       cell.classList.remove("invalid");
       cell.appendChild(input);
@@ -2928,7 +2924,7 @@ const ProjectView = {
         else if (e.key === "Escape") { e.preventDefault(); finish(false); }
         else if (e.key === "Tab") {
           e.preventDefault();
-          if (isNivCol(sel.c)) finish(true, () => indent(e.shiftKey ? -1 : 1));
+          if (isTaskCol(sel.c)) finish(true, () => indent(e.shiftKey ? -1 : 1));
           else finish(true, () => select(sel.r, sel.c + (e.shiftKey ? -1 : 1)));
         }
         else if (e.key === "ArrowUp") { e.preventDefault(); finish(true, () => select(stepRow(sel.r, -1), sel.c)); }
@@ -2942,10 +2938,6 @@ const ProjectView = {
       if (!sel) return;
       const R = rect();
       const tasks = p.tasks.slice(R.r1, R.r2 + 1);
-      if (isNivCol(sel.c)) {
-        const c = Math.max(1, Math.min(4, p.tasks[sel.r].level + delta)) - 1;
-        sel.c = c; sel.c2 = c;
-      }
       mutate(() => tasks.forEach((t) => { t.level = Math.max(1, Math.min(4, t.level + delta)); }));
     };
 
@@ -3000,7 +2992,7 @@ const ProjectView = {
           block = p.tasks.splice(r, end - r);
           p.tasks.splice(at, 0, ...block);
         });
-        select(at, block[0].level - 1);
+        select(at, COL.label);
         el.leftBody.focus({ preventScroll: true });
       };
       window.addEventListener("mousemove", move);
@@ -3066,13 +3058,13 @@ const ProjectView = {
       // double-clic (détecté ici car le tableau est redessiné entre les deux clics) :
       // nom de la tâche → commentaires ; autres cellules → modifier (dates : calendrier)
       if (e.detail >= 2 && !e.shiftKey && sel && sel.r === r && sel.c === c) {
-        if (isNivCol(c)) openComments(r); else openEditor();
+        if (isTaskCol(c)) openComments(r); else openEditor();
         return;
       }
       select(r, c, e.shiftKey);
       dragSel = true;
       // clic simple sur le nom : modification après un court instant (annulée par un double-clic ou une sélection étendue)
-      pendingEdit = isNivCol(c) && !e.shiftKey && e.detail === 1 ? { r, c } : null;
+      pendingEdit = isTaskCol(c) && !e.shiftKey && e.detail === 1 ? { r, c } : null;
       el.leftBody.focus({ preventScroll: true });
     });
     let pendingEdit = null, clickEdit = null;
@@ -3133,14 +3125,14 @@ const ProjectView = {
       if (e.key === "Tab") {
         e.preventDefault();
         // Tab / Maj+Tab changent le niveau uniquement depuis une colonne Niv ; ailleurs, ils passent à la cellule voisine
-        if (isNivCol(sel.c)) indent(e.shiftKey ? -1 : 1);
+        if (isTaskCol(sel.c)) indent(e.shiftKey ? -1 : 1);
         else select(sel.r, sel.c + (e.shiftKey ? -1 : 1));
         return;
       }
       if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); openEditor(); return; }
       if (e.key === "Delete") {
         e.preventDefault();
-        if (isNivCol(sel.c)) deleteSelection(); else clearRange();   // colonnes 1 à 4 : la tâche ; ailleurs : le contenu
+        if (isTaskCol(sel.c)) deleteSelection(); else clearRange();   // colonne Tâche : la tâche ; ailleurs : le contenu
         return;
       }
       if (e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
@@ -3170,7 +3162,11 @@ const ProjectView = {
       const lines = [];
       for (let r = R.r1; r <= R.r2; r++) {
         const cells = [];
-        for (let c = R.c1; c <= R.c2; c++) cells.push(toTSVCell(cellDisplay(p.tasks[r], COLUMNS[c].key).text));
+        for (let c = R.c1; c <= R.c2; c++) {
+          // la colonne Tâche part dans Excel sur ses 4 colonnes de niveau (1 à 4)
+          const keys = isTaskCol(c) ? XL_KEYS.slice(0, 4) : [COLUMNS[c].key];
+          keys.forEach((k) => cells.push(toTSVCell(cellDisplay(p.tasks[r], k).text)));
+        }
         lines.push(cells.join("\t"));
       }
       e.clipboardData.setData("text/plain", lines.join("\r\n"));
@@ -3189,8 +3185,13 @@ const ProjectView = {
         data = Array.from({ length: R.r2 - R.r1 + 1 }, () => Array(R.c2 - R.c1 + 1).fill(data[0][0]));
       }
       const r0 = R.r1, c0 = R.c1;
-      const width = Math.min(Math.max(...data.map((row) => row.length)), COLUMNS.length - c0);
-      const pasted = (key) => COL[key] >= c0 && COL[key] < c0 + width;
+      // colonnes collées : à partir de la colonne Tâche, des données d'au moins 4 colonnes sont lues
+      // comme dans Excel (niveaux 1 à 4 puis Responsable…) ; sinon colonne par colonne
+      const dataW = Math.max(...data.map((row) => row.length));
+      const xl = isTaskCol(c0) && dataW >= 4;
+      const keys = (xl ? XL_KEYS : COLUMNS.slice(c0).map((c) => c.key)).slice(0, dataW);
+      const width = keys.length;
+      const pasted = (key) => keys.includes(key);
       // lignes affichées à partir de la sélection ; ajoute les lignes manquantes en fin de tableau
       const pos0 = Math.max(0, visPos[r0]);
       const tasks = data.map((_, i) => {
@@ -3203,7 +3204,7 @@ const ProjectView = {
       mutate(() => data.forEach((row, i) => {
         const t = tasks[i];
         for (let j = 0; j < width; j++) {
-          const key = COLUMNS[c0 + j].key;
+          const key = keys[j];
           // Durée et Date fin sont recalculées si Heures est collée en même temps
           if (key === "duree" && pasted("heures")) continue;
           if (key === "fin" && (pasted("heures") || pasted("duree"))) continue;
@@ -3212,7 +3213,8 @@ const ProjectView = {
           commitCell(t, key, row[j] ?? "");
         }
       }));
-      sel = { r: r0, c: c0, r2: p.tasks.indexOf(tasks[tasks.length - 1]), c2: c0 + width - 1 };
+      const lastKey = keys[width - 1];
+      sel = { r: r0, c: c0, r2: p.tasks.indexOf(tasks[tasks.length - 1]), c2: /^niv/.test(lastKey) ? COL.label : COL[lastKey] };
       renderRows(); highlightGantt();
       toast(`${data.length} ligne${data.length > 1 ? "s" : ""} collée${data.length > 1 ? "s" : ""}`);
     });
@@ -3230,7 +3232,7 @@ const ProjectView = {
       added();
       save();
       renderAll();
-      select(at, level - 1);
+      select(at, COL.label);
       el.leftBody.focus({ preventScroll: true });
     });
     // supprime les tâches sélectionnées (bouton Supprimer ou touche Suppr), après confirmation

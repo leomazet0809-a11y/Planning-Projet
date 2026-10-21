@@ -27,20 +27,21 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Action | Comment |
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic, Entrée ou F2 pour modifier le contenu existant) |
-| Renommer une tâche | Un simple clic sur son nom (colonnes 1 à 4) ouvre la modification après un court instant |
+| Colonne Tâche | Dans l'application, le nom de la tâche occupe une seule colonne « Tâche » (retrait selon le niveau, largeur réglable) ; dans Excel et pour le copier / coller, il reste réparti sur les colonnes 1 à 4 |
+| Renommer une tâche | Un simple clic sur son nom (colonne Tâche) ouvre la modification après un court instant |
 | Commentaires | Double-clic sur le nom de la tâche, ou sur sa barre dans le planning : une fenêtre s'ouvre ; la croix (ou Échap) la ferme et enregistre. Une bulle signale les tâches commentées (dans le tableau, et au survol de la barre). Les commentaires sont aussi dans la colonne « Commentaires » du fichier Excel |
 | Valider / annuler | Entrée / Échap |
 | Filtrer | Bouton entonnoir : une recherche par colonne (Tâche, Responsable, Heures, Durée, Dates, Avancement), sans tenir compte des majuscules ni des accents ; les filtres se combinent. Les tâches mères des tâches trouvées restent affichées en pâle. Échap efface le filtre en cours. |
 | Choisir une date | Double-clic sur Date début ou Date fin : un calendrier s'ouvre (la saisie au clavier reste possible) |
 | Se déplacer | Flèches du clavier |
-| Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis une cellule des colonnes de niveau (1 à 4) |
+| Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis la colonne Tâche ; le niveau se voit au retrait du nom |
 | Déplacer une tâche | Glisser la poignée ⋮⋮ au début de la ligne (la tâche part avec ses sous-tâches) |
 | Hauteur des lignes | Boutons − / + « Hauteur » ou Ctrl + molette au-dessus du tableau |
 | Défiler | Molette au-dessus du tableau ou du planning (les deux restent alignés) |
 | Sélectionner plusieurs cellules | Glisser la souris, ou Maj + clic, ou Maj + flèches |
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
 | Effacer le contenu des cellules | Retour arrière (⌫), ou Suppr dans les colonnes Responsable à Avancement |
-| Supprimer les tâches sélectionnées | Suppr dans une colonne de niveau (1 à 4), puis Entrée pour confirmer (Oui) |
+| Supprimer les tâches sélectionnées | Suppr dans la colonne Tâche, puis Entrée pour confirmer (Oui) |
 | Monter / descendre une tâche | Alt + ↑ / Alt + ↓ : la tâche (avec ses sous-tâches) passe au-dessus / en dessous de la tâche voisine du même groupe |
 | Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture du projet, même après F5) / Ctrl + Y |
 | Largeur d'une colonne | Glisser le bord droit de son en-tête (double-clic : taille d'origine) |
