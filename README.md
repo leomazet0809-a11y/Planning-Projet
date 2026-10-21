@@ -20,7 +20,7 @@ Chaque projet est un fichier **`.proj`** enregistré sur l'ordinateur, dans le d
 - Application installée (menu du navigateur › Installer) : un fichier `.proj` peut s'ouvrir par double-clic.
 
 ### Tableau
-Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » / « Tout réduire » (doubles chevrons) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
+Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » (⇊) / « Tout réduire » (⇈) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
 
 | Action | Comment |
 |---|---|
