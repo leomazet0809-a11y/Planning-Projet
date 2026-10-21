@@ -13,6 +13,7 @@ Chaque projet est un fichier **`.proj`** enregistré sur l'ordinateur, dans le d
 - **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier.
 - **Ouvrir un fichier** : choisir un fichier `.proj` existant. Les **fichiers récents** se rouvrent en un clic depuis la page Menu.
 - **Enregistrement en temps réel** : chaque modification est écrite dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
+- Le titre du projet et le nom du fichier sont liés : renommer le projet renomme le fichier ; un fichier renommé sur le PC donne son nom au projet à l'ouverture.
 - Le nom du fichier ouvert est affiché dans le bandeau. Le navigateur ne communique pas le dossier où il se trouve.
 - Sur les autres navigateurs (Firefox, Safari), l'enregistrement se fait en téléchargeant le fichier (Ctrl + S).
 - Application installée (menu du navigateur › Installer) : un fichier `.proj` peut s'ouvrir par double-clic.
@@ -25,7 +26,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic ou Entrée pour modifier le contenu existant) |
 | Valider / annuler | Entrée / Échap |
 | Se déplacer | Flèches du clavier |
-| Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis une cellule des colonnes Niv |
+| Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis une cellule des colonnes de niveau (1 à 4) |
 | Déplacer une tâche | Glisser la poignée ⋮⋮ au début de la ligne (la tâche part avec ses sous-tâches) |
 | Hauteur des lignes | Boutons − / + « Hauteur » ou Ctrl + molette au-dessus du tableau |
 | Défiler | Molette au-dessus du tableau ou du planning (les deux restent alignés) |
@@ -38,7 +39,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 
 - **Durée jours** = Heures effectives × 1,5, arrondie à l'entier le plus proche (jours ouvrés, lundi → vendredi).
 - Une valeur non numérique dans Heures ou Durée s'affiche en rouge et bloque le calcul.
-- **Avancement** : texte libre (ex. « 50 % ») ; commencer par `=` pour un calcul (ex. `=32/3` affiche 10,67 ; opérations + - * / et parenthèses). Une formule incorrecte s'affiche en rouge.
+- **Avancement** : affiché en pourcentage. Un nombre saisi (ex. `50`) affiche « 50 % » ; commencer par `=` pour un calcul (ex. `=32/3` affiche « 10,67 % » ; opérations + - * / et parenthèses). Un texte reste affiché tel quel. Une formule incorrecte s'affiche en rouge.
 - Modifier Durée, Date début ou Date fin recalcule les heures (arrondies à l'heure entière).
 - **Tâches mères** (une tâche suivie de tâches de niveau inférieur) : Heures = somme des heures des tâches filles, Durée = somme de leurs durées, Début = début le plus tôt des filles, Date fin = fin la plus tardive des filles. Ces valeurs (en italique gris) ne se saisissent pas ; sur le planning, la tâche mère est une barre récapitulative noire qui couvre la période réelle de ses filles. La déplacer déplace toutes ses tâches filles.
 
@@ -55,6 +56,8 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 
 Une tâche liée commence toujours après la fin de sa tâche d'origine et suit ses déplacements.
 Les samedis et dimanches sont grisés : aucune tâche ne peut y commencer ou y finir.
+
+**Plein écran** : bouton à quatre coins dans le bandeau (Échap pour en sortir).
 
 **Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 
