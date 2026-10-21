@@ -26,6 +26,7 @@
   --weekend: rgba(20, 24, 40, .045);
   --text: #1b1e2b;
   --text-muted: #6b7189;
+  --summary-default: #bcc1cd;   /* barres des tâches mères : gris léger */
   --accent: #5b5bf0;
   --accent-soft: #e9e9fe;
   --accent-text: #ffffff;
@@ -46,6 +47,7 @@
   --weekend: rgba(255, 255, 255, .035);
   --text: #e8eaf2;
   --text-muted: #9097ad;
+  --summary-default: #5c6277;
   --accent: #8484ff;
   --accent-soft: #262a52;
   --accent-text: #0f1117;
@@ -351,8 +353,8 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 }
 .bar:hover .link-dot, .bar.dragging .link-dot { opacity: 1; }
 /* tâche mère : barre récapitulative avec pointes aux extrémités */
-.bar.summary { height: 8px; top: calc((var(--row-h) - 8px) / 2 - 3px); border-radius: 2px 2px 0 0; background: var(--summary, var(--text)); }
-.bar.summary::before, .bar.summary::after { content: ""; position: absolute; top: 100%; width: 0; height: 0; border-top: 6px solid var(--summary, var(--text)); }
+.bar.summary { height: 8px; top: calc((var(--row-h) - 8px) / 2 - 3px); border-radius: 2px 2px 0 0; background: var(--summary, var(--summary-default)); }
+.bar.summary::before, .bar.summary::after { content: ""; position: absolute; top: 100%; width: 0; height: 0; border-top: 6px solid var(--summary, var(--summary-default)); }
 .bar.summary::before { left: 0; border-right: 6px solid transparent; }
 .bar.summary::after { right: 0; border-left: 6px solid transparent; }
 .bar.summary .h-end { display: none; }
@@ -1236,7 +1238,7 @@ const Settings = {
       <h4>Fond (mode ${Theme.current() === "dark" ? "sombre" : "clair"})</h4>
       <div class="set-row"><span>Couleur de fond</span><input type="color" data-k="bg" value="${this.current("--surface")}"></div>
       <h4>Couleurs des tâches</h4>
-      ${this.COLORS.map((c) => `<div class="set-row"><span>${c.label}</span><input type="color" data-k="${c.key}" value="${this.current(c.key === "summary" ? (st.summary ? "--summary" : "--text") : "--" + c.key)}"></div>`).join("")}
+      ${this.COLORS.map((c) => `<div class="set-row"><span>${c.label}</span><input type="color" data-k="${c.key}" value="${this.current(c.key === "summary" ? (st.summary ? "--summary" : "--summary-default") : "--" + c.key)}"></div>`).join("")}
       <button class="btn" data-act="reset">Rétablir les réglages d'origine</button>`;
     panel.querySelector('[data-k="font"]').addEventListener("change", (e) => this.set("font", e.target.value === "Inter" ? null : e.target.value));
     panel.querySelectorAll('input[type="color"]').forEach((inp) => inp.addEventListener("input", () => {
