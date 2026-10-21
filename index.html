@@ -881,10 +881,11 @@ const MenuView = {
    Tableau : colonnes, affichage et saisie des cellules
    ============================================================ */
 const COLUMNS = [
-  { key: "niv1", label: "Niv 1", w: 170 },
-  { key: "niv2", label: "Niv 2", w: 150 },
-  { key: "niv3", label: "Niv 3", w: 150 },
-  { key: "niv4", label: "Niv 4", w: 150 },
+  // Niv 1 à 3 : colonnes étroites et fixes (retrait des niveaux) ; le libellé déborde sur les suivantes
+  { key: "niv1", label: "Niv 1", w: 60, fixed: true },
+  { key: "niv2", label: "Niv 2", w: 60, fixed: true },
+  { key: "niv3", label: "Niv 3", w: 60, fixed: true },
+  { key: "niv4", label: "Niv 4", w: 220 },
   { key: "realise", label: "Réalise", w: 110 },
   { key: "surveille", label: "Surveille", w: 110 },
   { key: "heures", label: "Heures effectives", w: 90, align: "num" },
@@ -1106,7 +1107,7 @@ const ProjectView = {
     let sel = null;      // sélection { r, c, r2, c2 } : (r, c) = cellule active, (r2, c2) = autre coin
     let editor = null;   // champ de saisie ouvert
 
-    const colWidth = (c) => (p.ui.colWidths && p.ui.colWidths[c.key]) || c.w;
+    const colWidth = (c) => (!c.fixed && p.ui.colWidths && p.ui.colWidths[c.key]) || c.w;
     const rect = () => sel && {
       r1: Math.min(sel.r, sel.r2), r2: Math.max(sel.r, sel.r2),
       c1: Math.min(sel.c, sel.c2), c2: Math.max(sel.c, sel.c2),
@@ -1114,16 +1115,10 @@ const ProjectView = {
 
     const renderTableHead = () => {
       el.leftHead.innerHTML = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
-        `<div class="tcell" style="width:${colWidth(c)}px">${esc(c.label)}<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span></div>`).join("")}</div>`;
+        `<div class="tcell" style="width:${colWidth(c)}px">${esc(c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
       el.leftHead.scrollLeft = el.leftBody.scrollLeft;
     };
 
-    // largeur du texte affiché (police du tableau)
-    const measureCtx = document.createElement("canvas").getContext("2d");
-    const textWidth = (text, bold) => {
-      measureCtx.font = `${bold ? 600 : 400} ${cellFont()}px ${getComputedStyle(document.body).fontFamily}`;
-      return measureCtx.measureText(text).width;
-    };
     // marges gauche + droite autour du libellé (poignée en Niv 1, flèche pour les sous-niveaux)
     const labelPad = (t) => (t.level === 1 ? 28 : 36);
     const colLeft = (c) => { let x = 0; for (let k = 0; k < c; k++) x += colWidth(COLUMNS[k]); return x; };
@@ -1151,15 +1146,8 @@ const ProjectView = {
       return `<svg class="tree-svg" width="${colLeft(COL.niv4 + 1)}" height="${p.tasks.length * rowH}"><defs>${markers}</defs>${paths}</svg>`;
     };
 
-    // nombre de colonnes Niv suivantes recouvertes par le libellé de la tâche
-    const spillCount = (t) => {
-      const c0 = t.level - 1;
-      if (!t.label || c0 >= COL.niv4) return 0;
-      const need = textWidth(t.label, t.level === 1) + labelPad(t);
-      let w = colWidth(COLUMNS[c0]), n = 0;
-      while (w < need && c0 + n < COL.niv4) { n++; w += colWidth(COLUMNS[c0 + n]); }
-      return n;
-    };
+    // nombre de colonnes Niv suivantes (toujours vides sur cette ligne) sur lesquelles s'étend le libellé
+    const spillCount = (t) => (t.label ? COL.niv4 - (t.level - 1) : 0);
 
     const renderRows = () => {
       Tree.compute(p);
@@ -1901,7 +1889,6 @@ const ProjectView = {
     });
 
     /* ---------- Premier affichage ---------- */
-    document.fonts?.ready.then(() => { if (el.leftBody.isConnected && !editor) renderRows(); });
     applyRatio();
     renderAll();
     scrollToToday();
