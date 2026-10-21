@@ -9,6 +9,7 @@ En ligne : https://leomazet0809-a11y.github.io/Planning-Projet/
 Ouvrir `index.html` dans Chrome ou Edge (ou l'adresse ci-dessus). Aucune installation nécessaire.
 
 ### Fichiers de projet (.proj)
+Un clic sur le **logo** en haut à gauche ramène au menu (ouvrir ou créer un projet).
 Chaque projet est un fichier **`.proj`** enregistré sur l'ordinateur, dans le dossier choisi par l'utilisateur. Rien n'est envoyé sur Internet.
 - **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier.
 - **Ouvrir un fichier** : choisir un fichier `.proj` existant. Les **fichiers récents** se rouvrent en un clic depuis la page Menu.
@@ -68,7 +69,7 @@ Boutons **Exporter** et **Importer** dans le bandeau (l'import existe aussi sur 
 
 **Fermeture** : si un projet est ouvert, le navigateur demande confirmation avant de fermer l'onglet ou la fenêtre.
 
-**Plein écran** : bouton à quatre coins dans le bandeau (Échap pour en sortir).
+**Plein écran** : bouton à quatre coins dans le bandeau, ou touche **F** (bascule) ; Échap pour en sortir. Pour taper un mot commençant par « f » dans une cellule, ouvrir d'abord la saisie (double-clic, Entrée ou F2).
 
 **Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 

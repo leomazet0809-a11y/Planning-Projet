@@ -77,6 +77,10 @@ button { font: inherit; color: inherit; }
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
 .brand-logo { width: 26px; height: 26px; display: block; flex: 0 0 auto; }
+/* logo cliquable : retour au menu */
+.logo-btn { border: 0; padding: 2px; margin: -2px; background: none; cursor: pointer; border-radius: 9px; flex: 0 0 auto; transition: transform .15s; }
+.logo-btn:hover { transform: scale(1.08); }
+.logo-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .spacer { flex: 1; }
 
 /* ---------- Boutons ---------- */
@@ -389,7 +393,6 @@ const ICONS = {
   moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>',
-  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
   save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h9V3M7 21v-7h10v7"/></svg>',
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
@@ -1162,7 +1165,7 @@ const Fullscreen = {
   paint(btn) {
     const on = this.active();
     btn.innerHTML = on ? ICONS.exitFullscreen : ICONS.fullscreen;
-    btn.title = on ? "Quitter le plein écran (Échap)" : "Plein écran";
+    btn.title = on ? "Quitter le plein écran (F ou Échap)" : "Plein écran (F)";
     btn.setAttribute("aria-label", btn.title);
   },
   button() {
@@ -1175,6 +1178,17 @@ const Fullscreen = {
     return b;
   },
 };
+// touche F : bascule plein écran / normal (sauf pendant la saisie dans un champ texte)
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "f" && e.key !== "F") return;
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable)) return;
+  if (document.querySelector(".modal-backdrop")) return;
+  e.preventDefault();
+  e.stopPropagation();   // la lettre ne démarre pas la saisie dans la cellule sélectionnée
+  Fullscreen.toggle();
+}, true);
 document.addEventListener("fullscreenchange", () => {
   document.querySelectorAll("[data-fullscreen-btn]").forEach((b) => Fullscreen.paint(b));
 });
@@ -1895,8 +1909,7 @@ const ProjectView = {
     root.innerHTML = `
       <div class="project-page">
         <header class="topbar">
-          ${LOGO_SVG}
-          <button class="btn" data-act="back" title="Retour à la liste des projets">${ICONS.back}<span class="lbl">Menu</span></button>
+          <button class="logo-btn" data-act="back" title="Retour au menu : ouvrir ou créer un projet" aria-label="Retour au menu">${LOGO_SVG}</button>
           <input class="project-title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
           <span class="file-chip" hidden></span>
           <span class="save-status"></span>
