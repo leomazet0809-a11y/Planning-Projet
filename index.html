@@ -119,14 +119,6 @@ button { font: inherit; color: inherit; }
 }
 .card:hover { border-color: var(--accent); }
 .card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
-.inline-edit {
-  width: 100%; border: 1px solid transparent; border-radius: var(--radius-sm);
-  background: transparent; color: var(--text); font: inherit;
-  padding: 4px 6px; margin-left: -7px;
-}
-.inline-edit:hover { border-color: var(--border); }
-.inline-edit:focus { outline: none; border-color: var(--accent); background: var(--surface-2); }
-.inline-edit.title { font-size: 17px; font-weight: 600; }
 .card-meta { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 .card-actions { display: flex; gap: 8px; margin-top: 12px; }
 .card-actions .btn-primary { flex: 1; justify-content: center; }
@@ -135,6 +127,22 @@ button { font: inherit; color: inherit; }
   border: 2px dashed var(--border); border-radius: var(--radius);
 }
 .empty h2 { color: var(--text); margin: 0 0 6px; font-size: 18px; }
+.empty-small { color: var(--text-muted); padding: 12px 0; }
+.section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 8px 0 12px; }
+.card.recent { cursor: pointer; }
+.card.recent:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.recent-title { font-size: 17px; font-weight: 600; }
+.card-meta svg { width: 13px; height: 13px; vertical-align: -2px; }
+.notice { background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 20px; line-height: 1.5; }
+.save-status.error { color: var(--danger); font-weight: 600; }
+.file-chip {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 280px; flex: 0 1 auto;
+  font-size: 12px; color: var(--text-muted); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; white-space: nowrap;
+}
+.file-chip span { overflow: hidden; text-overflow: ellipsis; }
+.file-chip svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.save-status button { font: inherit; font-size: 12px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
 
 /* ---------- Page Projet ---------- */
 .project-title {
@@ -226,6 +234,9 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .pane-left .pane-body { position: relative; }
 /* colonnes Niv 1 à 3 (24 px) : aucune marge, sinon la cellule s'élargit et décale les colonnes suivantes */
 .tcell[data-c="0"], .tcell[data-c="1"], .tcell[data-c="2"] { padding: 0; }
+/* pas de trait vertical entre les colonnes Niv 1, 2, 3 et 4 */
+.tcell[data-c="0"], .tcell[data-c="1"], .tcell[data-c="2"],
+.thead-row .tcell[data-fixed] { border-right-color: transparent; }
 .tree-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; overflow: visible; }
 .tree-svg { opacity: .45; }
 .tree-svg .tree-line { fill: none; stroke: var(--text-muted); stroke-width: 1.2; }
@@ -374,15 +385,16 @@ const ICONS = {
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
-  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
   save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h9V3M7 21v-7h10v7"/></svg>',
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   expandAll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l5 5 5-5M7 13l5 5 5-5"/></svg>',
   collapseAll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11l5-5 5 5M7 18l5-5 5 5"/></svg>',
+  folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  saveAs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v5"/><path d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7"/><path d="M7 3v6h9V3M17 16v6M14 19h6"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>',
-  download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>',
-  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></svg>',
 };
 
 const LOGO_SVG = `<svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5bf0"/><stop offset="1" stop-color="#b07cff"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#logo-g)"/><rect x="19" y="19" width="26" height="26" rx="3" fill="#fff"/><path d="M27.7 19v26M36.3 19v26M19 27.7h26M19 36.3h26" stroke="#8a6cf6" stroke-width="1.6"/></svg>`;
@@ -659,18 +671,21 @@ const Links = {
 };
 
 /* ============================================================
-   Store — données + sauvegarde automatique (localStorage)
+   Store — projets ouverts (en mémoire) + préférences (navigateur)
+   Les projets eux-mêmes sont des fichiers .proj sur l'ordinateur (voir Files).
    ============================================================ */
 const STORAGE_KEY = "plan-projet:v1";
 
 const Store = {
   data: null,
+  currentId: null,   // projet affiché
 
   load() {
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) { raw = null; }
-    this.data = raw && Array.isArray(raw.projects) ? raw : { version: 1, theme: null, projects: [] };
-    this.data.projects.forEach((p) => this.normalize(p));
+    // les anciens projets conservés dans le navigateur ne sont pas repris : seuls le thème et les réglages restent
+    this.data = { version: 2, theme: raw?.theme ?? null, settings: raw?.settings || {}, projects: [] };
+    if (raw && raw.projects) this.savePrefs();
   },
 
   // complète un projet et regroupe l'ancien couple « nom / titre » en un seul titre
@@ -683,27 +698,23 @@ const Store = {
     p.title = p.title || "Projet";
   },
 
+  savePrefs() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, theme: this.data.theme, settings: this.data.settings })); }
+    catch (e) { console.warn("Préférences non enregistrées", e); }
+  },
+
+  // enregistre les préférences et, en temps réel, le projet ouvert dans son fichier
   save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); return true; }
-    catch (e) { console.warn("Sauvegarde impossible", e); return false; }
+    this.savePrefs();
+    const p = this.currentId && this.getProject(this.currentId);
+    if (p) Files.queue(p);
+    return true;
   },
 
   getProject(id) { return this.data.projects.find((p) => p.id === id); },
 
-  createProject() {
-    const n = this.data.projects.length + 1;
-    const p = {
-      id: uid("p"),
-      title: "Nouveau projet " + n,
-      createdAt: todayISO(),
-      updatedAt: todayISO(),
-      ui: {},
-      tasks: [],
-      links: [],
-    };
-    this.data.projects.unshift(p);
-    this.save();
-    return p;
+  blank(title) {
+    return { id: uid("p"), title, createdAt: todayISO(), updatedAt: todayISO(), ui: {}, tasks: [], links: [] };
   },
 
   updateProject(id, patch) {
@@ -712,45 +723,221 @@ const Store = {
     Object.assign(p, patch, { updatedAt: todayISO() });
     this.save();
   },
+};
 
-  duplicateProject(id) {
-    const src = this.getProject(id);
-    if (!src) return;
-    const copy = JSON.parse(JSON.stringify(src));
-    copy.id = uid("p");
-    copy.title = src.title + " (copie)";
-    copy.createdAt = copy.updatedAt = todayISO();
-    const idx = this.data.projects.indexOf(src);
-    this.data.projects.splice(idx + 1, 0, copy);
-    this.save();
+/* ============================================================
+   Fichiers .proj : ouvrir, créer, enregistrer en temps réel
+   (Chrome / Edge : écriture directe dans le fichier ; autres navigateurs : téléchargement)
+   ============================================================ */
+const PROJ_EXT = ".proj";
+const FILE_TYPES = [{ description: "Projet Plan Projet", accept: { "application/x-plan-projet": [PROJ_EXT] } }];
+
+const Files = {
+  supported: typeof window.showOpenFilePicker === "function" && typeof window.showSaveFilePicker === "function",
+  handles: new Map(),   // id du projet → fichier
+  timers: new Map(),    // id → enregistrement différé
+  chains: new Map(),    // id → écritures en cours (les unes après les autres)
+  states: new Map(),    // id → "saved" | "saving" | "unsaved" | "permission" | "error"
+  onStatus: null,
+
+  fileName(id) { return this.handles.get(id)?.name || ""; },
+  baseName(name) { return name.replace(/\.[^.]+$/, ""); },
+  safeName(title) { return (title || "Projet").replace(/[\\/:*?"<>|]+/g, "-").trim() || "Projet"; },
+
+  setState(id, state) { this.states.set(id, state); if (this.onStatus) this.onStatus(id, state); },
+
+  toText(p) {
+    const { title, createdAt, updatedAt, ui, tasks, links } = p;
+    return JSON.stringify({ app: "Plan Projet", version: 1, title, createdAt, updatedAt, ui, tasks, links }, null, 2);
+  },
+  fromText(text, fallbackTitle) {
+    const raw = JSON.parse(text);
+    if (!raw || !Array.isArray(raw.tasks)) throw new Error("format");
+    const p = { id: uid("p"), title: raw.title || fallbackTitle, createdAt: raw.createdAt || todayISO(), updatedAt: raw.updatedAt || todayISO(), ui: raw.ui, tasks: raw.tasks, links: raw.links };
+    Store.normalize(p);
+    return p;
   },
 
-  deleteProject(id) {
-    this.data.projects = this.data.projects.filter((p) => p.id !== id);
-    this.save();
+  register(p, handle) {
+    Store.data.projects.push(p);
+    if (handle) this.handles.set(p.id, handle);
+    this.setState(p.id, handle ? "saved" : "unsaved");
+    return p;
   },
 
-  exportJSON() {
-    const blob = new Blob([JSON.stringify({ version: 1, projects: this.data.projects }, null, 2)], { type: "application/json" });
+  // Nouveau projet : on choisit tout de suite le dossier et le nom du fichier
+  async create() {
+    if (!this.supported) return this.register(Store.blank("Nouveau projet"), null);
+    let handle;
+    try { handle = await window.showSaveFilePicker({ suggestedName: "Nouveau projet" + PROJ_EXT, types: FILE_TYPES }); }
+    catch (e) { return null; }   // fenêtre fermée
+    const p = this.register(Store.blank(this.baseName(handle.name)), handle);
+    await this.write(p);
+    await Recents.add(handle, p.title);
+    return p;
+  },
+
+  // Ouvrir un fichier : fenêtre de choix (ou champ fichier sur les navigateurs sans écriture directe)
+  async open() {
+    if (!this.supported) {
+      const file = await new Promise((resolve) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = PROJ_EXT;
+        input.onchange = () => resolve(input.files[0] || null);
+        input.click();
+      });
+      if (!file) return null;
+      return this.register(this.fromText(await file.text(), this.baseName(file.name)), null);
+    }
+    let handle;
+    try { [handle] = await window.showOpenFilePicker({ types: FILE_TYPES, multiple: false }); }
+    catch (e) { return null; }
+    try { await handle.requestPermission({ mode: "readwrite" }); } catch (e) { /* demandé plus tard */ }
+    return this.openHandle(handle);
+  },
+
+  async openHandle(handle) {
+    for (const [id, h] of this.handles) {
+      try { if (await h.isSameEntry(handle)) return Store.getProject(id); } catch (e) { /* ignoré */ }
+    }
+    const file = await handle.getFile();
+    const p = this.register(this.fromText(await file.text(), this.baseName(handle.name)), handle);
+    const perm = await handle.queryPermission?.({ mode: "readwrite" });
+    if (perm && perm !== "granted") this.setState(p.id, "permission");
+    await Recents.add(handle, p.title);
+    return p;
+  },
+
+  // enregistrement en temps réel : quelques instants après la dernière modification
+  queue(p) {
+    if (!this.handles.has(p.id)) { this.setState(p.id, "unsaved"); return; }
+    if (this.states.get(p.id) === "permission") return;
+    clearTimeout(this.timers.get(p.id));
+    this.setState(p.id, "saving");
+    this.timers.set(p.id, setTimeout(() => { this.timers.delete(p.id); this.write(p); }, 300));
+  },
+
+  async write(p) {
+    const handle = this.handles.get(p.id);
+    if (!handle) return false;
+    const job = (this.chains.get(p.id) || Promise.resolve()).then(async () => {
+      const w = await handle.createWritable();
+      await w.write(this.toText(p));
+      await w.close();
+    });
+    this.chains.set(p.id, job.catch(() => {}));
+    try {
+      await job;
+      this.setState(p.id, "saved");
+      Recents.touch(handle, p.title);
+      return true;
+    } catch (e) {
+      this.setState(p.id, e && e.name === "NotAllowedError" ? "permission" : "error");
+      return false;
+    }
+  },
+
+  // autorisation d'écrire dans le fichier (demandée sur un clic de l'utilisateur)
+  async allow(p) {
+    const handle = this.handles.get(p.id);
+    if (!handle) return false;
+    try {
+      if ((await handle.requestPermission({ mode: "readwrite" })) !== "granted") return false;
+    } catch (e) { return false; }
+    this.setState(p.id, "saving");
+    return this.write(p);
+  },
+
+  // Ctrl + S : enregistre immédiatement (ou télécharge si le navigateur n'écrit pas dans les fichiers)
+  async flush(p) {
+    clearTimeout(this.timers.get(p.id));
+    this.timers.delete(p.id);
+    if (!this.handles.has(p.id)) return this.saveAs(p);
+    if (this.states.get(p.id) === "permission") return this.allow(p);
+    this.setState(p.id, "saving");
+    return this.write(p);
+  },
+
+  async saveAs(p) {
+    if (!this.supported) { this.download(p); this.setState(p.id, "saved"); return true; }
+    let handle;
+    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(p.title) + PROJ_EXT, types: FILE_TYPES }); }
+    catch (e) { return false; }
+    this.handles.set(p.id, handle);
+    this.setState(p.id, "saving");
+    const ok = await this.write(p);
+    await Recents.add(handle, p.title);
+    return ok;
+  },
+
+  download(p) {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `plan-projet-${todayISO()}.json`;
+    a.href = URL.createObjectURL(new Blob([this.toText(p)], { type: "application/octet-stream" }));
+    a.download = this.safeName(p.title) + PROJ_EXT;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   },
 
-  // ajoute les projets du fichier ; un projet déjà présent (même identifiant) est remplacé
-  importJSON(text) {
-    const raw = JSON.parse(text);
-    if (!raw || !Array.isArray(raw.projects)) throw new Error("format");
-    raw.projects.forEach((p) => {
-      if (!p || !p.id || !Array.isArray(p.tasks)) return;
-      this.normalize(p);
-      const i = this.data.projects.findIndex((x) => x.id === p.id);
-      if (i >= 0) this.data.projects[i] = p; else this.data.projects.push(p);
+  // des modifications ne sont pas encore écrites dans un fichier
+  hasPending() {
+    return [...this.states.entries()].some(([id, st]) => st !== "saved" && Store.getProject(id));
+  },
+};
+
+/* ============================================================
+   Fichiers récents (mémorisés dans le navigateur, IndexedDB)
+   ============================================================ */
+const Recents = {
+  db: null,
+  async open() {
+    if (this.db) return this.db;
+    this.db = await new Promise((resolve, reject) => {
+      const req = indexedDB.open("plan-projet", 1);
+      req.onupgradeneeded = () => req.result.createObjectStore("recents", { keyPath: "key" });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
     });
-    this.save();
-    return raw.projects.length;
+    return this.db;
+  },
+  async run(mode, fn) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("recents", mode);
+      const out = fn(tx.objectStore("recents"));
+      tx.oncomplete = () => resolve(out && out.result !== undefined ? out.result : undefined);
+      tx.onerror = () => reject(tx.error);
+    });
+  },
+  async list() {
+    try { return ((await this.run("readonly", (st) => st.getAll())) || []).sort((a, b) => b.openedAt - a.openedAt); }
+    catch (e) { return []; }
+  },
+  async find(handle) {
+    for (const e of await this.list()) {
+      try { if (await e.handle.isSameEntry(handle)) return e; } catch (err) { /* ignoré */ }
+    }
+    return null;
+  },
+  // ajoute (ou remonte en tête) un fichier ; 12 fichiers au plus
+  async add(handle, title) {
+    try {
+      const e = (await this.find(handle)) || { key: uid("r") };
+      Object.assign(e, { handle, name: handle.name, title, openedAt: Date.now() });
+      await this.run("readwrite", (st) => st.put(e));
+      const all = await this.list();
+      for (const old of all.slice(12)) await this.remove(old.key);
+    } catch (err) { /* liste des récents indisponible */ }
+  },
+  // met à jour le titre affiché (sans changer l'ordre)
+  async touch(handle, title) {
+    try {
+      const e = await this.find(handle);
+      if (e && (e.title !== title || e.name !== handle.name)) { e.title = title; e.name = handle.name; await this.run("readwrite", (st) => st.put(e)); }
+    } catch (err) { /* ignoré */ }
+  },
+  async remove(key) {
+    try { await this.run("readwrite", (st) => st.delete(key)); } catch (err) { /* ignoré */ }
   },
 };
 
@@ -949,11 +1136,12 @@ function bindInlineEdit(input, onCommit) {
 }
 
 /* ============================================================
-   Page Menu
+   Page Menu : nouveau projet, ouvrir un fichier, fichiers récents
    ============================================================ */
+const openProject = (p) => { if (p) Router.go("projet/" + p.id); };
+
 const MenuView = {
   render(root) {
-    const projects = Store.data.projects;
     root.innerHTML = `
       <header class="topbar">
         <div class="brand">${LOGO_SVG}<span>Plan Projet</span></div>
@@ -964,77 +1152,71 @@ const MenuView = {
         <div class="menu-head">
           <div>
             <h1>Mes projets</h1>
-            <p>Cliquez sur le titre d'un projet pour le modifier. Ouvrez un projet pour planifier ses tâches.</p>
+            <p>Chaque projet est un fichier <b>${PROJ_EXT}</b> enregistré sur votre ordinateur, dans le dossier de votre choix.</p>
           </div>
           <div class="spacer"></div>
-          <button class="btn" data-act="import" title="Charger des projets depuis un fichier de sauvegarde">${ICONS.upload}<span class="lbl">Importer</span></button>
-          <button class="btn" data-act="export" title="Télécharger une sauvegarde de tous les projets"${projects.length ? "" : " disabled"}>${ICONS.download}<span class="lbl">Exporter</span></button>
+          <button class="btn" data-act="open">${ICONS.folder} Ouvrir un fichier</button>
           <button class="btn btn-primary" data-act="new">${ICONS.plus} Nouveau projet</button>
-          <input type="file" accept=".json,application/json" hidden data-slot="file">
         </div>
-        ${projects.length ? `<div class="grid-cards">${projects.map(cardHTML).join("")}</div>` : `
-          <div class="empty">
-            <h2>Aucun projet pour l'instant</h2>
-            <p>Créez votre premier projet pour commencer à planifier.</p>
-            <br><button class="btn btn-primary" data-act="new">${ICONS.plus} Créer un projet</button>
-          </div>`}
+        ${Files.supported ? "" : `<div class="notice">Votre navigateur ne permet pas d'enregistrer directement dans un fichier :
+          les modifications sont enregistrées en <b>téléchargeant</b> le fichier (Ctrl + S). Pour un enregistrement en temps réel, utilisez <b>Chrome</b> ou <b>Edge</b>.</div>`}
+        <h2 class="section-title">Fichiers récents</h2>
+        <div data-slot="recents"><div class="empty-small">Chargement…</div></div>
       </main>`;
 
     root.querySelector('[data-slot="theme"]').replaceWith(Settings.button(), Theme.button());
-
-    root.querySelectorAll('[data-act="new"]').forEach((b) => b.addEventListener("click", () => {
-      Store.createProject();
-      MenuView.render(root);
-      // place le curseur sur le nom du nouveau projet pour le renommer tout de suite
-      const first = root.querySelector(".inline-edit.title");
-      if (first) { first.focus(); first.select(); }
-    }));
-
-    root.querySelector('[data-act="export"]').addEventListener("click", () => Store.exportJSON());
-    const file = root.querySelector('[data-slot="file"]');
-    root.querySelector('[data-act="import"]').addEventListener("click", () => file.click());
-    file.addEventListener("change", async () => {
-      const f = file.files[0];
-      if (!f) return;
-      try {
-        const n = Store.importJSON(await f.text());
-        MenuView.render(root);
-        toast(`${n} projet${n > 1 ? "s" : ""} importé${n > 1 ? "s" : ""}`);
-      } catch (e) {
-        toast("Ce fichier n'est pas une sauvegarde Plan Projet");
-      }
+    root.querySelector('[data-act="new"]').addEventListener("click", async () => openProject(await Files.create()));
+    root.querySelector('[data-act="open"]').addEventListener("click", async () => {
+      try { openProject(await Files.open()); }
+      catch (e) { toast("Ce fichier n'est pas un projet Plan Projet"); }
     });
+    this.renderRecents(root);
+  },
 
-    root.querySelectorAll(".card").forEach((card) => {
-      const id = card.dataset.id;
-      bindInlineEdit(card.querySelector(".inline-edit.title"), (v) => Store.updateProject(id, { title: v }));
-      card.querySelector('[data-act="open"]').addEventListener("click", () => Router.go("projet/" + id));
-      card.querySelector('[data-act="dup"]').addEventListener("click", () => { Store.duplicateProject(id); MenuView.render(root); });
-      card.querySelector('[data-act="del"]').addEventListener("click", async () => {
-        const p = Store.getProject(id);
-        const ok = await confirmDialog({
-          title: "Supprimer ce projet ?",
-          message: `« ${p.title} » et toutes ses tâches seront définitivement supprimés.`,
-          okLabel: "Supprimer", danger: true,
-        });
-        if (ok) { Store.deleteProject(id); MenuView.render(root); }
+  async renderRecents(root) {
+    const slot = root.querySelector('[data-slot="recents"]');
+    const list = Files.supported ? await Recents.list() : [];
+    if (!slot.isConnected) return;
+    if (!list.length) {
+      slot.innerHTML = `<div class="empty">
+        <h2>Aucun fichier récent</h2>
+        <p>Créez un nouveau projet ou ouvrez un fichier ${PROJ_EXT} existant.</p>
+      </div>`;
+      return;
+    }
+    slot.innerHTML = `<div class="grid-cards">${list.map((e) => `
+      <article class="card recent" data-key="${e.key}" tabindex="0" title="Ouvrir ${esc(e.name)}">
+        <div class="recent-title">${esc(e.title || Files.baseName(e.name))}</div>
+        <div class="card-meta">${ICONS.file} ${esc(e.name)}</div>
+        <div class="card-meta">Ouvert le ${new Date(e.openedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</div>
+        <div class="card-actions">
+          <button class="btn btn-primary" data-act="open-recent">Ouvrir</button>
+          <button class="icon-btn" data-act="forget" title="Retirer de la liste (le fichier n'est pas supprimé)" aria-label="Retirer de la liste">${ICONS.close}</button>
+        </div>
+      </article>`).join("")}</div>`;
+
+    slot.querySelectorAll(".card.recent").forEach((card) => {
+      const entry = list.find((e) => e.key === card.dataset.key);
+      const openIt = async () => {
+        try {
+          const h = entry.handle;
+          if ((await h.queryPermission({ mode: "readwrite" })) !== "granted"
+            && (await h.requestPermission({ mode: "readwrite" })) !== "granted") {
+            toast("Accès au fichier refusé");
+            return;
+          }
+          openProject(await Files.openHandle(h));
+        } catch (e) {
+          toast(e && e.name === "NotFoundError" ? "Fichier introuvable : il a peut-être été déplacé ou supprimé" : "Impossible d'ouvrir ce fichier");
+        }
+      };
+      card.addEventListener("click", (ev) => { if (!ev.target.closest('[data-act="forget"]')) openIt(); });
+      card.addEventListener("keydown", (ev) => { if (ev.key === "Enter") openIt(); });
+      card.querySelector('[data-act="forget"]').addEventListener("click", async () => {
+        await Recents.remove(entry.key);
+        this.renderRecents(root);
       });
     });
-
-    function cardHTML(p) {
-      const n = p.tasks.length;
-      return `
-        <article class="card" data-id="${p.id}">
-          <span class="card-label">Titre</span>
-          <input class="inline-edit title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
-          <div class="card-meta">${n} tâche${n > 1 ? "s" : ""} · modifié le ${formatDateFR(p.updatedAt)}</div>
-          <div class="card-actions">
-            <button class="btn btn-primary" data-act="open">Ouvrir</button>
-            <button class="icon-btn" data-act="dup" title="Dupliquer" aria-label="Dupliquer">${ICONS.copy}</button>
-            <button class="icon-btn btn-danger" data-act="del" title="Supprimer" aria-label="Supprimer">${ICONS.trash}</button>
-          </div>
-        </article>`;
-    }
   },
 };
 
@@ -1180,15 +1362,18 @@ const History = new Map();   // id du projet → { undo: [], redo: [], last }
 const ProjectView = {
   render(root, id) {
     const p = Store.getProject(id);
-    if (!p) { Router.go(""); return; }
+    if (!p) { Router.go(""); return; }   // page rechargée : rouvrir le fichier depuis les récents
+    Store.currentId = id;
     root.innerHTML = `
       <div class="project-page">
         <header class="topbar">
           ${LOGO_SVG}
           <button class="btn" data-act="back" title="Retour à la liste des projets">${ICONS.back}<span class="lbl">Menu</span></button>
           <input class="project-title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
+          <span class="file-chip" hidden></span>
           <span class="save-status"></span>
-          <button class="btn" data-act="save" title="Enregistrer (Ctrl + S)">${ICONS.save}<span class="lbl">Enregistrer</span></button>
+          <button class="btn" data-act="save" title="Enregistrer maintenant (Ctrl + S) — l'enregistrement est aussi automatique">${ICONS.save}<span class="lbl">Enregistrer</span></button>
+          <button class="icon-btn" data-act="save-as" title="Enregistrer sous… : choisir un autre dossier ou un autre nom (Ctrl + Maj + S)" aria-label="Enregistrer sous">${ICONS.saveAs}</button>
           <div data-slot="theme"></div>
         </header>
         <div class="toolbar">
@@ -1296,18 +1481,46 @@ const ProjectView = {
       Store.updateProject(id, {});
       el.status.textContent = "";
     };
-    const saveNow = () => {
+    // état de l'enregistrement dans le fichier, affiché dans le bandeau
+    const chip = root.querySelector(".file-chip");
+    const paintStatus = () => {
+      const st = Files.states.get(id), name = Files.fileName(id);
+      // fichier en cours de modification (le navigateur ne donne que son nom, pas le dossier)
+      chip.hidden = !name;
+      if (name) {
+        chip.innerHTML = `${ICONS.file}<span>${esc(name)}</span>`;
+        chip.title = `Fichier en cours de modification : ${name}\nPour le retrouver sur l'ordinateur, utilisez « Enregistrer sous » ou l'explorateur de fichiers (le navigateur ne communique pas le dossier).`;
+      }
+      el.status.className = "save-status" + (st === "error" ? " error" : "");
+      if (st === "saving") el.status.textContent = "Enregistrement…";
+      else if (st === "saved" && name) el.status.textContent = "Enregistré";
+      else if (st === "permission") {
+        el.status.innerHTML = `<button type="button">Autoriser l'enregistrement dans « ${esc(name)} »</button>`;
+        el.status.querySelector("button").addEventListener("click", async () => {
+          if (await Files.allow(p)) toast("Enregistrement en temps réel activé");
+        });
+      } else if (st === "error") el.status.textContent = "Échec de l'enregistrement — Ctrl + S pour réessayer";
+      else el.status.textContent = Files.supported ? "Non enregistré — Ctrl + S" : "Ctrl + S pour télécharger le fichier";
+    };
+    Files.onStatus = (pid) => { if (pid === id) paintStatus(); };
+    cleanups.push(() => { if (Files.onStatus) Files.onStatus = null; });
+    paintStatus();
+
+    const saveNow = async () => {
       if (editor) editor.input.blur();
-      Store.updateProject(id, {});
-      if (Store.save()) {
-        const now = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-        el.status.textContent = "Enregistré à " + now;
-        toast("Projet enregistré");
-      } else toast("Échec de l'enregistrement");
+      p.updatedAt = todayISO();
+      const ok = await Files.flush(p);
+      if (ok) toast(Files.fileName(id) ? `Enregistré dans « ${Files.fileName(id)} »` : "Fichier téléchargé");
+      else if (Files.states.get(id) === "error") toast("Échec de l'enregistrement");
+    };
+    const saveAsNow = async () => {
+      if (editor) editor.input.blur();
+      if (await Files.saveAs(p)) toast(Files.fileName(id) ? `Enregistré dans « ${Files.fileName(id)} »` : "Fichier téléchargé");
     };
     root.querySelector('[data-act="save"]').addEventListener("click", saveNow);
+    root.querySelector('[data-act="save-as"]').addEventListener("click", saveAsNow);
     on(document, "keydown", (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); saveNow(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); if (e.shiftKey) saveAsNow(); else saveNow(); }
     });
 
     /* ========================================================
@@ -2196,6 +2409,7 @@ const Router = {
     const m = path.match(/^projet\/(.+)$/);
     document.title = "Plan Projet";
     if (ProjectView.cleanup) { ProjectView.cleanup(); ProjectView.cleanup = null; }
+    Store.currentId = null;
     if (m) ProjectView.render(root, m[1]);
     else MenuView.render(root);
   },
@@ -2203,6 +2417,17 @@ const Router = {
 
 Store.load();
 Theme.init();
+window.addEventListener("beforeunload", (e) => {
+  if (Files.hasPending()) { e.preventDefault(); e.returnValue = ""; }
+});
+// application installée (Chrome / Edge) : ouverture d'un fichier .proj par double-clic
+if ("launchQueue" in window) {
+  window.launchQueue.setConsumer(async (params) => {
+    if (params.files && params.files.length) {
+      try { openProject(await Files.openHandle(params.files[0])); } catch (e) { toast("Impossible d'ouvrir ce fichier"); }
+    }
+  });
+}
 window.addEventListener("hashchange", () => Router.render());
 Router.render();
 </script>
