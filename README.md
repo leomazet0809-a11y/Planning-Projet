@@ -42,7 +42,6 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Supprimer un lien | Cliquer sur la flèche |
 | Zoomer / dézoomer | Boutons − / + ou Ctrl + molette |
 | Revenir à aujourd'hui | Bouton « Aujourd'hui » |
-| Noms des tâches sur le planning | Bouton « Masquer les noms » / « Afficher les noms » |
 | Se déplacer dans le planning | Clic gauche maintenu sur le fond et glisser dans tous les sens |
 
 Une tâche liée commence toujours après la fin de sa tâche d'origine et suit ses déplacements.
