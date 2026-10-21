@@ -2946,7 +2946,15 @@ const ProjectView = {
       if (!sel) return;
       const R = rect();
       const tasks = p.tasks.slice(R.r1, R.r2 + 1);
-      mutate(() => tasks.forEach((t) => { t.level = Math.max(1, Math.min(MAX_LEVEL, t.level + delta)); }));
+      // une tâche ne descend jamais à plus d'un niveau sous la tâche juste au-dessus (sa future tâche mère)
+      const before = tasks.map((t) => t.level);
+      mutate(() => tasks.forEach((t) => {
+        const i = p.tasks.indexOf(t), max = i > 0 ? p.tasks[i - 1].level + 1 : 1;
+        let level = Math.max(1, Math.min(MAX_LEVEL, t.level + delta));
+        if (delta > 0) level = Math.min(level, Math.max(t.level, max));
+        t.level = level;
+      }));
+      if (delta > 0 && tasks.every((t, k) => t.level === before[k])) toast("Une tâche ne peut être qu'un niveau sous sa tâche mère");
     };
 
     /* ---------- Souris : sélection d'une cellule ou d'une plage ---------- */
