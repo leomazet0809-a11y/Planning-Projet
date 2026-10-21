@@ -1162,7 +1162,7 @@ const Fullscreen = {
   paint(btn) {
     const on = this.active();
     btn.innerHTML = on ? ICONS.exitFullscreen : ICONS.fullscreen;
-    btn.title = on ? "Quitter le plein écran (Échap)" : "Plein écran";
+    btn.title = on ? "Quitter le plein écran (F ou Échap)" : "Plein écran (F)";
     btn.setAttribute("aria-label", btn.title);
   },
   button() {
@@ -1175,6 +1175,17 @@ const Fullscreen = {
     return b;
   },
 };
+// touche F : bascule plein écran / normal (sauf pendant la saisie dans un champ texte)
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "f" && e.key !== "F") return;
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable)) return;
+  if (document.querySelector(".modal-backdrop")) return;
+  e.preventDefault();
+  e.stopPropagation();   // la lettre ne démarre pas la saisie dans la cellule sélectionnée
+  Fullscreen.toggle();
+}, true);
 document.addEventListener("fullscreenchange", () => {
   document.querySelectorAll("[data-fullscreen-btn]").forEach((b) => Fullscreen.paint(b));
 });

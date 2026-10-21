@@ -68,7 +68,7 @@ Boutons **Exporter** et **Importer** dans le bandeau (l'import existe aussi sur 
 
 **Fermeture** : si un projet est ouvert, le navigateur demande confirmation avant de fermer l'onglet ou la fenêtre.
 
-**Plein écran** : bouton à quatre coins dans le bandeau (Échap pour en sortir).
+**Plein écran** : bouton à quatre coins dans le bandeau, ou touche **F** (bascule) ; Échap pour en sortir. Pour taper un mot commençant par « f » dans une cellule, ouvrir d'abord la saisie (double-clic, Entrée ou F2).
 
 **Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 
