@@ -57,6 +57,8 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 Une tâche liée commence toujours après la fin de sa tâche d'origine et suit ses déplacements.
 Les samedis et dimanches sont grisés : aucune tâche ne peut y commencer ou y finir.
 
+**Plein écran** : bouton à quatre coins dans le bandeau (Échap pour en sortir).
+
 **Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 
 L'application peut être ajoutée aux favoris ou installée comme raccourci (menu du navigateur › « Installer Plan Projet » / « Créer un raccourci ») : elle utilise son propre logo.

@@ -397,6 +397,8 @@ const ICONS = {
   file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   saveAs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v5"/><path d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7"/><path d="M7 3v6h9V3M17 16v6M14 19h6"/></svg>',
+  fullscreen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  exitFullscreen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>',
 };
 
@@ -1090,6 +1092,38 @@ const Settings = {
 };
 
 /* ============================================================
+   Plein écran : toute l'application occupe l'écran
+   ============================================================ */
+const Fullscreen = {
+  supported: !!(document.documentElement.requestFullscreen && document.exitFullscreen),
+  active() { return !!document.fullscreenElement; },
+  async toggle() {
+    try {
+      if (this.active()) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+    } catch (e) { toast("Le plein écran n'est pas disponible dans ce navigateur"); }
+  },
+  paint(btn) {
+    const on = this.active();
+    btn.innerHTML = on ? ICONS.exitFullscreen : ICONS.fullscreen;
+    btn.title = on ? "Quitter le plein écran (Échap)" : "Plein écran";
+    btn.setAttribute("aria-label", btn.title);
+  },
+  button() {
+    const b = document.createElement("button");
+    b.className = "icon-btn";
+    b.dataset.fullscreenBtn = "";
+    if (!this.supported) b.hidden = true;
+    b.addEventListener("click", () => this.toggle());
+    this.paint(b);
+    return b;
+  },
+};
+document.addEventListener("fullscreenchange", () => {
+  document.querySelectorAll("[data-fullscreen-btn]").forEach((b) => Fullscreen.paint(b));
+});
+
+/* ============================================================
    Thème clair / sombre
    ============================================================ */
 const Theme = {
@@ -1197,7 +1231,7 @@ const MenuView = {
         <div data-slot="recents"><div class="empty-small">Chargement…</div></div>
       </main>`;
 
-    root.querySelector('[data-slot="theme"]').replaceWith(Settings.button(), Theme.button());
+    root.querySelector('[data-slot="theme"]').replaceWith(Fullscreen.button(), Settings.button(), Theme.button());
     root.querySelector('[data-act="new"]').addEventListener("click", async () => openProject(await Files.create()));
     root.querySelector('[data-act="open"]').addEventListener("click", async () => {
       try { openProject(await Files.open()); }
@@ -1443,7 +1477,7 @@ const ProjectView = {
           </section>
         </div>
       </div>`;
-    root.querySelector('[data-slot="theme"]').replaceWith(Settings.button(), Theme.button());
+    root.querySelector('[data-slot="theme"]').replaceWith(Fullscreen.button(), Settings.button(), Theme.button());
     root.querySelector('[data-act="back"]').addEventListener("click", () => Router.go(""));
     const titleInput = root.querySelector(".project-title");
     const showTitle = () => { titleInput.value = p.title; document.title = p.title + " — Plan Projet"; };
