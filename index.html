@@ -119,6 +119,9 @@ button { font: inherit; color: inherit; }
 .menu-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
 .menu-head h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .menu-head p { margin: 4px 0 0; color: var(--text-muted); }
+.workdir-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.workdir-line svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.link-btn { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
 .grid-cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 .card {
   background: var(--surface); border: 1px solid var(--border);
@@ -145,7 +148,7 @@ button { font: inherit; color: inherit; }
 .notice { background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 20px; line-height: 1.5; }
 .save-status.error { color: var(--danger); font-weight: 600; }
 .file-chip {
-  display: inline-flex; align-items: center; gap: 5px; max-width: 280px; flex: 0 1 auto;
+  display: inline-flex; align-items: center; gap: 5px; max-width: 560px; flex: 0 1 auto;
   font-size: 12px; color: var(--text-muted); background: var(--surface-2);
   border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; white-space: nowrap;
 }
@@ -268,7 +271,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .col-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 2; }
 .col-resize:hover { background: linear-gradient(to right, transparent 3px, var(--accent) 3px 5px, transparent 5px); }
 .cell-editor {
-  position: absolute; inset: 0; width: 100%; height: 100%;
+  position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box;
   border: 2px solid var(--accent); padding: 0 8px; margin: 0;
   font: inherit; color: var(--text); background: var(--surface); outline: none;
 }
@@ -277,11 +280,8 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .table-empty { padding: 32px 24px; color: var(--text-muted); }
 /* poignée pour déplacer une tâche (et ses sous-tâches) dans le tableau */
 .pane-left .pane-body { position: relative; }
-/* colonnes Niv 1 à 3 (24 px) : aucune marge, sinon la cellule s'élargit et décale les colonnes suivantes */
-.tcell[data-c="0"], .tcell[data-c="1"], .tcell[data-c="2"] { padding: 0; }
-/* pas de trait vertical entre les colonnes Niv 1, 2, 3 et 4 */
-.tcell[data-c="0"], .tcell[data-c="1"], .tcell[data-c="2"],
-.thead-row .tcell[data-fixed] { border-right-color: transparent; }
+/* colonne Tâche : le nom est placé selon son niveau (retrait), dans un bloc qui s'arrête au bord de la colonne */
+.pane-left .pane-body .tcell[data-c="0"] { padding: 0; }
 .tree-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; overflow: visible; }
 .tree-svg { opacity: .45; }
 .tree-svg .tree-line { fill: none; stroke: var(--text-muted); stroke-width: 1.2; }
@@ -329,7 +329,8 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .gantt-canvas.panning, .gantt-canvas.panning * { cursor: grabbing !important; }
 .grow { position: relative; height: var(--row-h); border-bottom: 1px solid var(--grid-line); }
 .grow.row-sel { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-.grow.drop-target { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.grow.drop-target, .trow.drop-target { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.grow.drop-bad, .trow.drop-bad { background: color-mix(in srgb, var(--danger) 14%, transparent); }
 .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: .55; pointer-events: none; z-index: 1; }
 .bar {
   position: absolute; top: calc((var(--row-h) - var(--bar-h)) / 2 - .5px); height: var(--bar-h); border-radius: 6px; z-index: 2;
@@ -363,6 +364,7 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .bar.ms .h-end { display: none; }
 .links-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; overflow: visible; }
 .links-svg .link { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
+.links-svg .link.slack { stroke-dasharray: 4 3; }   /* la tâche liée ne commence pas au plus tôt */
 .links-svg .link-hit { fill: none; stroke: transparent; stroke-width: 10; pointer-events: stroke; cursor: pointer; }
 .links-svg .link-hit:hover + .link { stroke: var(--danger); stroke-width: 2.5; }
 .links-svg .ghost { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 5 4; }
@@ -385,6 +387,11 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .set-row input[type="color"] { width: 36px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
 .set-row select { flex: 1; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; padding: 0 8px; }
 .settings-panel .btn { margin-top: 14px; width: 100%; justify-content: center; }
+.settings-panel .set-btns { gap: 8px; }
+.coef-input { width: 64px; padding: 4px 6px; text-align: right; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--text); font: inherit; }
+.settings-panel .set-btns .btn { margin-top: 0; }
+.workdir-name { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.workdir-name svg { width: 14px; height: 14px; color: var(--text-muted); }
 
 /* ---------- Calendrier des dates ---------- */
 .cal-pop {
@@ -425,6 +432,25 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 }
 .modal h3 { margin: 0 0 8px; font-size: 17px; }
 .modal p { margin: 0 0 20px; color: var(--text-muted); line-height: 1.5; }
+.comment-modal { width: min(560px, 100%); padding: 18px 20px 20px; }
+.comment-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.comment-head h3 { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; gap: 8px; }
+.comment-head h3 span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comment-head h3 svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--accent); }
+.comment-text {
+  width: 100%; min-height: 220px; resize: vertical; box-sizing: border-box; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text);
+  font: inherit; font-size: 14px; line-height: 1.5;
+}
+.comment-text:focus { outline: none; border-color: var(--accent); }
+/* repère « commentaire » : bulle à droite du nom (tableau) et au survol de la barre (planning) */
+.cmt-ico { display: inline-flex; flex: 0 0 auto; margin-left: 5px; color: var(--accent); vertical-align: middle; }
+.cmt-ico svg { width: 12px; height: 12px; }
+.spill-text { display: flex; align-items: center; }
+.spill-text .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bar .cmt-ico { position: absolute; left: calc(100% + 18px); top: 50%; transform: translateY(-50%); margin: 0; display: none; pointer-events: none; }
+.bar:hover .cmt-ico { display: inline-flex; }
+.bar.ms .cmt-ico { left: 30px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 @media (max-width: 1750px) { .hint { display: none; } }
@@ -461,6 +487,7 @@ const ICONS = {
   expandAll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4v15M4.5 15.5L8 19l3.5-3.5M16 4v15M12.5 15.5L16 19l3.5-3.5"/></svg>',
   collapseAll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20V5M4.5 8.5L8 5l3.5 3.5M16 20V5M12.5 8.5L16 5l3.5 3.5"/></svg>',
   folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg>',
   file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   saveAs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v5"/><path d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7"/><path d="M7 3v6h9V3M17 16v6M14 19h6"/></svg>',
@@ -543,7 +570,10 @@ const Dates = {
 /* ============================================================
    Calculs d'une tâche
    ============================================================ */
-const HOURS_TO_DAYS = 1.5;
+// coefficient du projet ouvert : Durée jours = Heures effectives × coefficient (réglable par projet dans Paramètres)
+const DEFAULT_COEF = 1.5;
+let HOURS_TO_DAYS = DEFAULT_COEF;
+const useCoef = (p) => { const c = Number(p && p.ui && p.ui.coef); HOURS_TO_DAYS = c > 0 ? c : DEFAULT_COEF; };
 
 // nombre positif, virgule ou point acceptés ; NaN sinon
 // Formule de la colonne Avancement : « =32/3 » → 10,67. Opérations + - * / et parenthèses,
@@ -594,14 +624,28 @@ const Task = {
     const n = raw.startsWith("=") ? evalFormula(raw) : parseNum(raw.replace(/\s*%$/, ""));
     return n == null || isNaN(n) ? null : Math.max(0, Math.min(100, n));
   },
-  // Durée jours = Heures effectives × 1,5, arrondie à l'entier le plus proche ; null si incalculable
+  // heures effectives : nombre saisi ou résultat d'un calcul « = » ; null si vide, NaN si incorrect
+  hours(t) {
+    const raw = String(t.heures ?? "").trim();
+    if (!raw) return null;
+    const v = raw.startsWith("=") ? evalFormula(raw) : parseNum(raw);
+    return v == null ? NaN : v;
+  },
+  // Durée jours = Heures effectives × coefficient, arrondie à l'entier le plus proche ; null si incalculable
+  // (une durée saisie directement est gardée telle quelle : dureeFix)
   duration(t) {
     const a = Agg.get(t);
     if (a) return a.dur;
     if (t.dureeText) return null;
-    if (String(t.heures).trim() === "") return null;
-    const h = parseNum(t.heures);
-    return isNaN(h) ? null : Math.round(h * HOURS_TO_DAYS);
+    if (t.dureeFix != null) return t.dureeFix;
+    const h = this.hours(t);
+    return h == null || isNaN(h) ? null : Math.max(0, Math.round(h * HOURS_TO_DAYS));
+  },
+  // durée imposée en jours (saisie, date de fin, barre étirée) : les heures en découlent
+  setDays(t, days) {
+    t.dureeFix = days;
+    t.heures = this.hoursFromDays(days);
+    delete t.dureeText;
   },
   // heures arrondies à l'heure entière
   hoursFromDays(days) { return String(Math.round(days / HOURS_TO_DAYS)); },
@@ -648,7 +692,7 @@ const Tree = {
       for (let k = r + 1; k < last; k = this.blockEnd(p, k)) {
         const c = tasks[k];
         const a = Agg.get(c);
-        const h = a ? a.hours : (String(c.heures).trim() === "" ? NaN : parseNum(c.heures));
+        const h = a ? a.hours : Task.hours(c);
         if (h != null && !isNaN(h)) hours = (hours || 0) + h;
         const d = Task.duration(c);
         if (d != null) dur = (dur || 0) + d;
@@ -740,6 +784,15 @@ const Links = {
     }
   },
 
+  // jours ouvrés entre le début au plus tôt de la tâche liée et son début réel (0 = commence au plus tôt)
+  slack(p, l) {
+    const a = this.byId(p, l.from), b = this.byId(p, l.to);
+    const endA = a && Task.end(a), startB = b && Task.start(b);
+    if (!endA || !startB) return 0;
+    const min = Dates.addWorkdays(endA, 1);
+    return startB > min ? Dates.workdayDiff(min, startB) : 0;
+  },
+
   // À appeler après une modification : les tâches liées suivent toute tâche dont la fin a bougé
   afterChange(p, endsBefore) {
     Tree.compute(p);
@@ -778,6 +831,9 @@ const Store = {
       delete p.name;
     }
     p.title = p.title || "Projet";
+    // ancienne colonne « 4 » (220 px) → colonne Tâche (avec les 3 colonnes de 24 px)
+    const cw = p.ui.colWidths;
+    if (cw && cw.niv4 != null) { if (cw.label == null) cw.label = cw.niv4 + 72; delete cw.niv4; }
     p.tasks.forEach((t) => {
       if ("realise" in t || "surveille" in t) {
         if (!t.responsable) t.responsable = [t.realise, t.surveille].map((x) => (x || "").trim()).filter(Boolean).join(" / ");
@@ -872,7 +928,7 @@ const Files = {
   async create() {
     if (!this.supported) return this.register(Store.blank("Nouveau projet"), null);
     let handle;
-    try { handle = await window.showSaveFilePicker({ suggestedName: "Nouveau projet" + PROJ_EXT, types: FILE_TYPES }); }
+    try { handle = await window.showSaveFilePicker({ suggestedName: "Nouveau projet" + PROJ_EXT, types: FILE_TYPES, ...(await WorkDir.pickerStart()) }); }
     catch (e) { return null; }   // fenêtre fermée
     const p = this.register(Store.blank(this.baseName(handle.name)), handle);
     await this.write(p);
@@ -886,7 +942,7 @@ const Files = {
     build(p);
     if (!this.supported) return this.register(p, null);
     let handle;
-    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(title) + PROJ_EXT, types: FILE_TYPES }); }
+    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(title) + PROJ_EXT, types: FILE_TYPES, ...(await WorkDir.pickerStart()) }); }
     catch (e) { return null; }
     p.title = this.baseName(handle.name);
     this.register(p, handle);
@@ -911,7 +967,7 @@ const Files = {
       return this.register(res.p, null);
     }
     let handle;
-    try { [handle] = await window.showOpenFilePicker({ types: OPEN_TYPES, multiple: false }); }
+    try { [handle] = await window.showOpenFilePicker({ types: OPEN_TYPES, multiple: false, ...(await WorkDir.pickerStart()) }); }
     catch (e) { return null; }
     try { await handle.requestPermission({ mode: "readwrite" }); } catch (e) { /* demandé plus tard */ }
     return this.openHandle(handle);
@@ -1026,7 +1082,7 @@ const Files = {
   async saveAs(p) {
     if (!this.supported) { this.download(p); this.setState(p.id, "saved"); return true; }
     let handle;
-    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(p.title) + PROJ_EXT, types: FILE_TYPES }); }
+    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(p.title) + PROJ_EXT, types: FILE_TYPES, ...(await WorkDir.pickerStart()) }); }
     catch (e) { return false; }
     this.handles.set(p.id, handle);
     this.setState(p.id, "saving");
@@ -1103,7 +1159,7 @@ const Recents = {
     });
   },
   async list() {
-    try { return ((await this.run("readonly", (st) => st.getAll())) || []).sort((a, b) => b.openedAt - a.openedAt); }
+    try { return ((await this.run("readonly", (st) => st.getAll())) || []).filter((e) => e.key !== WORKDIR_KEY).sort((a, b) => b.openedAt - a.openedAt); }
     catch (e) { return []; }
   },
   async find(handle) {
@@ -1135,6 +1191,48 @@ const Recents = {
   },
   async remove(key) {
     try { await this.run("readwrite", (st) => st.delete(key)); } catch (err) { /* ignoré */ }
+  },
+};
+
+/* ============================================================
+   Dossier de travail : le navigateur ne donne pas le chemin complet d'un fichier,
+   mais il sait dire où il se trouve à l'intérieur d'un dossier choisi par l'utilisateur
+   ============================================================ */
+const WORKDIR_KEY = "dossier-de-travail";   // mémorisé avec les fichiers récents (IndexedDB)
+const WorkDir = {
+  supported: typeof window.showDirectoryPicker === "function",
+  handle: null,
+  loading: null,
+  load() {
+    if (!this.loading) this.loading = Recents.get(WORKDIR_KEY).then((e) => { this.handle = e ? e.handle : null; });
+    return this.loading.then(() => this.handle);   // dossier actuel, même s'il a été changé depuis
+  },
+  async choose() {
+    await this.load();
+    let h;
+    try { h = await window.showDirectoryPicker({ id: "plan-projet-dossier", mode: "read", ...(this.handle ? { startIn: this.handle } : { startIn: "documents" }) }); }
+    catch (e) { return false; }   // fenêtre fermée
+    this.handle = h;
+    try { await Recents.run("readwrite", (st) => st.put({ key: WORKDIR_KEY, handle: h, name: h.name })); } catch (e) { /* non mémorisé */ }
+    this.changed();
+    return true;
+  },
+  async clear() {
+    this.handle = null;
+    await Recents.remove(WORKDIR_KEY);
+    this.changed();
+  },
+  changed() { document.dispatchEvent(new CustomEvent("workdir")); },
+  // les fenêtres Ouvrir / Enregistrer s'ouvrent dans le dossier de travail
+  async pickerStart() { return (await this.load()) ? { startIn: this.handle } : {}; },
+  // chemin du fichier à partir du dossier de travail (["Projets", "Chantier A", "Planning.xlsx"]), null s'il est ailleurs
+  async pathOf(fileHandle) {
+    const dir = await this.load();
+    if (!dir || !fileHandle) return null;
+    try {
+      const parts = await dir.resolve(fileHandle);
+      return parts ? [dir.name, ...parts] : null;
+    } catch (e) { return null; }
   },
 };
 
@@ -1216,12 +1314,30 @@ const Settings = {
       <div class="set-row"><span>Couleur de fond</span><input type="color" data-k="bg" value="${this.current("--surface")}"></div>
       <h4>Couleurs des tâches</h4>
       ${this.COLORS.map((c) => `<div class="set-row"><span>${c.label}</span><input type="color" data-k="${c.key}" value="${this.current(c.key === "summary" ? (st.summary ? "--summary" : "--summary-default") : "--" + c.key)}"></div>`).join("")}
+      ${ProjectView.coefTarget() ? `<h4>Projet en cours</h4>
+      <div class="set-row"><span>Durée jours = Heures ×</span><input class="coef-input" data-k="coef" value="${fmtNum(HOURS_TO_DAYS)}" inputmode="decimal" aria-label="Coefficient de la durée en jours"></div>` : ""}
+      ${WorkDir.supported ? `<h4>Dossier de travail</h4>
+      <div class="set-row"><span class="workdir-name">${WorkDir.handle ? `${ICONS.folder} ${esc(WorkDir.handle.name)}` : "Aucun"}</span></div>
+      <div class="set-row set-btns"><button class="btn" data-act="workdir">${WorkDir.handle ? "Changer…" : "Choisir…"}</button>${WorkDir.handle ? `<button class="btn" data-act="workdir-clear">Retirer</button>` : ""}</div>` : ""}
       <button class="btn" data-act="reset">Rétablir les réglages d'origine</button>`;
     panel.querySelector('[data-k="font"]').addEventListener("change", (e) => this.set("font", e.target.value === "Inter" ? null : e.target.value));
     panel.querySelectorAll('input[type="color"]').forEach((inp) => inp.addEventListener("input", () => {
       const k = inp.dataset.k === "bg" ? "bg-" + Theme.current() : inp.dataset.k;
       this.set(k, inp.value);
     }));
+    const coefIn = panel.querySelector('[data-k="coef"]');
+    if (coefIn) {
+      const apply = () => {
+        const v = parseNum(coefIn.value);
+        if (isNaN(v) || v <= 0) { toast("Coefficient incorrect : saisir un nombre supérieur à 0 (ex. 1,5)"); coefIn.value = fmtNum(HOURS_TO_DAYS); return; }
+        document.dispatchEvent(new CustomEvent("coef", { detail: v }));
+        coefIn.value = fmtNum(HOURS_TO_DAYS);
+      };
+      coefIn.addEventListener("change", apply);
+      coefIn.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); coefIn.blur(); } });
+    }
+    panel.querySelector('[data-act="workdir"]')?.addEventListener("click", async () => { if (await WorkDir.choose()) this.open(anchor); });
+    panel.querySelector('[data-act="workdir-clear"]')?.addEventListener("click", async () => { await WorkDir.clear(); this.open(anchor); });
     panel.querySelector('[data-act="reset"]').addEventListener("click", () => {
       Store.data.settings = {};
       Store.save();
@@ -1243,7 +1359,7 @@ const Settings = {
     const b = document.createElement("button");
     b.className = "icon-btn";
     b.innerHTML = ICONS.gear;
-    setTip(b, "Paramètres", "Couleurs et police d'écriture");
+    setTip(b, "Paramètres", "Couleurs, police d'écriture et dossier de travail");
     b.addEventListener("click", () => {
       if (document.querySelector(".settings-panel")) document.querySelector(".settings-panel").remove();
       else this.open(b);
@@ -1332,6 +1448,35 @@ const Theme = {
 /* ============================================================
    Fenêtre de confirmation
    ============================================================ */
+// fenêtre des commentaires d'une tâche : enregistrés à la fermeture (croix, Échap ou clic à côté)
+function commentDialog(task, onClose) {
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `
+    <div class="modal comment-modal" role="dialog" aria-modal="true" aria-label="Commentaires">
+      <div class="comment-head">
+        <h3>${ICONS.comment}<span>Commentaires — ${esc(task.label || "(sans nom)")}</span></h3>
+        <button class="icon-btn modal-close" data-act="close" ${tipAttrs("Fermer", "Les commentaires sont enregistrés", "Échap")}>${ICONS.close}</button>
+      </div>
+      <textarea class="comment-text" placeholder="Écrire un commentaire…" spellcheck="true"></textarea>
+    </div>`;
+  const ta = bd.querySelector("textarea");
+  ta.value = task.comment || "";
+  const close = () => {
+    document.removeEventListener("keydown", onKey, true);
+    Tip.hide();
+    bd.remove();
+    onClose(ta.value.replace(/\s+$/, ""));
+  };
+  const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  bd.querySelector('[data-act="close"]').addEventListener("click", close);
+  bd.addEventListener("mousedown", (e) => { if (e.target === bd) close(); });
+  document.body.appendChild(bd);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+
 function confirmDialog({ title, message, okLabel = "Confirmer", cancelLabel = "Annuler", danger = false, focusOk = false }) {
   return new Promise((resolve) => {
     const bd = document.createElement("div");
@@ -1422,6 +1567,7 @@ const MenuView = {
           <div>
             <h1>Mes projets</h1>
             <p>Chaque projet est un classeur Excel <b>${PROJ_EXT}</b> enregistré sur votre ordinateur, dans le dossier de votre choix : il s'ouvre aussi dans Excel.</p>
+            ${WorkDir.supported ? `<p class="workdir-line" data-slot="workdir"></p>` : ""}
           </div>
           <div class="spacer"></div>
           <button class="btn" data-act="open">${ICONS.folder} Ouvrir un fichier</button>
@@ -1451,6 +1597,20 @@ const MenuView = {
       Exchange.report(res.tasks.length, res.warnings);
     });
     this.renderRecents(root);
+    this.renderWorkDir(root);
+  },
+
+  async renderWorkDir(root) {
+    const slot = root.querySelector('[data-slot="workdir"]');
+    if (!slot) return;
+    const dir = await WorkDir.load();
+    if (!slot.isConnected) return;
+    slot.innerHTML = dir
+      ? `${ICONS.folder} Dossier de travail : <b>${esc(dir.name)}</b> <button class="link-btn" data-act="workdir">Changer</button>`
+      : `${ICONS.folder} Choisissez votre dossier de travail (par exemple « Projets ») pour voir dans quel sous-dossier se trouve chaque projet. <button class="link-btn" data-act="workdir">Choisir…</button>`;
+    slot.querySelector('[data-act="workdir"]').addEventListener("click", async () => {
+      if (await WorkDir.choose()) { this.renderWorkDir(root); this.renderRecents(root); }
+    });
   },
 
   async renderRecents(root) {
@@ -1467,7 +1627,7 @@ const MenuView = {
     slot.innerHTML = `<div class="grid-cards">${list.map((e) => `
       <article class="card recent" data-key="${e.key}" tabindex="0" title="Ouvrir ${esc(e.name)}">
         <div class="recent-title">${esc(e.title || Files.baseName(e.name))}</div>
-        <div class="card-meta">${ICONS.file} ${esc(e.name)}</div>
+        <div class="card-meta" data-path="${e.key}">${ICONS.file} <span>${esc(e.name)}</span></div>
         <div class="card-meta">Ouvert le ${new Date(e.openedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</div>
         <div class="card-actions">
           <button class="btn btn-primary" data-act="open-recent">Ouvrir</button>
@@ -1475,6 +1635,12 @@ const MenuView = {
         </div>
       </article>`).join("")}</div>`;
 
+    // chemin à partir du dossier de travail, quand le fichier s'y trouve
+    list.forEach(async (e) => {
+      const parts = await WorkDir.pathOf(e.handle);
+      const span = parts && slot.querySelector(`[data-path="${e.key}"] span`);
+      if (span) span.textContent = parts.join(" › ");
+    });
     slot.querySelectorAll(".card.recent").forEach((card) => {
       const entry = list.find((e) => e.key === card.dataset.key);
       const openIt = async () => {
@@ -1504,11 +1670,8 @@ const MenuView = {
    Tableau : colonnes, affichage et saisie des cellules
    ============================================================ */
 const COLUMNS = [
-  // Niv 1 à 3 : colonnes étroites et fixes (retrait des niveaux) ; le libellé déborde sur les suivantes
-  { key: "niv1", label: "1", title: "Niveau 1", w: 24, fixed: true },
-  { key: "niv2", label: "2", title: "Niveau 2", w: 24, fixed: true },
-  { key: "niv3", label: "3", title: "Niveau 3", w: 24, fixed: true },
-  { key: "niv4", label: "4", title: "Niveau 4", w: 220 },
+  // une seule colonne « Tâche » : le niveau (1 à 4) se voit au retrait du nom ; Excel garde ses 4 colonnes de niveau
+  { key: "label", label: "Tâche", w: 292 },
   // largeurs par défaut : Responsable à la taille de son titre ; colonnes de valeurs toutes identiques et resserrées
   { key: "responsable", label: "Responsable", w: 96 },
   { key: "heures", label: "Heures effectives", w: 76, align: "num", compact: true },
@@ -1518,7 +1681,9 @@ const COLUMNS = [
   { key: "avancement", label: "Avancement", head: "Avance\u00adment", w: 76, align: "center", compact: true },
 ];
 const COL = Object.fromEntries(COLUMNS.map((c, i) => [c.key, i]));
-const isNivCol = (c) => c <= COL.niv4;
+const isTaskCol = (c) => c === COL.label;
+// colonnes d'Excel (copier / coller) : 4 colonnes de niveau à la place de « Tâche », puis les mêmes colonnes
+const XL_KEYS = ["niv1", "niv2", "niv3", "niv4", ...COLUMNS.slice(1).map((c) => c.key)];
 const DEFAULT_GRID_RATIO = 0.55;
 const MIN_PANE = 200;
 const MIN_COL = 50;
@@ -1542,6 +1707,7 @@ function cellDisplay(t, key) {
       : Dates.format(Task.end(t));
     return { text, calc: true };
   }
+  if (key === "label") return { text: t.label || "" };
   const m = key.match(/^niv(\d)$/);
   if (m) return { text: t.level === Number(m[1]) ? t.label : "" };
   switch (key) {
@@ -1556,7 +1722,14 @@ function cellDisplay(t, key) {
       const n = parseNum(raw.replace(/\s*%$/, ""));
       return { text: isNaN(n) ? raw : fmtNum(n) + " %" };
     }
-    case "heures": return { text: t.heures, invalid: String(t.heures).trim() !== "" && isNaN(parseNum(t.heures)) };
+    case "heures": {
+      const raw = String(t.heures ?? "").trim();
+      if (raw.startsWith("=")) {
+        const v = evalFormula(raw);
+        return v == null ? { text: raw, invalid: true, formulaError: true } : { text: fmtHours(v) };
+      }
+      return { text: t.heures, invalid: raw !== "" && isNaN(parseNum(raw)) };
+    }
     case "duree": {
       if (t.dureeText) return { text: t.dureeText, invalid: true };
       const d = Task.duration(t);
@@ -1573,6 +1746,7 @@ function commitCell(t, key, raw) {
   if (Task.isParent(t) && CALC_KEYS.includes(key)) return;   // calculé à partir des tâches filles
   raw = String(raw);
   const v = raw.trim();
+  if (key === "label") { t.label = v; return; }
   const m = key.match(/^niv(\d)$/);
   if (m) {
     const lvl = Number(m[1]);
@@ -1583,16 +1757,20 @@ function commitCell(t, key, raw) {
   switch (key) {
     case "responsable": case "avancement": t[key] = v; break;
     case "heures":
-      t.heures = v; delete t.dureeText; delete t.finText;
+      t.heures = v; delete t.dureeText; delete t.finText; delete t.dureeFix; delete t.dureeFormula;
       if (v) ensureStart();
       break;
-    case "duree":
-      delete t.finText;
-      if (!v) { t.heures = ""; delete t.dureeText; break; }
-      if (isNaN(parseNum(v))) { t.dureeText = v; break; }
-      t.heures = Task.hoursFromDays(parseNum(v)); delete t.dureeText;
+    case "duree": {
+      delete t.finText; delete t.dureeFormula;
+      if (!v) { t.heures = ""; delete t.dureeText; delete t.dureeFix; break; }
+      // nombre, ou calcul commençant par « = » (ex. =2*5 → 10 jours ; le calcul reste modifiable)
+      const n = v.startsWith("=") ? evalFormula(v) : parseNum(v);
+      if (n == null || isNaN(n) || n < 0) { t.dureeText = v; delete t.dureeFix; break; }
+      Task.setDays(t, Math.round(n));
+      if (v.startsWith("=")) t.dureeFormula = v;
       ensureStart();
       break;
+    }
     case "debut": {
       if (!v) { t.start = null; delete t.debutText; break; }
       const iso = Dates.parseFR(v);
@@ -1608,8 +1786,8 @@ function commitCell(t, key, raw) {
       ensureStart();
       iso = Dates.prevWorkday(iso);
       if (iso < t.start) iso = t.start;
-      t.heures = Task.hoursFromDays(Dates.workdaysBetween(t.start, iso));
-      delete t.dureeText;
+      Task.setDays(t, Dates.workdaysBetween(t.start, iso));
+      delete t.dureeFormula;
       break;
     }
   }
@@ -1648,7 +1826,7 @@ const toTSVCell = (s) => (/[\t\n"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
    Les valeurs des tâches mères sont exportées (calculées) mais recalculées à l'import.
    ============================================================ */
 const DATA_SHEET = "PlanProjet_donnees";   // feuille masquée : données complètes de l'application
-const EX_HEADERS = ["N°", "1", "2", "3", "4", "Responsable", "Heures effectives", "Durée jours", "Date début", "Date fin", "Avancement", "Dépend de"];
+const EX_HEADERS = ["N°", "1", "2", "3", "4", "Responsable", "Heures effectives", "Durée jours", "Date début", "Date fin", "Avancement", "Dépend de", "Commentaires"];
 
 /* ---------- Archive ZIP minimale (format des fichiers .xlsx) ---------- */
 const Zip = {
@@ -1736,6 +1914,9 @@ const Exchange = {
     const num = new Map(p.tasks.map((t, i) => [t.id, i + 1]));
     const deps = (t) => (p.links || []).filter((l) => l.to === t.id).map((l) => num.get(l.from)).filter(Boolean).sort((a, b) => a - b).join(", ");
     const numOrText = (s) => { const n = parseNum(s); return String(s).trim() === "" ? null : isNaN(n) ? { v: String(s), kind: "text" } : { v: n, kind: "num" }; };
+    // heures : un calcul « = » est exporté par son résultat
+    const hoursCell = (t) => { const h = Task.hours(t); return String(t.heures ?? "").trim().startsWith("=") && h != null && !isNaN(h) ? { v: Math.round(h * 1e6) / 1e6, kind: "num" } : numOrText(t.heures ?? ""); };
+    useCoef(p);
     return p.tasks.map((t, i) => {
       const parent = Task.isParent(t), a = Agg.get(t);
       const row = [{ v: i + 1, kind: "num" }];
@@ -1747,7 +1928,7 @@ const Exchange = {
         row.push(a.start ? { v: a.start, kind: "date", calc: true } : null);
         row.push(a.end ? { v: a.end, kind: "date", calc: true } : null);
       } else {
-        row.push(numOrText(t.heures));
+        row.push(hoursCell(t));
         const d = Task.duration(t);
         row.push(t.dureeText ? { v: t.dureeText, kind: "text" } : d == null ? null : { v: d, kind: "num" });
         row.push(t.debutText ? { v: t.debutText, kind: "text" } : t.start ? { v: t.start, kind: "date" } : null);
@@ -1760,6 +1941,7 @@ const Exchange = {
       else { const n = parseNum(av.replace(/\s*%$/, "")); row.push(isNaN(n) ? { v: av, kind: "text" } : { v: n, kind: "pct" }); }
       const dp = deps(t);
       row.push(dp ? { v: dp, kind: "text" } : null);
+      row.push(t.comment ? { v: t.comment, kind: "text" } : null);
       return row;
     });
   },
@@ -1792,7 +1974,7 @@ const Exchange = {
     };
     const head = `<row r="1">${EX_HEADERS.map((h, i) => `<c r="${colName(i)}1" t="inlineStr" s="1"><is><t>${xmlEsc(h)}</t></is></c>`).join("")}</row>`;
     const body = this.rows(p).map((r, ri) => `<row r="${ri + 2}">${r.map((c, ci) => cellXml(c, colName(ci) + (ri + 2))).join("")}</row>`).join("");
-    const widths = [6, 4, 4, 4, 40, 18, 10, 10, 12, 12, 12, 12];
+    const widths = [6, 4, 4, 4, 40, 18, 10, 10, 12, 12, 12, 12, 50];
     const sheetName = xmlEsc((p.title || "Planning").replace(/[\[\]:*?/\\]/g, "-").slice(0, 31));
     const NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
     const WS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet";
@@ -1910,8 +2092,9 @@ const Exchange = {
     const num = (s) => { const v = String(s ?? "").trim(); const n = parseNum(v.replace(/\s*%$/, "")); return isNaN(n) ? v : String(n); };
     const rows = tasks.map((t) => {
       const parent = Task.isParent(t);
-      return [t.level, t.label, t.responsable || "", parent ? "" : num(t.heures), parent ? "" : t.start || "",
-        (t.avancement || "").startsWith("=") ? t.avancement.trim() : num(t.avancement)].join("\u0001");
+      const h = Task.hours(t), hs = String(t.heures ?? "").trim().startsWith("=") && h != null && !isNaN(h) ? String(Math.round(h * 1e6) / 1e6) : t.heures;
+      return [t.level, t.label, t.responsable || "", parent ? "" : num(hs), parent ? "" : t.start || "",
+        (t.avancement || "").startsWith("=") ? t.avancement.trim() : num(t.avancement), (t.comment || "").trim()].join("\u0001");
     });
     const ls = q.links.map((l) => `${idx.get(l.from)}>${idx.get(l.to)}`).sort();
     return rows.join("\n") + "\n#" + ls.join(",");
@@ -1929,6 +2112,7 @@ const Exchange = {
     if (data) {
       try { stored = Files.fromText(data.rows.map((r) => (r[0] == null ? "" : String(r[0]))).join(""), title); } catch (e) { stored = null; }
     }
+    useCoef(stored);   // durées relues avec le coefficient du projet
     let imported = null, importError = null;
     try { imported = visible ? this.toTasks(visible.rows) : null; } catch (e) { importError = e; }
     if (!stored) {
@@ -1956,6 +2140,7 @@ const Exchange = {
       heures: ["heureseffectives", "heures"], duree: ["dureejours", "duree"],
       debut: ["datedebut", "debut"], fin: ["datefin", "fin"],
       avancement: ["avancement"], deps: ["dependde", "depend", "predecesseurs", "predecesseur", "dependances"],
+      comment: ["commentaires", "commentaire", "notes", "note", "remarques", "remarque"],
     };
     // ligne d'en-tête : la première où l'on reconnaît au moins une colonne de niveau
     let hr = -1, map = {};
@@ -1994,8 +2179,11 @@ const Exchange = {
       const resp = asText(val(row, "responsable")) || [asText(val(row, "realise")), asText(val(row, "surveille"))].filter(Boolean).join(" / ");
       if (resp) t.responsable = resp;
       const h = asText(val(row, "heures")), d = asText(val(row, "duree")), deb = asDate(val(row, "debut")), fin = asDate(val(row, "fin"));
-      if (h) commitCell(t, "heures", h);
-      else if (d) commitCell(t, "duree", d);
+      if (h) {
+        commitCell(t, "heures", h);
+        const dn = parseNum(d);
+        if (d && !isNaN(dn) && Task.duration(t) !== Math.round(dn)) Task.setDays(t, Math.round(dn));
+      } else if (d) commitCell(t, "duree", d);
       if (deb) {
         commitCell(t, "debut", deb);
         if (t.debutText) warnings.push(`Ligne ${i + 1} : date de début « ${deb} » non reconnue`);
@@ -2004,6 +2192,8 @@ const Exchange = {
       const av = val(row, "avancement");
       if (typeof av === "object" && av && av.formula) t.avancement = av.formula;
       else if (asText(av)) t.avancement = asText(av);
+      const cm = String(plain(val(row, "comment")) ?? "").replace(/\r\n?/g, "\n").trim();
+      if (cm) t.comment = cm;
       const n = parseInt(asText(val(row, "num")), 10);
       if (!isNaN(n)) byNum.set(n, t);
       byNum.set(`ligne${tasks.length + 1}`, t);
@@ -2126,6 +2316,8 @@ const HistoryStore = {
 };
 
 const ProjectView = {
+  // projet ouvert dont Paramètres règle le coefficient (null sur la page d'accueil)
+  coefTarget() { return document.querySelector(".project-page") ? Store.getProject(Store.currentId) : null; },
   render(root, id) {
     const p = Store.getProject(id);
     if (!p) { Router.go(""); return; }   // page rechargée : rouvrir le fichier depuis les récents
@@ -2150,7 +2342,7 @@ const ProjectView = {
         </header>
         <div class="toolbar">
           <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
-          <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans une colonne 1 à 4)", "Suppr")}>${ICONS.trash}</button>
+          <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
           <div class="sep"></div>
           <div class="btn-group">
             <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
@@ -2162,7 +2354,7 @@ const ProjectView = {
             <span class="zoom-label">Hauteur</span>
             <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
           </div>
-          <span class="hint">Tab / Maj+Tab dans une colonne de niveau (1 à 4) : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
+          <span class="hint">Tab / Maj+Tab dans la colonne Tâche : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
           <div class="spacer"></div>
           <button class="icon-btn" data-act="today" ${tipAttrs("Aujourd'hui", "Afficher la date du jour sur le planning")}>${ICONS.today}</button>
           <div class="btn-group">
@@ -2212,7 +2404,8 @@ const ProjectView = {
     ProjectView.cleanup = () => cleanups.forEach((f) => f());
 
     /* ---------- Historique : chaque enregistrement est une étape annulable ---------- */
-    const snapshot = () => JSON.stringify({ title: p.title, tasks: p.tasks, links: p.links });
+    useCoef(p);
+    const snapshot = () => JSON.stringify({ title: p.title, tasks: p.tasks, links: p.links, coef: p.ui.coef });
     if (!History.has(id)) History.set(id, { undo: [], redo: [], ...HistoryStore.load(id), last: snapshot() });
     const hist = History.get(id);
     hist.last = snapshot();
@@ -2223,6 +2416,8 @@ const ProjectView = {
     const restore = (state) => {
       const o = JSON.parse(state);
       p.title = o.title; p.tasks = o.tasks; p.links = o.links;
+      if (o.coef) p.ui.coef = o.coef; else delete p.ui.coef;
+      useCoef(p);
       hist.last = state;
       Store.updateProject(id, {});
       titleEl.textContent = p.title;
@@ -2271,14 +2466,37 @@ const ProjectView = {
     };
     // état de l'enregistrement dans le fichier, affiché dans le bandeau
     const chip = root.querySelector(".file-chip");
+    // fichier en cours de modification : chemin à partir du dossier de travail, sinon son nom seul
+    let chipName = null;
+    const paintChip = async () => {
+      const name = Files.fileName(id);
+      chipName = name;
+      chip.hidden = !name;
+      if (!name) return;
+      const parts = await WorkDir.pathOf(Files.handles.get(id));
+      if (chipName !== name || !chip.isConnected) return;
+      chip.innerHTML = `${ICONS.file}<span>${esc(parts ? parts.join(" › ") : name)}</span>`;
+      chip.title = parts ? `Fichier en cours de modification : ${parts.join(" › ")}`
+        : `Fichier en cours de modification : ${name}\n` + (WorkDir.handle
+          ? `Ce fichier n'est pas dans le dossier de travail « ${WorkDir.handle.name} » : seul son nom peut être affiché.`
+          : "Pour afficher le dossier du fichier, choisissez votre dossier de travail dans Paramètres (roue dentée).");
+    };
+    on(document, "workdir", paintChip);
+    // coefficient de la durée réglé dans Paramètres (propre au projet, enregistré dans son fichier)
+    on(document, "coef", (e) => {
+      const v = e.detail;
+      if (v === HOURS_TO_DAYS) return;
+      mutate(() => {
+        if (v === DEFAULT_COEF) delete p.ui.coef; else p.ui.coef = v;
+        useCoef(p);
+        // durées saisies en jours : elles restent, leurs heures sont recalculées
+        p.tasks.forEach((t) => { if (t.dureeFix != null) t.heures = Task.hoursFromDays(t.dureeFix); });
+      });
+      toast(`Durée jours = Heures × ${fmtNum(v)}`);
+    });
     const paintStatus = () => {
       const st = Files.states.get(id), name = Files.fileName(id);
-      // fichier en cours de modification (le navigateur ne donne que son nom, pas le dossier)
-      chip.hidden = !name;
-      if (name) {
-        chip.innerHTML = `${ICONS.file}<span>${esc(name)}</span>`;
-        chip.title = `Fichier en cours de modification : ${name}\nPour le retrouver sur l'ordinateur, utilisez « Enregistrer sous » ou l'explorateur de fichiers (le navigateur ne communique pas le dossier).`;
-      }
+      if (name !== chipName) paintChip();
       el.status.className = "save-status" + (st === "error" ? " error" : "");
       if (st === "saving") el.status.textContent = "Enregistrement…";
       else if (st === "saved" && name) el.status.textContent = "Enregistré";
@@ -2389,10 +2607,9 @@ const ProjectView = {
       let html = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
         `<div class="tcell${c.compact ? " compact" : ""}"${c.fixed ? " data-fixed" : ""}${c.title ? ` title="${c.title}"` : ""} style="width:${colWidth(c)}px">${esc(c.head || c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
       if (showFilters) {
-        // colonnes 1 à 4 : une seule recherche « Tâche » ; puis une recherche par colonne
+        // une recherche par colonne
         const field = (k, w, ph) => `<div class="fcell" style="width:${w}px"><input class="filter-input${normTxt(filters[k]) ? " active" : ""}" data-k="${k}" value="${esc(filters[k] || "")}" placeholder="${ph}" title="Filtrer : ${ph}" spellcheck="false">${normTxt(filters[k]) ? `<button class="filter-clear" data-clear="${k}" title="Effacer ce filtre">×</button>` : ""}</div>`;
-        let cells = field("label", colLeft(COL.niv4 + 1), "Tâche…");
-        COLUMNS.forEach((c) => { if (!isNivCol(COL[c.key])) cells += field(c.key, colWidth(c), c.label + "…"); });
+        const cells = COLUMNS.map((c) => field(c.key, colWidth(c), c.label + "…")).join("");
         html += `<div class="trow filter-row">${cells}</div>`;
       }
       el.leftHead.innerHTML = html;
@@ -2400,14 +2617,15 @@ const ProjectView = {
     };
 
     const colLeft = (c) => { let x = 0; for (let k = 0; k < c; k++) x += colWidth(COLUMNS[k]); return x; };
-    // le libellé commence au bord gauche de la colonne de son niveau ;
-    // le bouton réduire/déployer est juste à gauche, dans la colonne précédente (ou la marge pour le niveau 1)
-    const GUTTER = 28;
+    // retrait du nom selon le niveau (24 px par niveau) ;
+    // le bouton réduire/déployer est juste à gauche du nom (dans la marge pour le niveau 1)
+    const GUTTER = 28, INDENT = 24;
+    const indentOf = (t) => (t.level - 1) * INDENT;
     const twistyLeft = () => -14;
     const labelLeft = () => 4;
 
     /* ---------- Filtres : une recherche texte par colonne ---------- */
-    // « label » cherche dans le nom des tâches (colonnes 1 à 4) ; les autres clés sont celles des colonnes
+    // « label » cherche dans le nom des tâches ; les autres clés sont celles des colonnes
     const FILTER_COLS = ["label", "responsable", "heures", "duree", "debut", "fin", "avancement"];
     let filters = {}, showFilters = false;
     const keepVisible = new Set();   // tâches ajoutées pendant un filtrage : restent visibles
@@ -2460,20 +2678,29 @@ const ProjectView = {
         let pr = r - 1;
         while (pr >= 0 && p.tasks[pr].level >= t.level) pr--;
         if (pr < 0) return;
-        const P = p.tasks[pr].level - 1;
-        const x = GUTTER + colLeft(P) + twistyLeft() + 6;
+        const x = GUTTER + indentOf(p.tasks[pr]) + twistyLeft() + 6;
         const y0 = visPos[pr] * rowH + rowH / 2 + 6, y = visPos[r] * rowH + rowH / 2;
         // la flèche s'arrête juste avant le bouton (tâche mère) ou le libellé (tâche simple)
-        const x2 = GUTTER + colLeft(t.level - 1) + (Task.isParent(t) ? twistyLeft() - 1 : labelLeft() - 2);
+        const x2 = GUTTER + indentOf(t) + (Task.isParent(t) ? twistyLeft() - 1 : labelLeft() - 2);
         paths += `<path class="tree-line" d="M${x} ${y0} V${y - 3} Q${x} ${y} ${x + 3} ${y} H${x2}" marker-end="url(#tree-arrow)"/>`;
       });
       if (!paths) return "";
-      return `<svg class="tree-svg" width="${GUTTER + colLeft(COL.niv4 + 1)}" height="${vis.length * rowH}"><defs><marker id="tree-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>${paths}</svg>`;
+      return `<svg class="tree-svg" width="${GUTTER + colLeft(COL.label + 1)}" height="${vis.length * rowH}"><defs><marker id="tree-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>${paths}</svg>`;
     };
     const CHEVRON = '<svg viewBox="0 0 10 10"><path d="M2 3.5L5 6.5L8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // nombre de colonnes Niv suivantes (toujours vides sur cette ligne) sur lesquelles s'étend le libellé
-    const spillCount = (t) => (t.label ? COL.niv4 - (t.level - 1) : 0);
+    const commentPreview = (t) => { const c = (t.comment || "").trim(); return c.length > 300 ? c.slice(0, 300) + "…" : c; };
+    // fenêtre des commentaires de la tâche r (double-clic sur le nom ou sur la barre)
+    const openComments = (r) => {
+      const t = p.tasks[r];
+      if (!t) return;
+      if (editor) editor.input.blur();
+      commentDialog(t, (text) => {
+        if (text === (t.comment || "")) return;
+        mutate(() => { if (text) t.comment = text; else delete t.comment; });
+      });
+    };
 
     const renderRows = () => {
       Tree.compute(p);
@@ -2485,27 +2712,24 @@ const ProjectView = {
         ? vis.map((r) => {
             const t = p.tasks[r];
             const inRows = R && r >= R.r1 && r <= R.r2;
-            const c0 = t.level - 1, spill = spillCount(t), parent = Task.isParent(t);
+            const parent = Task.isParent(t);
             return `<div class="trow${inRows ? " row-sel" : ""}${filterCtx.has(r) ? " filter-context" : ""}">${COLUMNS.map((c, i) => {
               const d = cellDisplay(t, c.key);
               let content = esc(d.text), spillCls = "";
               let style = `width:${colWidth(c)}px`;
-              if (i === c0) {
-                // colonnes 1 à 3 (24 px) : pas de marge, le libellé est placé par-dessus ; sinon la cellule
-                // s'élargirait et décalerait toutes les colonnes suivantes de la ligne
-                style += c0 < COL.niv4 ? ";padding:0" : `;padding-left:${labelLeft(t)}px`;
-                if (parent) spillCls = "spill-from";   // le bouton dépasse à gauche de la cellule
-                if (spill) {
-                  let w = -labelLeft(t) - 8;
-                  for (let k = c0; k <= c0 + spill; k++) w += colWidth(COLUMNS[k]);
-                  content = `<span class="spill-text" style="left:${labelLeft(t)}px;width:${w}px">${content}</span>`;
-                  spillCls = "spill-from";
+              if (i === COL.label) {
+                // nom placé selon son niveau ; il s'arrête au bord de la colonne Tâche
+                const left = indentOf(t) + labelLeft(t);
+                const cmt = t.comment ? `<span class="cmt-ico" title="${esc(commentPreview(t))}">${ICONS.comment}</span>` : "";
+                content = `<span class="spill-text" style="left:${left}px;width:${Math.max(0, colWidth(c) - left - 6)}px"><span class="lbl">${content}</span>${cmt}</span>`;
+                if (parent) {
+                  spillCls = "spill-from";   // le bouton dépasse à gauche de la cellule (niveau 1)
+                  content = `<span class="twisty${t.collapsed ? " closed" : ""}" data-r="${r}" style="left:${indentOf(t) + twistyLeft(t)}px" title="${t.collapsed ? "Déployer" : "Réduire"} le groupe">${CHEVRON}</span>` + content;
                 }
-                if (parent) content = `<span class="twisty${t.collapsed ? " closed" : ""}" data-r="${r}" style="left:${twistyLeft(t)}px" title="${t.collapsed ? "Déployer" : "Réduire"} le groupe">${CHEVRON}</span>` + content;
-              } else if (spill && i > c0 && i < c0 + spill) spillCls = "spill-over";
+              }
               const cls = ["tcell", c.align || "", c.compact ? "compact" : "",
                 d.invalid ? "invalid" : "", d.calc ? "calc" : "",
-                isNivCol(i) && t.level === 1 ? "lvl1" : "",
+                isTaskCol(i) && t.level === 1 ? "lvl1" : "",
                 inRows && i >= R.c1 && i <= R.c2 && (R.r1 !== R.r2 || R.c1 !== R.c2) ? "in-range" : "",
                 sel && sel.r === r && sel.c === i ? "sel" : "", spillCls].join(" ");
               const grip = i === 0 ? `<span class="grip" data-r="${r}" title="Glisser pour déplacer la tâche (avec ses sous-tâches)"></span>` : "";
@@ -2648,7 +2872,8 @@ const ProjectView = {
     };
 
     /* ---------- Saisie dans une cellule ---------- */
-    const openEditor = (initial) => {
+    // fromClick : ouvert par un clic simple sur le nom de la tâche
+    const openEditor = (initial, fromClick = false) => {
       if (!sel || editor) return;
       if (Task.isParent(p.tasks[sel.r]) && CALC_KEYS.includes(COLUMNS[sel.c].key)) {
         toast("Valeur calculée à partir des tâches filles");
@@ -2660,14 +2885,17 @@ const ProjectView = {
       const t = p.tasks[sel.r], key = COLUMNS[sel.c].key;
       const input = document.createElement("input");
       input.className = "cell-editor " + (COLUMNS[sel.c].align || "");
-      const editValue = () => (key === "avancement" ? t.avancement || "" : cellDisplay(t, key).text);
+      // valeur modifiable : le calcul « = » s'il y en a un, sinon le texte affiché
+      const editValue = () => (key === "avancement" ? t.avancement || "" : key === "heures" ? String(t.heures ?? "")
+        : key === "duree" && t.dureeFormula ? t.dureeFormula : cellDisplay(t, key).text);
       input.value = initial != null ? initial : editValue();
+      if (key === "label") input.style.paddingLeft = indentOf(t) + labelLeft() - 2 + "px";   // le texte reste à sa place (retrait du niveau)
       cell.textContent = "";
       cell.classList.remove("invalid");
       cell.appendChild(input);
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
-      editor = { input, done: false };
+      editor = { input, done: false, fromClick, orig: input.value };
       // Date début / Date fin : calendrier (sauf si la saisie a commencé par une touche)
       const cal = initial == null && (key === "debut" || key === "fin") ? openCalendar(input, cell, () => finish(true)) : null;
 
@@ -2682,13 +2910,21 @@ const ProjectView = {
         el.leftBody.focus({ preventScroll: true });
       };
       input.addEventListener("keydown", (e) => {
+        // nom ouvert par un simple clic et pas encore modifié : Suppr, copier / coller, annuler, Alt + ↑ / ↓
+        // agissent sur la tâche comme si la cellule était seulement sélectionnée
+        const k = e.key.toLowerCase();
+        if (editor && editor.fromClick && input.value === editor.orig &&
+            (e.key === "Delete" || ((e.ctrlKey || e.metaKey) && "cxvzy".includes(k)) || (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")))) {
+          finish(false);   // l'événement continue jusqu'au tableau
+          return;
+        }
         e.stopPropagation();
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); finish(true); saveNow(); }
         else if (e.key === "Enter") { e.preventDefault(); finish(true, () => select(stepRow(sel.r, e.shiftKey ? -1 : 1), sel.c)); }
         else if (e.key === "Escape") { e.preventDefault(); finish(false); }
         else if (e.key === "Tab") {
           e.preventDefault();
-          if (isNivCol(sel.c)) finish(true, () => indent(e.shiftKey ? -1 : 1));
+          if (isTaskCol(sel.c)) finish(true, () => indent(e.shiftKey ? -1 : 1));
           else finish(true, () => select(sel.r, sel.c + (e.shiftKey ? -1 : 1)));
         }
         else if (e.key === "ArrowUp") { e.preventDefault(); finish(true, () => select(stepRow(sel.r, -1), sel.c)); }
@@ -2702,10 +2938,6 @@ const ProjectView = {
       if (!sel) return;
       const R = rect();
       const tasks = p.tasks.slice(R.r1, R.r2 + 1);
-      if (isNivCol(sel.c)) {
-        const c = Math.max(1, Math.min(4, p.tasks[sel.r].level + delta)) - 1;
-        sel.c = c; sel.c2 = c;
-      }
       mutate(() => tasks.forEach((t) => { t.level = Math.max(1, Math.min(4, t.level + delta)); }));
     };
 
@@ -2760,7 +2992,7 @@ const ProjectView = {
           block = p.tasks.splice(r, end - r);
           p.tasks.splice(at, 0, ...block);
         });
-        select(at, block[0].level - 1);
+        select(at, COL.label);
         el.leftBody.focus({ preventScroll: true });
       };
       window.addEventListener("mousemove", move);
@@ -2810,16 +3042,32 @@ const ProjectView = {
       const grip = e.target.closest(".grip");
       if (grip && e.button === 0) { e.preventDefault(); startRowDrag(e, +grip.dataset.r); return; }
       const cell = e.target.closest(".tcell[data-r]");
+      clearTimeout(clickEdit);
+      // 2e clic arrivé après l'ouverture du nom en modification : c'est un double-clic → commentaires
+      if (e.target.classList.contains("cell-editor") && e.detail === 2 && editor && editor.fromClick && editor.input.value === editor.orig) {
+        e.preventDefault();
+        const r = sel.r;
+        editor.input.blur();
+        openComments(r);
+        return;
+      }
       if (!cell || e.target.classList.contains("cell-editor") || e.button !== 0) return;
       e.preventDefault();
       if (editor) editor.input.blur();
       const r = +cell.dataset.r, c = +cell.dataset.c;
-      // double-clic : modifier la cellule (détecté ici car le tableau est redessiné entre les deux clics)
-      if (e.detail >= 2 && !e.shiftKey && sel && sel.r === r && sel.c === c) { openEditor(); return; }
+      // double-clic (détecté ici car le tableau est redessiné entre les deux clics) :
+      // nom de la tâche → commentaires ; autres cellules → modifier (dates : calendrier)
+      if (e.detail >= 2 && !e.shiftKey && sel && sel.r === r && sel.c === c) {
+        if (isTaskCol(c)) openComments(r); else openEditor();
+        return;
+      }
       select(r, c, e.shiftKey);
       dragSel = true;
+      // clic simple sur le nom : modification après un court instant (annulée par un double-clic ou une sélection étendue)
+      pendingEdit = isTaskCol(c) && !e.shiftKey && e.detail === 1 ? { r, c } : null;
       el.leftBody.focus({ preventScroll: true });
     });
+    let pendingEdit = null, clickEdit = null;
     el.leftBody.addEventListener("mouseover", (e) => {
       if (!dragSel || !sel) return;
       const cell = e.target.closest(".tcell[data-r]");
@@ -2827,14 +3075,45 @@ const ProjectView = {
       const r = +cell.dataset.r, c = +cell.dataset.c;
       if (r !== sel.r2 || c !== sel.c2) select(r, c, true);
     });
-    on(window, "mouseup", () => { dragSel = false; });
-    el.leftBody.addEventListener("dblclick", (e) => {
-      if (e.target.closest(".tcell[data-r]") && !editor) openEditor();
+    on(window, "mouseup", () => {
+      dragSel = false;
+      const pe = pendingEdit;
+      pendingEdit = null;
+      const same = () => sel && sel.r === pe.r && sel.c === pe.c && sel.r2 === pe.r && sel.c2 === pe.c;
+      if (pe && same()) clickEdit = setTimeout(() => { if (!editor && same() && !document.querySelector(".modal-backdrop")) openEditor(undefined, true); }, 280);
     });
+    cleanups.push(() => clearTimeout(clickEdit));
 
     /* ---------- Clavier ---------- */
+    // Alt + ↑ / ↓ : la tâche (avec ses sous-tâches) passe au-dessus / en dessous de la tâche voisine du même groupe
+    const moveTask = (dir) => {
+      if (filterActive()) { toast("Effacez les filtres pour déplacer des tâches"); return; }
+      const r = sel.r, c = sel.c, t = p.tasks[r], end = blockEnd(r);
+      let at;
+      if (dir < 0) {
+        let q = r - 1;
+        while (q >= 0 && p.tasks[q].level > t.level) q--;
+        if (q < 0 || p.tasks[q].level < t.level) { toast("La tâche est déjà la première de son groupe"); return; }
+        at = q;
+      } else {
+        if (end >= p.tasks.length || p.tasks[end].level < t.level) { toast("La tâche est déjà la dernière de son groupe"); return; }
+        at = blockEnd(end) - (end - r);
+      }
+      sel = null;
+      mutate(() => {
+        const block = p.tasks.splice(r, end - r);
+        p.tasks.splice(at, 0, ...block);
+      });
+      select(at, c);
+    };
+
     el.leftBody.addEventListener("keydown", (e) => {
       if (editor || !sel) return;
+      if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        e.preventDefault();
+        moveTask(e.key === "ArrowUp" ? -1 : 1);
+        return;
+      }
       const moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
       if (moves[e.key]) {
         e.preventDefault();
@@ -2846,14 +3125,14 @@ const ProjectView = {
       if (e.key === "Tab") {
         e.preventDefault();
         // Tab / Maj+Tab changent le niveau uniquement depuis une colonne Niv ; ailleurs, ils passent à la cellule voisine
-        if (isNivCol(sel.c)) indent(e.shiftKey ? -1 : 1);
+        if (isTaskCol(sel.c)) indent(e.shiftKey ? -1 : 1);
         else select(sel.r, sel.c + (e.shiftKey ? -1 : 1));
         return;
       }
       if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); openEditor(); return; }
       if (e.key === "Delete") {
         e.preventDefault();
-        if (isNivCol(sel.c)) deleteSelection(); else clearRange();   // colonnes 1 à 4 : la tâche ; ailleurs : le contenu
+        if (isTaskCol(sel.c)) deleteSelection(); else clearRange();   // colonne Tâche : la tâche ; ailleurs : le contenu
         return;
       }
       if (e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
@@ -2883,7 +3162,11 @@ const ProjectView = {
       const lines = [];
       for (let r = R.r1; r <= R.r2; r++) {
         const cells = [];
-        for (let c = R.c1; c <= R.c2; c++) cells.push(toTSVCell(cellDisplay(p.tasks[r], COLUMNS[c].key).text));
+        for (let c = R.c1; c <= R.c2; c++) {
+          // la colonne Tâche part dans Excel sur ses 4 colonnes de niveau (1 à 4)
+          const keys = isTaskCol(c) ? XL_KEYS.slice(0, 4) : [COLUMNS[c].key];
+          keys.forEach((k) => cells.push(toTSVCell(cellDisplay(p.tasks[r], k).text)));
+        }
         lines.push(cells.join("\t"));
       }
       e.clipboardData.setData("text/plain", lines.join("\r\n"));
@@ -2902,8 +3185,13 @@ const ProjectView = {
         data = Array.from({ length: R.r2 - R.r1 + 1 }, () => Array(R.c2 - R.c1 + 1).fill(data[0][0]));
       }
       const r0 = R.r1, c0 = R.c1;
-      const width = Math.min(Math.max(...data.map((row) => row.length)), COLUMNS.length - c0);
-      const pasted = (key) => COL[key] >= c0 && COL[key] < c0 + width;
+      // colonnes collées : à partir de la colonne Tâche, des données d'au moins 4 colonnes sont lues
+      // comme dans Excel (niveaux 1 à 4 puis Responsable…) ; sinon colonne par colonne
+      const dataW = Math.max(...data.map((row) => row.length));
+      const xl = isTaskCol(c0) && dataW >= 4;
+      const keys = (xl ? XL_KEYS : COLUMNS.slice(c0).map((c) => c.key)).slice(0, dataW);
+      const width = keys.length;
+      const pasted = (key) => keys.includes(key);
       // lignes affichées à partir de la sélection ; ajoute les lignes manquantes en fin de tableau
       const pos0 = Math.max(0, visPos[r0]);
       const tasks = data.map((_, i) => {
@@ -2916,7 +3204,7 @@ const ProjectView = {
       mutate(() => data.forEach((row, i) => {
         const t = tasks[i];
         for (let j = 0; j < width; j++) {
-          const key = COLUMNS[c0 + j].key;
+          const key = keys[j];
           // Durée et Date fin sont recalculées si Heures est collée en même temps
           if (key === "duree" && pasted("heures")) continue;
           if (key === "fin" && (pasted("heures") || pasted("duree"))) continue;
@@ -2925,7 +3213,8 @@ const ProjectView = {
           commitCell(t, key, row[j] ?? "");
         }
       }));
-      sel = { r: r0, c: c0, r2: p.tasks.indexOf(tasks[tasks.length - 1]), c2: c0 + width - 1 };
+      const lastKey = keys[width - 1];
+      sel = { r: r0, c: c0, r2: p.tasks.indexOf(tasks[tasks.length - 1]), c2: /^niv/.test(lastKey) ? COL.label : COL[lastKey] };
       renderRows(); highlightGantt();
       toast(`${data.length} ligne${data.length > 1 ? "s" : ""} collée${data.length > 1 ? "s" : ""}`);
     });
@@ -2943,7 +3232,7 @@ const ProjectView = {
       added();
       save();
       renderAll();
-      select(at, level - 1);
+      select(at, COL.label);
       el.leftBody.focus({ preventScroll: true });
     });
     // supprime les tâches sélectionnées (bouton Supprimer ou touche Suppr), après confirmation
@@ -3107,15 +3396,18 @@ const ProjectView = {
           const left = ms ? g.left + dw / 2 - 7 : g.left + 1;
           const pct = ms || parent ? null : Task.progress(t);
           const prog = pct == null ? "" : `<span class="prog${pct >= 100 ? " full" : ""}" style="width:${pct}%"></span>`;
-          bar = `<div class="bar lvl${t.level}${ms ? " ms" : ""}${parent ? " summary" : ""}${pct == null ? "" : " has-prog"}${R && r >= R.r1 && r <= R.r2 ? " sel" : ""}" data-r="${r}" style="left:${left}px;width:${Math.max(g.width - 2, 4)}px" title="${esc(tip + (pct == null ? "" : `\nAvancement : ${fmtNum(pct)} %`))}">${prog}
+          bar = `<div class="bar lvl${t.level}${ms ? " ms" : ""}${parent ? " summary" : ""}${pct == null ? "" : " has-prog"}${R && r >= R.r1 && r <= R.r2 ? " sel" : ""}" data-r="${r}" style="left:${left}px;width:${Math.max(g.width - 2, 4)}px" title="${esc(tip + (pct == null ? "" : `\nAvancement : ${fmtNum(pct)} %`) + (t.comment ? `\nCommentaire : ${commentPreview(t)}` : "\nDouble-clic : commentaires"))}">${prog}
             <span class="h-end" title="Glisser pour allonger ou réduire"></span>
-            <span class="link-dot" title="Glisser vers une autre tâche pour les lier"></span></div>`;
+            <span class="link-dot" title="Glisser vers une autre tâche pour les lier"></span>${t.comment ? `<span class="cmt-ico">${ICONS.comment}</span>` : ""}</div>`;
         }
         return `<div class="grow${R && r >= R.r1 && r <= R.r2 ? " row-sel" : ""}" data-r="${r}">${bar}</div>`;
       }).join("");
       const links = (p.links || []).map((l, i) => {
         const d = linkPath(Links.byId(p, l.from), Links.byId(p, l.to));
-        return d ? `<path class="link-hit" data-link="${i}" d="${d}"><title>Cliquer pour supprimer ce lien</title></path><path class="link" d="${d}" marker-end="url(#arrow)"/>` : "";
+        if (!d) return "";
+        const gap = Links.slack(p, l);
+        const info = gap ? `Commence ${gap} jour${gap > 1 ? "s" : ""} ouvré${gap > 1 ? "s" : ""} après le plus tôt possible\n` : "";
+        return `<path class="link-hit" data-link="${i}" d="${d}"><title>${info}Cliquer pour supprimer ce lien</title></path><path class="link${gap ? " slack" : ""}" d="${d}" marker-end="url(#arrow)"/>`;
       }).join("");
       const today = Dates.diffDays(range.start, todayISO());
       const bg = dw >= 14
@@ -3179,6 +3471,20 @@ const ProjectView = {
     };
     cleanups.push(() => tip.remove());
 
+    // double-clic sur le planning, sur la ligne d'une tâche pas encore planifiée : elle est placée à ce jour (1 jour)
+    let lastBgClick = { r: -1, time: 0 }, lastBarDown = { r: -1, time: 0 };
+    const placeTask = (r, clientX) => {
+      const t = p.tasks[r];
+      if (!t || Task.isParent(t) || (Task.start(t) && Task.duration(t) != null)) return;
+      const x = clientX - el.canvas.getBoundingClientRect().left;
+      const iso = Dates.nextWorkday(Dates.addDays(range.start, Math.floor(x / dw)));
+      mutate(() => {
+        t.start = iso; delete t.debutText; delete t.finText;
+        if (Task.duration(t) == null) { Task.setDays(t, 1); delete t.dureeFormula; }
+      });
+      select(r, sel ? sel.c : 0);
+      toast(`« ${t.label || "(sans nom)"} » commence le ${Dates.format(iso)}`);
+    };
     el.rightBody.addEventListener("pointerdown", async (e) => {
       if (e.button !== 0) return;
       if (editor) editor.input.blur();
@@ -3214,7 +3520,11 @@ const ProjectView = {
           el.canvas.classList.remove("panning");
           if (!panned) {
             const row = document.elementFromPoint(ev.clientX, ev.clientY)?.closest(".grow");
-            if (row) select(+row.dataset.r, sel ? sel.c : 0);
+            if (!row) return;
+            const r = +row.dataset.r, now = performance.now();
+            const dbl = lastBgClick.r === r && now - lastBgClick.time < 450;
+            lastBgClick = dbl ? { r: -1, time: 0 } : { r, time: now };
+            if (dbl) placeTask(r, ev.clientX); else select(r, sel ? sel.c : 0);
           }
         };
         el.rightBody.addEventListener("pointermove", move);
@@ -3224,6 +3534,10 @@ const ProjectView = {
       }
       e.preventDefault();
       const r = +bar.dataset.r, t = p.tasks[r];
+      // double-clic sur la barre : commentaires
+      const now = performance.now();
+      if (lastBarDown.r === r && now - lastBarDown.time < 450) { lastBarDown = { r: -1, time: 0 }; openComments(r); return; }
+      lastBarDown = { r, time: now };
       const dur = Task.duration(t);
       const startMode = e.target.closest(".h-end") ? "resize" : e.target.closest(".link-dot") ? "link" : "move";
       let mode = startMode, moved = false, preview = null, dropRow = null;
@@ -3238,13 +3552,13 @@ const ProjectView = {
         bar.style.left = (isMs ? dayX(tStart) + dw / 2 - 7 : dayX(tStart) + 1) + "px";   // la largeur ne change pas
       };
 
+      const clearDrop = () => el.page.querySelectorAll(".drop-target, .drop-bad").forEach((n) => n.classList.remove("drop-target", "drop-bad"));
       const onMove = (ev) => {
         const dx = ev.clientX - sx, dy = ev.clientY - sy;
         if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
         moved = true;
-        if (startMode === "move") mode = Math.abs(dy) > rowH * 0.7 ? "link" : "move";
         const days = Math.round(dx / dw);
-        el.canvas.querySelector(".drop-target")?.classList.remove("drop-target");
+        clearDrop();
         ghost.setAttribute("d", "");
         dropRow = null;
 
@@ -3257,9 +3571,8 @@ const ProjectView = {
         } else if (mode === "resize") {
           let end = Dates.prevWorkday(Dates.addDays(Task.end(t), days));
           if (end < t.start) end = t.start;
-          const heures = Task.hoursFromDays(Dates.workdaysBetween(t.start, end));
-          const newDur = Math.round(Number(heures) * HOURS_TO_DAYS);
-          preview = { heures };
+          const newDur = Dates.workdaysBetween(t.start, end), heures = Task.hoursFromDays(newDur);
+          preview = { days: newDur };
           const g = barGeom(t.start, newDur);
           bar.style.width = Math.max(g.width - 2, 4) + "px";
           showTip(ev, `${newDur} jour${newDur > 1 ? "s" : ""} · ${heures} h · fin ${Dates.format(Dates.addWorkdays(t.start, Math.max(newDur, 1) - 1))}`);
@@ -3273,8 +3586,11 @@ const ProjectView = {
           const target = p.tasks[rr];
           if (target && rr !== r && Task.start(target) && Task.duration(target) != null) {
             dropRow = rr;
-            el.canvas.querySelector(`.grow[data-r="${rr}"]`)?.classList.add("drop-target");
-            showTip(ev, Links.canLink(p, t, target) ? `Lier à « ${target.label || "(sans nom)"} »` : "Lien impossible (boucle ou déjà lié)");
+            // ligne visée en surbrillance, dans le planning et dans le tableau
+            const ok = Links.canLink(p, t, target);
+            el.canvas.querySelector(`.grow[data-r="${rr}"]`)?.classList.add(ok ? "drop-target" : "drop-bad");
+            el.leftBody.querySelector(`.tcell[data-r="${rr}"]`)?.parentElement.classList.add(ok ? "drop-target" : "drop-bad");
+            showTip(ev, ok ? `Lier à « ${target.label || "(sans nom)"} »` : "Lien impossible (boucle ou déjà lié)");
           } else showTip(ev, "Relâcher sur une autre tâche pour la lier");
         }
       };
@@ -3282,12 +3598,14 @@ const ProjectView = {
       const onUp = () => {
         bar.removeEventListener("pointermove", onMove);
         bar.classList.remove("dragging");
+        clearDrop();
         tip.remove();
         if (!moved) { select(r, sel ? sel.c : 0); return; }
+        lastBarDown = { r: -1, time: 0 };   // un glissement n'est pas le 1er clic d'un double-clic
         if (mode === "move" && preview && preview.start !== tStart) {
           mutate(() => Tree.setStart(p, t, preview.start));
-        } else if (mode === "resize" && preview && preview.heures !== String(t.heures)) {
-          mutate(() => { t.heures = preview.heures; delete t.dureeText; delete t.finText; });
+        } else if (mode === "resize" && preview && preview.days !== Task.duration(t)) {
+          mutate(() => { Task.setDays(t, preview.days); delete t.dureeFormula; delete t.finText; });
         } else if (mode === "link" && dropRow != null) {
           const target = p.tasks[dropRow];
           if (Links.add(p, t, target)) { save(); toast(`« ${target.label || "(sans nom)"} » commence après « ${t.label || "(sans nom)"} »`); }
@@ -3414,6 +3732,7 @@ const Router = {
 
 Store.load();
 Theme.init();
+WorkDir.load();
 // fermeture de l'onglet ou du navigateur pendant qu'un projet est ouvert : le navigateur demande confirmation
 window.addEventListener("beforeunload", (e) => {
   if (Store.currentId || Files.hasPending()) { e.preventDefault(); e.returnValue = ""; }
