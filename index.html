@@ -147,13 +147,7 @@ button { font: inherit; color: inherit; }
 .card-meta svg { width: 13px; height: 13px; vertical-align: -2px; }
 .notice { background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 20px; line-height: 1.5; }
 .save-status.error { color: var(--danger); font-weight: 600; }
-.file-chip {
-  display: inline-flex; align-items: center; gap: 5px; max-width: 560px; flex: 0 1 auto;
-  font-size: 12px; color: var(--text-muted); background: var(--surface-2);
-  border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; white-space: nowrap;
-}
-.file-chip span { overflow: hidden; text-overflow: ellipsis; }
-.file-chip svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.project-title .path { font-weight: 400; color: var(--text-muted); }   /* dossiers du chemin, avant le nom du fichier */
 .save-status button { font: inherit; font-size: 12px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
 
 /* ---------- Page Projet ---------- */
@@ -2322,8 +2316,7 @@ const ProjectView = {
       <div class="project-page">
         <header class="topbar">
           <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
-          <h1 class="project-title">${esc(p.title)}</h1>
-          <span class="file-chip" hidden></span>
+          <h1 class="project-title"></h1>
           <div class="spacer"></div>
           <span class="save-status"></span>
           <button class="icon-btn" data-act="undo" disabled ${tipAttrs("Annuler", "Revenir en arrière d'une action", "Ctrl+Z")}>${ICONS.undo}</button>
@@ -2375,7 +2368,7 @@ const ProjectView = {
     root.querySelector('[data-act="back"]').addEventListener("click", () => Router.go(""));
     // titre = nom du fichier, non modifiable ici (pour le changer : « Enregistrer sous »)
     const titleEl = root.querySelector(".project-title");
-    const showTitle = () => { titleEl.textContent = p.title; document.title = p.title + " — Plan Projet"; };
+    const showTitle = () => paintTitle();
     document.title = p.title + " — Plan Projet";
 
     const el = {
@@ -2415,7 +2408,7 @@ const ProjectView = {
       useCoef(p);
       hist.last = state;
       Store.updateProject(id, {});
-      titleEl.textContent = p.title;
+      paintTitle();
       document.title = p.title + " — Plan Projet";
       if (sel) { sel.r = Math.min(sel.r, p.tasks.length - 1); sel.r2 = sel.r; sel.c2 = sel.c; if (sel.r < 0) sel = null; }
       renderAll();
@@ -2460,23 +2453,24 @@ const ProjectView = {
       el.status.textContent = "";
     };
     // état de l'enregistrement dans le fichier, affiché dans le bandeau
-    const chip = root.querySelector(".file-chip");
-    // fichier en cours de modification : chemin à partir du dossier de travail, sinon son nom seul
+    // titre de la page = fichier en cours de modification (dossiers depuis le dossier de travail, puis nom du fichier),
+    // ou titre du projet s'il n'est pas encore enregistré dans un fichier
     let chipName = null;
-    const paintChip = async () => {
+    const paintTitle = async () => {
       const name = Files.fileName(id);
       chipName = name;
-      chip.hidden = !name;
-      if (!name) return;
+      document.title = p.title + " — Plan Projet";
+      if (!name) { titleEl.textContent = p.title; titleEl.removeAttribute("title"); return; }
+      if (!titleEl.textContent) titleEl.textContent = name;
       const parts = await WorkDir.pathOf(Files.handles.get(id));
-      if (chipName !== name || !chip.isConnected) return;
-      chip.innerHTML = `${ICONS.file}<span>${esc(parts ? parts.join(" › ") : name)}</span>`;
-      chip.title = parts ? `Fichier en cours de modification : ${parts.join(" › ")}`
+      if (chipName !== name || !titleEl.isConnected) return;
+      titleEl.innerHTML = parts ? `<span class="path">${esc(parts.slice(0, -1).join(" › "))} › </span>${esc(name)}` : esc(name);
+      titleEl.title = parts ? `Fichier en cours de modification : ${parts.join(" › ")}`
         : `Fichier en cours de modification : ${name}\n` + (WorkDir.handle
           ? `Ce fichier n'est pas dans le dossier de travail « ${WorkDir.handle.name} » : seul son nom peut être affiché.`
           : "Pour afficher le dossier du fichier, choisissez votre dossier de travail dans Paramètres (roue dentée).");
     };
-    on(document, "workdir", paintChip);
+    on(document, "workdir", paintTitle);
     // coefficient de la durée réglé dans Paramètres (propre au projet, enregistré dans son fichier)
     on(document, "coef", (e) => {
       const v = e.detail;
@@ -2491,7 +2485,7 @@ const ProjectView = {
     });
     const paintStatus = () => {
       const st = Files.states.get(id), name = Files.fileName(id);
-      if (name !== chipName) paintChip();
+      if (name !== chipName) paintTitle();
       el.status.className = "save-status" + (st === "error" ? " error" : "");
       if (st === "saving") el.status.textContent = "Enregistrement…";
       else if (st === "saved" && name) el.status.textContent = "Enregistré";
