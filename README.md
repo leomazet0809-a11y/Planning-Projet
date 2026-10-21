@@ -23,13 +23,15 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Défiler | Molette au-dessus du tableau ou du planning (les deux restent alignés) |
 | Sélectionner plusieurs cellules | Glisser la souris, ou Maj + clic, ou Maj + flèches |
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
-| Effacer | Suppr |
+| Effacer le contenu des cellules | Retour arrière (⌫) |
+| Supprimer les tâches sélectionnées | Suppr, puis Entrée pour confirmer (Oui) |
+| Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture) / Ctrl + Y |
 | Largeur d'une colonne | Glisser le bord droit de son en-tête (double-clic : taille d'origine) |
 
 - **Durée jours** = Heures effectives × 1,5, arrondie à l'entier le plus proche (jours ouvrés, lundi → vendredi).
 - Une valeur non numérique dans Heures ou Durée s'affiche en rouge et bloque le calcul.
 - Modifier Durée, Date début ou Date fin recalcule les heures (arrondies à l'heure entière).
-- **Tâches mères** (une tâche suivie de tâches de niveau inférieur) : Heures = somme des heures des tâches filles, Durée = somme de leurs durées, Début = début le plus tôt des filles. Ces valeurs (en italique gris) ne se saisissent pas ; sur le planning, la tâche mère est une barre récapitulative noire. La déplacer déplace toutes ses tâches filles.
+- **Tâches mères** (une tâche suivie de tâches de niveau inférieur) : Heures = somme des heures des tâches filles, Durée = somme de leurs durées, Début = début le plus tôt des filles, Date fin = fin la plus tardive des filles. Ces valeurs (en italique gris) ne se saisissent pas ; sur le planning, la tâche mère est une barre récapitulative noire qui couvre la période réelle de ses filles. La déplacer déplace toutes ses tâches filles.
 
 ### Planning
 | Action | Comment |

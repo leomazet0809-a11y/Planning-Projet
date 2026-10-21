@@ -499,6 +499,8 @@ const Task = {
     return a ? a.start : t.start;
   },
   end(t) {
+    const a = Agg.get(t);
+    if (a) return a.end;   // tâche mère : fin de la dernière tâche fille
     const d = this.duration(t), start = this.start(t);
     if (d == null || !start) return null;
     return Dates.addWorkdays(start, Math.max(d, 1) - 1);
@@ -510,9 +512,10 @@ const Task = {
    Tâches mères : une tâche suivie de tâches de niveau inférieur
    (ses tâches filles) a ses heures, sa durée et son début calculés.
    Heures = somme des heures des filles · Durée = somme des durées des filles
-   Début = début le plus tôt des filles · valable à tous les niveaux
+   Début = début le plus tôt des filles · Fin = fin la plus tardive des filles
+   (la barre couvre la période réelle des filles) · valable à tous les niveaux
    ============================================================ */
-const Agg = new WeakMap();   // tâche mère → { r, last, hours, dur, start }
+const Agg = new WeakMap();   // tâche mère → { r, last, hours, dur, start, end }
 
 const Tree = {
   // fin (exclue) du bloc de la tâche r : elle + ses descendantes
@@ -529,7 +532,7 @@ const Tree = {
     for (let r = tasks.length - 1; r >= 0; r--) {
       const last = this.blockEnd(p, r);
       if (last === r + 1) continue;
-      let hours = null, dur = null, start = null;
+      let hours = null, dur = null, start = null, end = null;
       // filles directes : descendantes dont la mère la plus proche est r
       for (let k = r + 1; k < last; k = this.blockEnd(p, k)) {
         const c = tasks[k];
@@ -540,8 +543,10 @@ const Tree = {
         if (d != null) dur = (dur || 0) + d;
         const st = Task.start(c);
         if (st && d != null && (!start || st < start)) start = st;
+        const en = Task.end(c);
+        if (en && (!end || en > end)) end = en;
       }
-      Agg.set(tasks[r], { r, last, hours, dur: start ? dur : null, start });
+      Agg.set(tasks[r], { r, last, hours, dur: start ? dur : null, start, end: start ? end : null });
     }
   },
 
@@ -888,7 +893,7 @@ const Theme = {
 /* ============================================================
    Fenêtre de confirmation
    ============================================================ */
-function confirmDialog({ title, message, okLabel = "Confirmer", danger = false }) {
+function confirmDialog({ title, message, okLabel = "Confirmer", cancelLabel = "Annuler", danger = false, focusOk = false }) {
   return new Promise((resolve) => {
     const bd = document.createElement("div");
     bd.className = "modal-backdrop";
@@ -897,7 +902,7 @@ function confirmDialog({ title, message, okLabel = "Confirmer", danger = false }
         <h3>${esc(title)}</h3>
         <p>${esc(message)}</p>
         <div class="modal-actions">
-          <button class="btn" data-act="cancel">Annuler</button>
+          <button class="btn" data-act="cancel">${esc(cancelLabel)}</button>
           <button class="btn ${danger ? "btn-danger" : "btn-primary"}" data-act="ok">${esc(okLabel)}</button>
         </div>
       </div>`;
@@ -910,7 +915,7 @@ function confirmDialog({ title, message, okLabel = "Confirmer", danger = false }
     });
     document.addEventListener("keydown", onKey, true);
     document.body.appendChild(bd);
-    bd.querySelector('[data-act="cancel"]').focus();
+    bd.querySelector(focusOk ? '[data-act="ok"]' : '[data-act="cancel"]').focus();
   });
 }
 
@@ -1148,6 +1153,9 @@ const toTSVCell = (s) => (/[\t\n"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
 /* ============================================================
    Page Projet : tableau à gauche, planning à droite
    ============================================================ */
+// historique d'annulation par projet, depuis l'ouverture de l'application
+const History = new Map();   // id du projet → { undo: [], redo: [], last }
+
 const ProjectView = {
   render(root, id) {
     const p = Store.getProject(id);
@@ -1164,12 +1172,12 @@ const ProjectView = {
         </header>
         <div class="toolbar">
           <button class="btn btn-primary" data-act="add" title="Ajoute une ligne sous la ligne sélectionnée">${ICONS.plus}<span class="lbl">Ajouter une tâche</span></button>
-          <button class="btn btn-danger" data-act="del" disabled title="Supprime les lignes sélectionnées">${ICONS.trash}<span class="lbl">Supprimer</span></button>
+          <button class="btn btn-danger" data-act="del" disabled title="Supprime les lignes sélectionnées (touche Suppr)">${ICONS.trash}<span class="lbl">Supprimer</span></button>
           <div class="sep"></div>
           <button class="icon-btn" data-act="row-down" title="Réduire la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Réduire la hauteur des lignes">${ICONS.minus}</button>
           <span class="zoom-label">Hauteur</span>
           <button class="icon-btn" data-act="row-up" title="Augmenter la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Augmenter la hauteur des lignes">${ICONS.plus}</button>
-          <span class="hint">Tab / Maj+Tab dans une colonne Niv : changer de niveau · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
+          <span class="hint">Tab / Maj+Tab dans une colonne Niv : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
           <div class="spacer"></div>
           <button class="btn" data-act="labels"></button>
           <button class="btn" data-act="today" title="Afficher la date du jour">${ICONS.today}<span class="lbl">Aujourd'hui</span></button>
@@ -1193,7 +1201,7 @@ const ProjectView = {
       </div>`;
     root.querySelector('[data-slot="theme"]').replaceWith(Settings.button(), Theme.button());
     root.querySelector('[data-act="back"]').addEventListener("click", () => Router.go(""));
-    bindInlineEdit(root.querySelector(".project-title"), (v) => { Store.updateProject(id, { title: v }); document.title = v + " — Plan Projet"; });
+    bindInlineEdit(root.querySelector(".project-title"), (v) => { p.title = v; save(); document.title = v + " — Plan Projet"; });
     document.title = p.title + " — Plan Projet";
 
     const el = {
@@ -1216,8 +1224,55 @@ const ProjectView = {
     const on = (target, type, fn, opts) => { target.addEventListener(type, fn, opts); cleanups.push(() => target.removeEventListener(type, fn, opts)); };
     ProjectView.cleanup = () => cleanups.forEach((f) => f());
 
+    /* ---------- Historique : chaque enregistrement est une étape annulable ---------- */
+    const snapshot = () => JSON.stringify({ title: p.title, tasks: p.tasks, links: p.links });
+    if (!History.has(id)) History.set(id, { undo: [], redo: [], last: snapshot() });
+    const hist = History.get(id);
+    hist.last = snapshot();
+
+    const restore = (state) => {
+      const o = JSON.parse(state);
+      p.title = o.title; p.tasks = o.tasks; p.links = o.links;
+      hist.last = state;
+      Store.updateProject(id, {});
+      root.querySelector(".project-title").value = p.title;
+      document.title = p.title + " — Plan Projet";
+      if (sel) { sel.r = Math.min(sel.r, p.tasks.length - 1); sel.r2 = sel.r; sel.c2 = sel.c; if (sel.r < 0) sel = null; }
+      renderAll();
+    };
+    const undo = () => {
+      if (editor) editor.input.blur();
+      if (!hist.undo.length) { toast("Rien à annuler"); return; }
+      hist.redo.push(hist.last);
+      restore(hist.undo.pop());
+      toast(`Action annulée${hist.undo.length ? ` · encore ${hist.undo.length} possible${hist.undo.length > 1 ? "s" : ""}` : ""}`);
+    };
+    const redo = () => {
+      if (editor) editor.input.blur();
+      if (!hist.redo.length) { toast("Rien à rétablir"); return; }
+      hist.undo.push(hist.last);
+      restore(hist.redo.pop());
+      toast("Action rétablie");
+    };
+    on(document, "keydown", (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k !== "z" && k !== "y") return;
+      // dans un champ texte, Ctrl + Z annule la frappe (comportement normal du champ)
+      const a = document.activeElement;
+      if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
+      if (document.querySelector(".modal-backdrop")) return;
+      e.preventDefault();
+      if (k === "y" || (k === "z" && e.shiftKey)) redo(); else undo();
+    });
+
     /* ---------- Enregistrer (bouton + Ctrl + S) ---------- */
-    const save = () => { Store.updateProject(id, {}); el.status.textContent = ""; };
+    const save = () => {
+      const now = snapshot();
+      if (now !== hist.last) { hist.undo.push(hist.last); hist.redo = []; hist.last = now; }
+      Store.updateProject(id, {});
+      el.status.textContent = "";
+    };
     const saveNow = () => {
       if (editor) editor.input.blur();
       Store.updateProject(id, {});
@@ -1265,7 +1320,8 @@ const ProjectView = {
     const colLeft = (c) => { let x = 0; for (let k = 0; k < c; k++) x += colWidth(COLUMNS[k]); return x; };
     // position (dans sa cellule) du bouton réduire/déployer et du libellé
     const twistyLeft = (t) => (t.level === 1 ? 18 : 22);
-    const labelLeft = (t) => (t.level === 1 ? 18 : 26) + (Task.isParent(t) ? 14 : 0);
+    // la place du bouton est réservée sur toutes les lignes : même retrait pour toutes les tâches d'un niveau
+    const labelLeft = (t) => (t.level === 1 ? 32 : 36);
 
     /* ---------- Lignes visibles (groupes réduits masqués) ---------- */
     let vis = [], visPos = [];   // vis : indices des tâches affichées ; visPos[r] : rang affiché (-1 si masquée)
@@ -1318,7 +1374,9 @@ const ProjectView = {
               let content = esc(d.text), spillCls = "";
               let style = `width:${colWidth(c)}px`;
               if (i === c0) {
-                style += `;padding-left:${labelLeft(t)}px`;
+                // colonnes Niv 1 à 3 (40 px) : pas de marge, le libellé est placé par-dessus ; sinon la cellule
+                // s'élargirait et décalerait toutes les colonnes suivantes de la ligne
+                style += c0 < COL.niv4 ? ";padding:0" : `;padding-left:${labelLeft(t)}px`;
                 if (spill) {
                   let w = -labelLeft(t) - 10;
                   for (let k = c0; k <= c0 + spill; k++) w += colWidth(COLUMNS[k]);
@@ -1553,7 +1611,8 @@ const ProjectView = {
         return;
       }
       if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); openEditor(); return; }
-      if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
+      if (e.key === "Delete") { e.preventDefault(); deleteSelection(); return; }
+      if (e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
       if (e.key === "Escape") { select(sel.r, sel.c); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
@@ -1638,21 +1697,22 @@ const ProjectView = {
       select(at, level - 1);
       el.leftBody.focus({ preventScroll: true });
     });
-    el.del.addEventListener("click", async () => {
+    // supprime les tâches sélectionnées (bouton Supprimer ou touche Suppr), après confirmation
+    const deleteSelection = async () => {
       if (!sel) return;
       const R = rect();
       let end = R.r2 + 1;
       for (let r = R.r1; r <= R.r2; r++) if (p.tasks[r].collapsed && Task.isParent(p.tasks[r])) end = Math.max(end, Tree.blockEnd(p, r));
       const victims = p.tasks.slice(R.r1, end);
-      const named = victims.filter((t) => t.label.trim());
-      if (named.length) {
-        const ok = await confirmDialog({
-          title: victims.length > 1 ? `Supprimer ces ${victims.length} tâches ?` : "Supprimer cette tâche ?",
-          message: victims.length > 1 ? "Les lignes sélectionnées et leurs liens seront supprimés." : `« ${named[0].label} » et ses liens seront supprimés.`,
-          okLabel: "Supprimer", danger: true,
-        });
-        if (!ok) return;
-      }
+      const one = victims.length === 1;
+      const ok = await confirmDialog({
+        title: one ? "Supprimer cette tâche ?" : `Supprimer ces ${victims.length} tâches ?`,
+        message: one
+          ? `« ${victims[0].label || "(sans nom)"} » et ses liens seront supprimés. Ctrl + Z permet d'annuler.`
+          : "Les lignes sélectionnées et leurs liens seront supprimés. Ctrl + Z permet d'annuler.",
+        okLabel: "Oui", cancelLabel: "Non", danger: true, focusOk: true,
+      });
+      if (!ok) { el.leftBody.focus({ preventScroll: true }); return; }
       const ids = new Set(victims.map((t) => t.id));
       p.tasks.splice(R.r1, victims.length);
       p.links = p.links.filter((l) => !ids.has(l.from) && !ids.has(l.to));
@@ -1661,7 +1721,8 @@ const ProjectView = {
       renderAll();
       if (p.tasks.length) select(Math.min(R.r1, p.tasks.length - 1), sel ? sel.c : 0);
       el.leftBody.focus({ preventScroll: true });
-    });
+    };
+    el.del.addEventListener("click", deleteSelection);
 
     /* ---------- Largeur des colonnes ---------- */
     el.leftHead.addEventListener("pointerdown", (e) => {
@@ -1791,8 +1852,8 @@ const ProjectView = {
         const d = Task.duration(t), st = Task.start(t), parent = Task.isParent(t);
         let bar = "";
         if (d != null && st) {
-          const g = barGeom(st, d);
-          const tip = `${t.label || "(sans nom)"}\n${Dates.format(st)} → ${Dates.format(Task.end(t))} · ${d} jour${d > 1 ? "s" : ""} ouvré${d > 1 ? "s" : ""}${parent ? "\nTâche mère : somme des tâches filles" : ""}`;
+          const g = parent ? { left: dayX(st), width: (Dates.diffDays(st, Task.end(t)) + 1) * dw } : barGeom(st, d);
+          const tip = `${t.label || "(sans nom)"}\n${Dates.format(st)} → ${Dates.format(Task.end(t))} · ${d} jour${d > 1 ? "s" : ""} ouvré${d > 1 ? "s" : ""}${parent ? "\nTâche mère : durée = somme des tâches filles, barre = période de ses tâches filles" : ""}`;
           const ms = d === 0 && !parent;
           const left = ms ? g.left + dw / 2 - 7 : g.left + 1;
           bar = `<div class="bar lvl${t.level}${ms ? " ms" : ""}${parent ? " summary" : ""}${R && r >= R.r1 && r <= R.r2 ? " sel" : ""}" data-r="${r}" style="left:${left}px;width:${Math.max(g.width - 2, 4)}px" title="${esc(tip)}">
@@ -1935,9 +1996,7 @@ const ProjectView = {
 
       const tStart = Task.start(t), isMs = dur === 0 && !Task.isParent(t);
       const resetBar = () => {
-        const g = barGeom(tStart, dur);
-        bar.style.left = (isMs ? g.left + dw / 2 - 7 : g.left + 1) + "px";
-        if (dur !== 0) bar.style.width = Math.max(g.width - 2, 4) + "px";
+        bar.style.left = (isMs ? dayX(tStart) + dw / 2 - 7 : dayX(tStart) + 1) + "px";   // la largeur ne change pas
       };
 
       const onMove = (ev) => {
@@ -1954,8 +2013,7 @@ const ProjectView = {
           let start = Dates.addDays(tStart, days);
           start = days < 0 ? Dates.prevWorkday(start) : Dates.nextWorkday(start);
           preview = { start };
-          const g = barGeom(start, dur);
-          bar.style.left = (isMs ? g.left + dw / 2 - 7 : g.left + 1) + "px";
+          bar.style.left = (isMs ? dayX(start) + dw / 2 - 7 : dayX(start) + 1) + "px";
           showTip(ev, `Début : ${Dates.format(start)}`);
         } else if (mode === "resize") {
           let end = Dates.prevWorkday(Dates.addDays(Task.end(t), days));
