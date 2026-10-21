@@ -35,7 +35,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Filtrer | Bouton entonnoir : une recherche par colonne (Tâche, Responsable, Heures, Durée, Dates, Avancement), sans tenir compte des majuscules ni des accents ; les filtres se combinent. Les tâches mères des tâches trouvées restent affichées en pâle. Échap efface le filtre en cours. |
 | Choisir une date | Double-clic sur Date début ou Date fin : un calendrier s'ouvre (la saisie au clavier reste possible) |
 | Se déplacer | Flèches du clavier |
-| Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis la colonne Tâche ; le niveau se voit au retrait du nom |
+| Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis la colonne Tâche ; le niveau se voit au retrait du nom. Une tâche ne peut descendre qu'à un niveau sous la tâche juste au-dessus (sa tâche mère) |
 | Déplacer une tâche | Glisser la poignée ⋮⋮ au début de la ligne (la tâche part avec ses sous-tâches) |
 | Hauteur des lignes | Boutons − / + « Hauteur » ou Ctrl + molette au-dessus du tableau |
 | Défiler | Molette au-dessus du tableau ou du planning (les deux restent alignés) |
