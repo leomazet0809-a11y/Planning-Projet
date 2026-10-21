@@ -147,13 +147,7 @@ button { font: inherit; color: inherit; }
 .card-meta svg { width: 13px; height: 13px; vertical-align: -2px; }
 .notice { background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 20px; line-height: 1.5; }
 .save-status.error { color: var(--danger); font-weight: 600; }
-.file-chip {
-  display: inline-flex; align-items: center; gap: 5px; max-width: 560px; flex: 0 1 auto;
-  font-size: 12px; color: var(--text-muted); background: var(--surface-2);
-  border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; white-space: nowrap;
-}
-.file-chip span { overflow: hidden; text-overflow: ellipsis; }
-.file-chip svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.project-title .path { font-weight: 400; color: var(--text-muted); }   /* dossiers du chemin, avant le nom du fichier */
 .save-status button { font: inherit; font-size: 12px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
 
 /* ---------- Page Projet ---------- */
@@ -1021,7 +1015,7 @@ const Files = {
     else choices[1].primary = true;
     return choiceDialog({
       title: "Ce classeur n'a pas été créé par Plan Projet",
-      message: `« ${name} » sera lu comme un planning (colonnes 1 à 4, Responsable, Heures…).\n` +
+      message: `« ${name} » sera lu comme un planning (colonnes de niveau 1, 2, 3…, Responsable, Heures…).\n` +
         "L'ouvrir comme projet le réécrira au format de l'application : sa mise en forme et ses autres feuilles seront perdues.",
       choices,
     });
@@ -1383,8 +1377,8 @@ const Fullscreen = {
   paint(btn) {
     const on = this.active();
     btn.innerHTML = on ? ICONS.exitFullscreen : ICONS.fullscreen;
-    if (on) setTip(btn, "Quitter le plein écran", "", "F|Échap");
-    else setTip(btn, "Plein écran", "", "F");
+    if (on) setTip(btn, "Quitter le plein écran", "", "Échap");
+    else setTip(btn, "Plein écran");
   },
   button() {
     const b = document.createElement("button");
@@ -1396,17 +1390,6 @@ const Fullscreen = {
     return b;
   },
 };
-// touche F : bascule plein écran / normal (sauf pendant la saisie dans un champ texte)
-document.addEventListener("keydown", (e) => {
-  if (e.key !== "f" && e.key !== "F") return;
-  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
-  const a = document.activeElement;
-  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable)) return;
-  if (document.querySelector(".modal-backdrop")) return;
-  e.preventDefault();
-  e.stopPropagation();   // la lettre ne démarre pas la saisie dans la cellule sélectionnée
-  Fullscreen.toggle();
-}, true);
 document.addEventListener("fullscreenchange", () => {
   document.querySelectorAll("[data-fullscreen-btn]").forEach((b) => Fullscreen.paint(b));
 });
@@ -1670,7 +1653,7 @@ const MenuView = {
    Tableau : colonnes, affichage et saisie des cellules
    ============================================================ */
 const COLUMNS = [
-  // une seule colonne « Tâche » : le niveau (1 à 4) se voit au retrait du nom ; Excel garde ses 4 colonnes de niveau
+  // une seule colonne « Tâche » : le niveau (1 à 10) se voit au retrait du nom ; Excel garde une colonne par niveau
   { key: "label", label: "Tâche", w: 292 },
   // largeurs par défaut : Responsable à la taille de son titre ; colonnes de valeurs toutes identiques et resserrées
   { key: "responsable", label: "Responsable", w: 96 },
@@ -1682,8 +1665,10 @@ const COLUMNS = [
 ];
 const COL = Object.fromEntries(COLUMNS.map((c, i) => [c.key, i]));
 const isTaskCol = (c) => c === COL.label;
-// colonnes d'Excel (copier / coller) : 4 colonnes de niveau à la place de « Tâche », puis les mêmes colonnes
-const XL_KEYS = ["niv1", "niv2", "niv3", "niv4", ...COLUMNS.slice(1).map((c) => c.key)];
+const MAX_LEVEL = 10;   // niveaux de tâches : 1 à 10
+// colonnes d'Excel (copier / coller) : les colonnes de niveau à la place de « Tâche », puis les mêmes colonnes
+// (autant de colonnes de niveau que le projet en utilise, 4 au moins)
+const xlKeys = (n) => [...Array.from({ length: n }, (_, i) => "niv" + (i + 1)), ...COLUMNS.slice(1).map((c) => c.key)];
 const DEFAULT_GRID_RATIO = 0.55;
 const MIN_PANE = 200;
 const MIN_COL = 50;
@@ -1708,7 +1693,7 @@ function cellDisplay(t, key) {
     return { text, calc: true };
   }
   if (key === "label") return { text: t.label || "" };
-  const m = key.match(/^niv(\d)$/);
+  const m = key.match(/^niv(\d+)$/);
   if (m) return { text: t.level === Number(m[1]) ? t.label : "" };
   switch (key) {
     case "responsable": return { text: t.responsable || "" };
@@ -1747,7 +1732,7 @@ function commitCell(t, key, raw) {
   raw = String(raw);
   const v = raw.trim();
   if (key === "label") { t.label = v; return; }
-  const m = key.match(/^niv(\d)$/);
+  const m = key.match(/^niv(\d+)$/);
   if (m) {
     const lvl = Number(m[1]);
     if (v) { t.level = lvl; t.label = v; } else if (t.level === lvl) t.label = "";
@@ -1826,7 +1811,9 @@ const toTSVCell = (s) => (/[\t\n"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
    Les valeurs des tâches mères sont exportées (calculées) mais recalculées à l'import.
    ============================================================ */
 const DATA_SHEET = "PlanProjet_donnees";   // feuille masquée : données complètes de l'application
-const EX_HEADERS = ["N°", "1", "2", "3", "4", "Responsable", "Heures effectives", "Durée jours", "Date début", "Date fin", "Avancement", "Dépend de", "Commentaires"];
+// n colonnes de niveau (1 à n), 4 au moins ; jusqu'à 10 si le projet a des tâches aussi fines
+const levelCount = (p) => Math.max(4, ...p.tasks.map((t) => t.level || 1));
+const exHeaders = (n) => ["N°", ...Array.from({ length: n }, (_, i) => String(i + 1)), "Responsable", "Heures effectives", "Durée jours", "Date début", "Date fin", "Avancement", "Dépend de", "Commentaires"];
 
 /* ---------- Archive ZIP minimale (format des fichiers .xlsx) ---------- */
 const Zip = {
@@ -1911,6 +1898,7 @@ const Exchange = {
   // chaque cellule : { v: texte|nombre, kind: "text"|"num"|"date"|"formula"|"pct", calc: bool }
   rows(p) {
     Tree.compute(p);
+    const n = levelCount(p);
     const num = new Map(p.tasks.map((t, i) => [t.id, i + 1]));
     const deps = (t) => (p.links || []).filter((l) => l.to === t.id).map((l) => num.get(l.from)).filter(Boolean).sort((a, b) => a - b).join(", ");
     const numOrText = (s) => { const n = parseNum(s); return String(s).trim() === "" ? null : isNaN(n) ? { v: String(s), kind: "text" } : { v: n, kind: "num" }; };
@@ -1920,7 +1908,7 @@ const Exchange = {
     return p.tasks.map((t, i) => {
       const parent = Task.isParent(t), a = Agg.get(t);
       const row = [{ v: i + 1, kind: "num" }];
-      for (let l = 1; l <= 4; l++) row.push(t.level === l && t.label ? { v: t.label, kind: "text", bold: l === 1 } : null);
+      for (let l = 1; l <= n; l++) row.push(t.level === l && t.label ? { v: t.label, kind: "text", bold: l === 1 } : null);
       row.push(t.responsable ? { v: t.responsable, kind: "text" } : null);
       if (parent) {
         row.push(a.hours == null ? null : { v: a.hours, kind: "num", calc: true });
@@ -1954,7 +1942,7 @@ const Exchange = {
       if (c.kind === "pct") s += " %";
       return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const lines = [EX_HEADERS.join(";"), ...this.rows(p).map((r) => r.map(cell).join(";"))];
+    const lines = [exHeaders(levelCount(p)).join(";"), ...this.rows(p).map((r) => r.map(cell).join(";"))];
     return "﻿" + lines.join("\r\n") + "\r\n";
   },
 
@@ -1972,9 +1960,10 @@ const Exchange = {
       if (c.kind === "num" || c.kind === "pct") return `<c r="${ref}" s="${c.kind === "pct" ? 3 : c.calc ? 4 : 0}"><v>${c.v}</v></c>`;
       return `<c r="${ref}" t="inlineStr"${c.bold ? ' s="1"' : ""}><is><t xml:space="preserve">${xmlEsc(c.v)}</t></is></c>`;
     };
-    const head = `<row r="1">${EX_HEADERS.map((h, i) => `<c r="${colName(i)}1" t="inlineStr" s="1"><is><t>${xmlEsc(h)}</t></is></c>`).join("")}</row>`;
+    const n = levelCount(p);
+    const head = `<row r="1">${exHeaders(n).map((h, i) => `<c r="${colName(i)}1" t="inlineStr" s="1"><is><t>${xmlEsc(h)}</t></is></c>`).join("")}</row>`;
     const body = this.rows(p).map((r, ri) => `<row r="${ri + 2}">${r.map((c, ci) => cellXml(c, colName(ci) + (ri + 2))).join("")}</row>`).join("");
-    const widths = [6, 4, 4, 4, 40, 18, 10, 10, 12, 12, 12, 12, 50];
+    const widths = [6, ...Array(n - 1).fill(4), 40, 18, 10, 10, 12, 12, 12, 12, 50];
     const sheetName = xmlEsc((p.title || "Planning").replace(/[\[\]:*?/\\]/g, "-").slice(0, 31));
     const NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
     const WS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet";
@@ -2135,7 +2124,7 @@ const Exchange = {
   toTasks(rows) {
     const ALIASES = {
       num: ["n", "no", "numero", "num", "id"],
-      l1: ["1", "niv1", "niveau1"], l2: ["2", "niv2", "niveau2"], l3: ["3", "niv3", "niveau3"], l4: ["4", "niv4", "niveau4"],
+      ...Object.fromEntries(Array.from({ length: MAX_LEVEL }, (_, i) => ["l" + (i + 1), [String(i + 1), "niv" + (i + 1), "niveau" + (i + 1)]])),
       responsable: ["responsable"], realise: ["realise"], surveille: ["surveille"],
       heures: ["heureseffectives", "heures"], duree: ["dureejours", "duree"],
       debut: ["datedebut", "debut"], fin: ["datefin", "fin"],
@@ -2172,8 +2161,8 @@ const Exchange = {
       const row = rows[i] || [];
       if (!row.some((c) => asText(c) !== "")) continue;   // ligne vide
       let level = 0, label = "";
-      for (let l = 1; l <= 4 && !level; l++) { const s = asText(val(row, "l" + l)); if (s) { level = l; label = s; } }
-      if (!level) { warnings.push(`Ligne ${i + 1} : aucun nom de tâche dans les colonnes 1 à 4 (ligne ignorée)`); continue; }
+      for (let l = 1; l <= MAX_LEVEL && !level; l++) { const s = asText(val(row, "l" + l)); if (s) { level = l; label = s; } }
+      if (!level) { warnings.push(`Ligne ${i + 1} : aucun nom de tâche dans les colonnes de niveau (ligne ignorée)`); continue; }
       const t = Task.create(level);
       t.label = label;
       const resp = asText(val(row, "responsable")) || [asText(val(row, "realise")), asText(val(row, "surveille"))].filter(Boolean).join(" / ");
@@ -2327,8 +2316,7 @@ const ProjectView = {
       <div class="project-page">
         <header class="topbar">
           <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
-          <h1 class="project-title">${esc(p.title)}</h1>
-          <span class="file-chip" hidden></span>
+          <h1 class="project-title"></h1>
           <div class="spacer"></div>
           <span class="save-status"></span>
           <button class="icon-btn" data-act="undo" disabled ${tipAttrs("Annuler", "Revenir en arrière d'une action", "Ctrl+Z")}>${ICONS.undo}</button>
@@ -2380,7 +2368,7 @@ const ProjectView = {
     root.querySelector('[data-act="back"]').addEventListener("click", () => Router.go(""));
     // titre = nom du fichier, non modifiable ici (pour le changer : « Enregistrer sous »)
     const titleEl = root.querySelector(".project-title");
-    const showTitle = () => { titleEl.textContent = p.title; document.title = p.title + " — Plan Projet"; };
+    const showTitle = () => paintTitle();
     document.title = p.title + " — Plan Projet";
 
     const el = {
@@ -2420,7 +2408,7 @@ const ProjectView = {
       useCoef(p);
       hist.last = state;
       Store.updateProject(id, {});
-      titleEl.textContent = p.title;
+      paintTitle();
       document.title = p.title + " — Plan Projet";
       if (sel) { sel.r = Math.min(sel.r, p.tasks.length - 1); sel.r2 = sel.r; sel.c2 = sel.c; if (sel.r < 0) sel = null; }
       renderAll();
@@ -2465,23 +2453,24 @@ const ProjectView = {
       el.status.textContent = "";
     };
     // état de l'enregistrement dans le fichier, affiché dans le bandeau
-    const chip = root.querySelector(".file-chip");
-    // fichier en cours de modification : chemin à partir du dossier de travail, sinon son nom seul
+    // titre de la page = fichier en cours de modification (dossiers depuis le dossier de travail, puis nom du fichier),
+    // ou titre du projet s'il n'est pas encore enregistré dans un fichier
     let chipName = null;
-    const paintChip = async () => {
+    const paintTitle = async () => {
       const name = Files.fileName(id);
       chipName = name;
-      chip.hidden = !name;
-      if (!name) return;
+      document.title = p.title + " — Plan Projet";
+      if (!name) { titleEl.textContent = p.title; titleEl.removeAttribute("title"); return; }
+      if (!titleEl.textContent) titleEl.textContent = name;
       const parts = await WorkDir.pathOf(Files.handles.get(id));
-      if (chipName !== name || !chip.isConnected) return;
-      chip.innerHTML = `${ICONS.file}<span>${esc(parts ? parts.join(" › ") : name)}</span>`;
-      chip.title = parts ? `Fichier en cours de modification : ${parts.join(" › ")}`
+      if (chipName !== name || !titleEl.isConnected) return;
+      titleEl.innerHTML = parts ? `<span class="path">${esc(parts.slice(0, -1).join(" › "))} › </span>${esc(name)}` : esc(name);
+      titleEl.title = parts ? `Fichier en cours de modification : ${parts.join(" › ")}`
         : `Fichier en cours de modification : ${name}\n` + (WorkDir.handle
           ? `Ce fichier n'est pas dans le dossier de travail « ${WorkDir.handle.name} » : seul son nom peut être affiché.`
           : "Pour afficher le dossier du fichier, choisissez votre dossier de travail dans Paramètres (roue dentée).");
     };
-    on(document, "workdir", paintChip);
+    on(document, "workdir", paintTitle);
     // coefficient de la durée réglé dans Paramètres (propre au projet, enregistré dans son fichier)
     on(document, "coef", (e) => {
       const v = e.detail;
@@ -2496,7 +2485,7 @@ const ProjectView = {
     });
     const paintStatus = () => {
       const st = Files.states.get(id), name = Files.fileName(id);
-      if (name !== chipName) paintChip();
+      if (name !== chipName) paintTitle();
       el.status.className = "save-status" + (st === "error" ? " error" : "");
       if (st === "saving") el.status.textContent = "Enregistrement…";
       else if (st === "saved" && name) el.status.textContent = "Enregistré";
@@ -2813,6 +2802,21 @@ const ProjectView = {
       ensureVisible(extend ? sel.r2 : sel.r, extend ? sel.c2 : sel.c);
     };
 
+    const deselect = () => {
+      if (!sel) return;
+      if (editor) editor.input.blur();
+      sel = null;
+      renderRows();
+      highlightGantt();
+    };
+    // clic ailleurs que sur une cellule (bas vide du tableau, fond du planning, en-têtes…) : plus de cellule sélectionnée
+    // (les boutons des barres d'outils, les barres du planning et les fenêtres gardent la sélection)
+    on(document, "pointerdown", (e) => {
+      if (!sel || e.button !== 0) return;
+      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .topbar button, .toolbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      deselect();
+    });
+
     // applique une modification à des tâches puis met à jour liens, affichage et sauvegarde
     const mutate = (fn) => {
       Tree.compute(p);
@@ -2938,7 +2942,7 @@ const ProjectView = {
       if (!sel) return;
       const R = rect();
       const tasks = p.tasks.slice(R.r1, R.r2 + 1);
-      mutate(() => tasks.forEach((t) => { t.level = Math.max(1, Math.min(4, t.level + delta)); }));
+      mutate(() => tasks.forEach((t) => { t.level = Math.max(1, Math.min(MAX_LEVEL, t.level + delta)); }));
     };
 
     /* ---------- Souris : sélection d'une cellule ou d'une plage ---------- */
@@ -3163,8 +3167,8 @@ const ProjectView = {
       for (let r = R.r1; r <= R.r2; r++) {
         const cells = [];
         for (let c = R.c1; c <= R.c2; c++) {
-          // la colonne Tâche part dans Excel sur ses 4 colonnes de niveau (1 à 4)
-          const keys = isTaskCol(c) ? XL_KEYS.slice(0, 4) : [COLUMNS[c].key];
+          // la colonne Tâche part dans Excel sur ses colonnes de niveau (4 au moins, une par niveau utilisé)
+          const keys = isTaskCol(c) ? xlKeys(levelCount(p)).slice(0, levelCount(p)) : [COLUMNS[c].key];
           keys.forEach((k) => cells.push(toTSVCell(cellDisplay(p.tasks[r], k).text)));
         }
         lines.push(cells.join("\t"));
@@ -3186,10 +3190,10 @@ const ProjectView = {
       }
       const r0 = R.r1, c0 = R.c1;
       // colonnes collées : à partir de la colonne Tâche, des données d'au moins 4 colonnes sont lues
-      // comme dans Excel (niveaux 1 à 4 puis Responsable…) ; sinon colonne par colonne
+      // comme dans Excel (colonnes de niveau du projet puis Responsable…) ; sinon colonne par colonne
       const dataW = Math.max(...data.map((row) => row.length));
       const xl = isTaskCol(c0) && dataW >= 4;
-      const keys = (xl ? XL_KEYS : COLUMNS.slice(c0).map((c) => c.key)).slice(0, dataW);
+      const keys = (xl ? xlKeys(levelCount(p)) : COLUMNS.slice(c0).map((c) => c.key)).slice(0, dataW);
       const width = keys.length;
       const pasted = (key) => keys.includes(key);
       // lignes affichées à partir de la sélection ; ajoute les lignes manquantes en fin de tableau
@@ -3524,7 +3528,7 @@ const ProjectView = {
             const r = +row.dataset.r, now = performance.now();
             const dbl = lastBgClick.r === r && now - lastBgClick.time < 450;
             lastBgClick = dbl ? { r: -1, time: 0 } : { r, time: now };
-            if (dbl) placeTask(r, ev.clientX); else select(r, sel ? sel.c : 0);
+            if (dbl) placeTask(r, ev.clientX);
           }
         };
         el.rightBody.addEventListener("pointermove", move);

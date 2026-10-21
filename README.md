@@ -1,6 +1,6 @@
 # Plan Projet
 
-Application web simple pour découper un projet en tâches (4 niveaux) et les planifier sur un diagramme de Gantt, inspirée de [GanttProject](https://www.ganttproject.biz/).
+Application web simple pour découper un projet en tâches (jusqu'à 10 niveaux) et les planifier sur un diagramme de Gantt, inspirée de [GanttProject](https://www.ganttproject.biz/).
 
 En ligne : https://leomazet0809-a11y.github.io/Planning-Projet/
 
@@ -16,7 +16,7 @@ Chaque projet est un classeur **`.xlsx`** enregistré sur l'ordinateur, dans le 
 - **Modifications faites dans Excel** (libellés, heures, lignes ajoutées…) : elles sont reprises à la prochaine ouverture dans l'application ; la mise en forme ajoutée dans Excel n'est pas conservée. Fermer le classeur dans Excel avant de l'ouvrir dans l'application (Windows empêche d'écrire dans un fichier ouvert dans Excel).
 - **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier. **Ouvrir un fichier** : choisir un projet `.xlsx` (un ancien fichier `.proj` est converti une fois pour toutes en `.xlsx` à l'ouverture). Un classeur Excel quelconque peut être importé dans un nouveau projet.
 - **Enregistrement en temps réel** dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
-- Le titre du projet est le nom du fichier ; il n'est pas modifiable dans l'application (pour renommer : « Enregistrer sous », ou renommer le fichier dans l'Explorateur). À droite du titre s'affiche le fichier ouvert : son chemin à partir du **dossier de travail** (ex. « Projets › Chantier A › Planning.xlsx »), ou son nom seul s'il est rangé ailleurs. Le dossier de travail se choisit une fois sur la page d'accueil ou dans Paramètres (le navigateur ne permet pas d'afficher le chemin complet C:\…) ; les fenêtres Ouvrir / Enregistrer s'ouvrent directement dans ce dossier.
+- Le titre du projet est le nom du fichier ; il n'est pas modifiable dans l'application (pour renommer : « Enregistrer sous », ou renommer le fichier dans l'Explorateur). Le titre en haut de page est le fichier ouvert : son nom en gras, précédé de son chemin à partir du **dossier de travail** (ex. « Projets › Chantier A › **Planning.xlsx** ») quand il s'y trouve. Le dossier de travail se choisit une fois sur la page d'accueil ou dans Paramètres (le navigateur ne permet pas d'afficher le chemin complet C:\…) ; les fenêtres Ouvrir / Enregistrer s'ouvrent directement dans ce dossier.
 - Bouton **Annuler** (flèche retour, en haut) : revient en arrière d'une action, comme Ctrl + Z.
 - Actualiser la page (F5) garde le projet ouvert.
 - Sur les autres navigateurs (Firefox, Safari), l'enregistrement se fait en téléchargeant le fichier (Ctrl + S).
@@ -27,7 +27,8 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Action | Comment |
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic, Entrée ou F2 pour modifier le contenu existant) |
-| Colonne Tâche | Dans l'application, le nom de la tâche occupe une seule colonne « Tâche » (retrait selon le niveau, largeur réglable) ; dans Excel et pour le copier / coller, il reste réparti sur les colonnes 1 à 4 |
+| Colonne Tâche | Dans l'application, le nom de la tâche occupe une seule colonne « Tâche » (retrait selon le niveau, largeur réglable) ; dans Excel et pour le copier / coller, il reste réparti sur une colonne par niveau (1, 2, 3, 4… : 4 colonnes au moins, jusqu'à 10 si le projet a des tâches aussi fines) |
+| Désélectionner | Cliquer ailleurs : bas vide du tableau, fond du planning, en-têtes… (les boutons et les barres du planning gardent la sélection) |
 | Renommer une tâche | Un simple clic sur son nom (colonne Tâche) ouvre la modification après un court instant |
 | Commentaires | Double-clic sur le nom de la tâche, ou sur sa barre dans le planning : une fenêtre s'ouvre ; la croix (ou Échap) la ferme et enregistre. Une bulle signale les tâches commentées (dans le tableau, et au survol de la barre). Les commentaires sont aussi dans la colonne « Commentaires » du fichier Excel |
 | Valider / annuler | Entrée / Échap |
@@ -80,7 +81,7 @@ Boutons **Exporter** et **Importer** dans le bandeau (l'import existe aussi sur 
 
 **Fermeture** : si un projet est ouvert, le navigateur demande confirmation avant de fermer l'onglet ou la fenêtre.
 
-**Plein écran** : bouton à quatre coins dans le bandeau, ou touche **F** (bascule) ; Échap pour en sortir. Pour taper un mot commençant par « f » dans une cellule, ouvrir d'abord la saisie (double-clic, Entrée ou F2).
+**Plein écran** : bouton à quatre coins dans le bandeau ; Échap pour en sortir.
 
 **Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 
