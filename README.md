@@ -10,7 +10,7 @@ Ouvrir `index.html` dans Chrome ou Edge (ou l'adresse ci-dessus). Aucune install
 Les données sont enregistrées dans le navigateur ; **Exporter** (page Menu) crée un fichier de sauvegarde, **Importer** le recharge.
 
 ### Tableau
-Des flèches colorées relient chaque tâche à sa tâche parente (niveau supérieur) pour visualiser la hiérarchie.
+Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe.
 
 | Action | Comment |
 |---|---|
@@ -47,5 +47,7 @@ Une tâche liée commence toujours après la fin de sa tâche d'origine et suit 
 Les samedis et dimanches sont grisés : aucune tâche ne peut y commencer ou y finir.
 
 **Enregistrer** (ou Ctrl + S) confirme l'enregistrement du projet.
+
+**Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleurs des tâches par niveau et des tâches mères.
 
 L'application peut être ajoutée aux favoris ou installée comme raccourci (menu du navigateur › « Installer Plan Projet » / « Créer un raccourci ») : elle utilise son propre logo.
