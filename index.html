@@ -218,7 +218,8 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 .tcell.invalid { color: var(--danger); font-weight: 600; }
-.tcell.calc { color: var(--text-muted); font-style: italic; }
+/* valeurs calculées des tâches mères : texte normal, un peu plus gris que le reste */
+.tcell.calc { color: color-mix(in srgb, var(--text-muted) 85%, var(--bg)); }
 .tcell.in-range { background: var(--accent-soft); }
 .tcell.sel { box-shadow: inset 0 0 0 2px var(--accent); }
 .trow.row-sel { background: color-mix(in srgb, var(--accent) 6%, transparent); }
@@ -344,6 +345,26 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .set-row input[type="color"] { width: 36px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
 .set-row select { flex: 1; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; padding: 0 8px; }
 .settings-panel .btn { margin-top: 14px; width: 100%; justify-content: center; }
+
+/* ---------- Calendrier des dates ---------- */
+.cal-pop {
+  position: fixed; z-index: 120; width: 232px; padding: 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .18); font-size: 12px; user-select: none;
+}
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 600; text-transform: capitalize; }
+.cal-head button, .cal-foot button { border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; border-radius: 6px; padding: 2px 8px; }
+.cal-head button { font-size: 16px; line-height: 1; }
+.cal-head button:hover, .cal-foot button:hover { background: var(--surface-2); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cal-grid b { font-weight: 600; color: var(--text-muted); font-size: 11px; padding: 2px 0; }
+.cal-grid button { border: 0; background: none; color: var(--text); font: inherit; height: 26px; border-radius: 6px; cursor: pointer; }
+.cal-grid button:hover { background: var(--accent-soft); }
+.cal-grid button.we { color: var(--text-muted); background: var(--weekend); }
+.cal-grid button.today { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.cal-grid button.chosen { background: var(--accent); color: #fff; }
+.cal-foot { margin-top: 6px; text-align: center; }
+.cal-foot button { color: var(--accent); font-weight: 600; }
 
 /* ---------- Message temporaire ---------- */
 .toast {
@@ -1687,7 +1708,7 @@ const Exchange = {
     const xmlEsc = (s) => esc(String(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ""));
     const colName = (i) => { let s = ""; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
     const serial = (iso) => { const [y, m, d] = iso.split("-").map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 864e5; };
-    // styles : 0 normal · 1 gras · 2 date · 3 pourcentage · 4 italique gris (calculé) · 5 date calculée
+    // styles : 0 normal · 1 gras · 2 date · 3 pourcentage · 4 gris (calculé) · 5 date calculée
     const cellXml = (c, ref) => {
       if (!c) return "";
       if (c.kind === "formula") return `<c r="${ref}" s="3"><f>${xmlEsc(c.v.slice(1))}</f></c>`;
@@ -1715,7 +1736,7 @@ const Exchange = {
       "_rels/.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
       "xl/workbook.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ${NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${sheetName}" sheetId="1" r:id="rId1"/>${dataSheet}</sheets><calcPr fullCalcOnLoad="1"/></workbook>`,
       "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${dataRel}</Relationships>`,
-      "xl/styles.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet ${NS}><numFmts count="1"><numFmt numFmtId="164" formatCode="General&quot; %&quot;"/></numFmts><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><i/><sz val="11"/><color rgb="FF6B7189"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="14" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`,
+      "xl/styles.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet ${NS}><numFmts count="1"><numFmt numFmtId="164" formatCode="General&quot; %&quot;"/></numFmts><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><sz val="11"/><color rgb="FF8A90A6"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="14" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`,
       "xl/worksheets/sheet1.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ${NS}><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${head}${body}</sheetData></worksheet>`,
     };
     if (embed) files["xl/worksheets/sheet2.xml"] = dataXml;
@@ -2399,6 +2420,53 @@ const ProjectView = {
       renderGantt();
     };
 
+    /* ---------- Calendrier des colonnes Date début / Date fin ---------- */
+    // s'affiche sous la cellule en cours de saisie ; un clic sur un jour remplit la date, la saisie au clavier reste possible
+    const openCalendar = (input, cell, onPick) => {
+      const pop = document.createElement("div");
+      pop.className = "cal-pop";
+      const view = Dates.parseISO(Dates.parseFR(input.value) || todayISO());
+      view.setDate(1);
+      const render = () => {
+        const y = view.getFullYear(), m = view.getMonth(), today = todayISO(), chosen = Dates.parseFR(input.value);
+        const offset = (new Date(y, m, 1, 12).getDay() + 6) % 7, count = new Date(y, m + 1, 0).getDate();
+        let days = "<span></span>".repeat(offset);
+        for (let d = 1; d <= count; d++) {
+          const date = new Date(y, m, d, 12), iso = Dates.toISO(date);
+          const cls = [Dates.isWeekend(date) ? "we" : "", iso === today ? "today" : "", iso === chosen ? "chosen" : ""].join(" ");
+          days += `<button type="button" class="${cls}" data-iso="${iso}">${d}</button>`;
+        }
+        const title = view.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+        pop.innerHTML = `
+          <div class="cal-head">
+            <button type="button" data-nav="-1" aria-label="Mois précédent">‹</button>
+            <span>${title}</span>
+            <button type="button" data-nav="1" aria-label="Mois suivant">›</button>
+          </div>
+          <div class="cal-grid">${["L", "M", "M", "J", "V", "S", "D"].map((d) => `<b>${d}</b>`).join("")}${days}</div>
+          <div class="cal-foot"><button type="button" data-today>Aujourd'hui</button></div>`;
+      };
+      pop.addEventListener("mousedown", (e) => e.preventDefault());   // la saisie garde le focus
+      pop.addEventListener("click", (e) => {
+        const nav = e.target.closest("[data-nav]"), day = e.target.closest("[data-iso]");
+        if (nav) { view.setMonth(view.getMonth() + Number(nav.dataset.nav)); render(); }
+        else if (day) { input.value = Dates.format(day.dataset.iso); onPick(); }
+        else if (e.target.closest("[data-today]")) { input.value = Dates.format(todayISO()); onPick(); }
+      });
+      // une date tapée au clavier fait suivre le calendrier
+      input.addEventListener("input", () => {
+        const iso = Dates.parseFR(input.value);
+        if (iso) { const d = Dates.parseISO(iso); view.setFullYear(d.getFullYear(), d.getMonth(), 1); }
+        render();
+      });
+      render();
+      document.body.appendChild(pop);
+      const r = cell.getBoundingClientRect(), h = pop.offsetHeight, w = pop.offsetWidth;
+      pop.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+      pop.style.top = (r.bottom + h + 8 > innerHeight ? r.top - h - 4 : r.bottom + 4) + "px";
+      return pop;
+    };
+
     /* ---------- Saisie dans une cellule ---------- */
     const openEditor = (initial) => {
       if (!sel || editor) return;
@@ -2420,11 +2488,14 @@ const ProjectView = {
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
       editor = { input, done: false };
+      // Date début / Date fin : calendrier (sauf si la saisie a commencé par une touche)
+      const cal = initial == null && (key === "debut" || key === "fin") ? openCalendar(input, cell, () => finish(true)) : null;
 
       const finish = (commit, after) => {
         if (!editor || editor.done) return;
         editor.done = true;
         editor = null;
+        if (cal) cal.remove();
         if (commit && input.value !== editValue()) mutate(() => commitCell(t, key, input.value));
         else renderRows();
         if (after) after();
