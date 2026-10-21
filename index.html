@@ -223,7 +223,22 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .tcell.in-range { background: var(--accent-soft); }
 .tcell.sel { box-shadow: inset 0 0 0 2px var(--accent); }
 .trow.row-sel { background: color-mix(in srgb, var(--accent) 6%, transparent); }
-.thead-row { height: var(--head-h); border-bottom: 0; }
+.thead-row { height: 72px; border-bottom: 0; }
+/* ligne de filtres sous les en-têtes du tableau */
+.filter-row { height: 28px; border-bottom: 0; border-top: 1px solid var(--border); background: var(--surface-2); }
+.filter-row .fcell { flex: 0 0 auto; padding: 3px 3px; position: relative; }
+.filter-input {
+  width: 100%; height: 22px; border: 1px solid var(--border); border-radius: 6px; padding: 0 20px 0 6px;
+  font: inherit; font-size: 12px; color: var(--text); background: var(--surface);
+}
+.filter-input:focus { outline: none; border-color: var(--accent); }
+.filter-input.active { border-color: var(--accent); background: var(--accent-soft); }
+.filter-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--text-muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; }
+.filter-btn { position: relative; }
+.filter-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.filter-btn .badge { position: absolute; top: -5px; right: -5px; min-width: 15px; height: 15px; border-radius: 8px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; padding: 0 3px; }
+/* tâche mère affichée seulement pour situer une tâche trouvée */
+.trow.filter-context .tcell { opacity: .45; }
 .thead-row .tcell { border-right-color: var(--border); }
 .thead-row .tcell[data-fixed] { padding: 0 0 8px; justify-content: center; text-align: center; font-size: 11px; }
 .thead-row .tcell {
@@ -273,7 +288,8 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-select: none !important; }
 
 /* ---------- Planning Gantt ---------- */
-.gantt-head { position: relative; height: 100%; }
+.pane-right .pane-head { display: flex; flex-direction: column; justify-content: flex-end; }
+.gantt-head { position: relative; height: 72px; flex: 0 0 auto; }
 .gh-row { position: relative; height: 18px; border-bottom: 1px solid var(--border); }
 .gh-row:last-child { border-bottom: 0; }
 .gh-cell {
@@ -427,6 +443,7 @@ const ICONS = {
   exitFullscreen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
   exportFile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3 3 3-3"/></svg>',
   importFile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15l3-3 3 3"/></svg>',
+  filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7.5V19l-4 1.5v-8z"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>',
 };
 
@@ -2056,12 +2073,14 @@ const ProjectView = {
           <button class="icon-btn" data-act="expand-all" title="Tout développer : le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)" aria-label="Tout développer">${ICONS.expandAll}</button>
           <button class="icon-btn" data-act="collapse-all" title="Tout réduire : le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)" aria-label="Tout réduire">${ICONS.collapseAll}</button>
           <div class="sep"></div>
+          <button class="icon-btn filter-btn" data-act="filter" title="Filtrer les tâches : une recherche par colonne" aria-label="Filtrer">${ICONS.filter}<span class="badge" hidden></span></button>
+          <div class="sep"></div>
           <button class="icon-btn" data-act="row-down" title="Réduire la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Réduire la hauteur des lignes">${ICONS.minus}</button>
           <span class="zoom-label">Hauteur</span>
           <button class="icon-btn" data-act="row-up" title="Augmenter la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Augmenter la hauteur des lignes">${ICONS.plus}</button>
           <span class="hint">Tab / Maj+Tab dans une colonne de niveau (1 à 4) : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
           <div class="spacer"></div>
-          <button class="btn" data-act="today" title="Afficher la date du jour">${ICONS.today}<span class="lbl">Aujourd'hui</span></button>
+          <button class="icon-btn" data-act="today" title="Aujourd'hui : afficher la date du jour" aria-label="Aujourd'hui">${ICONS.today}</button>
           <div class="sep"></div>
           <button class="icon-btn" data-act="zoom-out" title="Dézoomer (Ctrl + molette)" aria-label="Dézoomer">${ICONS.minus}</button>
           <span class="zoom-label" data-slot="zoom"></span>
@@ -2289,8 +2308,16 @@ const ProjectView = {
     };
 
     const renderTableHead = () => {
-      el.leftHead.innerHTML = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
+      let html = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
         `<div class="tcell"${c.fixed ? " data-fixed" : ""}${c.title ? ` title="${c.title}"` : ""} style="width:${colWidth(c)}px">${esc(c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
+      if (showFilters) {
+        // colonnes 1 à 4 : une seule recherche « Tâche » ; puis une recherche par colonne
+        const field = (k, w, ph) => `<div class="fcell" style="width:${w}px"><input class="filter-input${normTxt(filters[k]) ? " active" : ""}" data-k="${k}" value="${esc(filters[k] || "")}" placeholder="${ph}" title="Filtrer : ${ph}" spellcheck="false">${normTxt(filters[k]) ? `<button class="filter-clear" data-clear="${k}" title="Effacer ce filtre">×</button>` : ""}</div>`;
+        let cells = field("label", colLeft(COL.niv4 + 1), "Tâche…");
+        COLUMNS.forEach((c) => { if (!isNivCol(COL[c.key])) cells += field(c.key, colWidth(c), c.label + "…"); });
+        html += `<div class="trow filter-row">${cells}</div>`;
+      }
+      el.leftHead.innerHTML = html;
       el.leftHead.scrollLeft = el.leftBody.scrollLeft;
     };
 
@@ -2301,10 +2328,41 @@ const ProjectView = {
     const twistyLeft = () => -14;
     const labelLeft = () => 4;
 
-    /* ---------- Lignes visibles (groupes réduits masqués) ---------- */
+    /* ---------- Filtres : une recherche texte par colonne ---------- */
+    // « label » cherche dans le nom des tâches (colonnes 1 à 4) ; les autres clés sont celles des colonnes
+    const FILTER_COLS = ["label", "responsable", "heures", "duree", "debut", "fin", "avancement"];
+    let filters = {}, showFilters = false;
+    const keepVisible = new Set();   // tâches ajoutées pendant un filtrage : restent visibles
+    const normTxt = (v) => String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const filterActive = () => FILTER_COLS.some((k) => normTxt(filters[k]));
+    const matches = (t) => FILTER_COLS.every((k) => {
+      const q = normTxt(filters[k]);
+      if (!q) return true;
+      const text = k === "label" ? t.label : cellDisplay(t, k).text;
+      return normTxt(text).includes(q);
+    });
+    let filterCtx = new Set();   // tâches mères affichées seulement pour situer une tâche trouvée
+
+    /* ---------- Lignes visibles (groupes réduits masqués, filtres) ---------- */
     let vis = [], visPos = [];   // vis : indices des tâches affichées ; visPos[r] : rang affiché (-1 si masquée)
     const refreshVis = () => {
       vis = []; visPos = new Array(p.tasks.length).fill(-1);
+      filterCtx = new Set();
+      if (filterActive()) {
+        // tâches trouvées + leurs tâches mères (pour garder la hiérarchie lisible)
+        const show = new Set();
+        p.tasks.forEach((t, r) => {
+          if (!matches(t) && !keepVisible.has(t.id)) return;
+          show.add(r);
+          let lvl = t.level;
+          for (let k = r - 1; k >= 0 && lvl > 1; k--) {
+            if (p.tasks[k].level < lvl) { if (!show.has(k)) filterCtx.add(k); show.add(k); lvl = p.tasks[k].level; }
+          }
+        });
+        filterCtx.forEach((k) => { if (matches(p.tasks[k])) filterCtx.delete(k); });
+        p.tasks.forEach((t, r) => { if (show.has(r)) { visPos[r] = vis.length; vis.push(r); } });
+        return;
+      }
       for (let r = 0; r < p.tasks.length; ) {
         visPos[r] = vis.length;
         vis.push(r);
@@ -2343,12 +2401,14 @@ const ProjectView = {
       Tree.compute(p);
       refreshVis();
       const R = rect();
-      el.leftBody.innerHTML = p.tasks.length
+      el.leftBody.innerHTML = p.tasks.length && !vis.length
+        ? `<div class="table-empty">Aucune tâche ne correspond aux filtres.</div>`
+        : p.tasks.length
         ? vis.map((r) => {
             const t = p.tasks[r];
             const inRows = R && r >= R.r1 && r <= R.r2;
             const c0 = t.level - 1, spill = spillCount(t), parent = Task.isParent(t);
-            return `<div class="trow${inRows ? " row-sel" : ""}">${COLUMNS.map((c, i) => {
+            return `<div class="trow${inRows ? " row-sel" : ""}${filterCtx.has(r) ? " filter-context" : ""}">${COLUMNS.map((c, i) => {
               const d = cellDisplay(t, c.key);
               let content = esc(d.text), spillCls = "";
               let style = `width:${colWidth(c)}px`;
@@ -2380,6 +2440,48 @@ const ProjectView = {
     };
 
     const renderAll = () => { renderTableHead(); renderRows(); renderGantt(); };
+
+    const filterBtn = root.querySelector('[data-act="filter"]');
+    const paintFilterBtn = () => {
+      const n = FILTER_COLS.filter((k) => normTxt(filters[k])).length;
+      filterBtn.classList.toggle("on", showFilters);
+      const badge = filterBtn.querySelector(".badge");
+      badge.hidden = !n;
+      badge.textContent = n;
+      el.page.style.setProperty("--head-h", showFilters ? "101px" : "72px");
+    };
+    const applyFilters = () => {
+      keepVisible.clear();
+      renderRows(); renderGantt();
+      if (sel && visPos[sel.r] < 0) { sel = null; renderRows(); }
+      paintFilterBtn();
+    };
+    filterBtn.addEventListener("click", () => {
+      showFilters = !showFilters;
+      if (!showFilters) filters = {};   // fermer la ligne de filtres les efface
+      renderTableHead(); applyFilters();
+      if (showFilters) el.leftHead.querySelector(".filter-input").focus();
+    });
+    el.leftHead.addEventListener("input", (e) => {
+      const inp = e.target.closest(".filter-input");
+      if (!inp) return;
+      filters[inp.dataset.k] = inp.value;
+      inp.classList.toggle("active", !!normTxt(inp.value));
+      applyFilters();
+    });
+    el.leftHead.addEventListener("keydown", (e) => {
+      const inp = e.target.closest(".filter-input");
+      if (!inp) return;
+      e.stopPropagation();
+      if (e.key === "Escape") { filters[inp.dataset.k] = ""; renderTableHead(); applyFilters(); }
+      if (e.key === "Enter") el.leftBody.focus({ preventScroll: true });
+    });
+    el.leftHead.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-clear]");
+      if (!b) return;
+      filters[b.dataset.clear] = "";
+      renderTableHead(); applyFilters();
+    });
 
     const cellEl = (r, c) => el.leftBody.querySelector(`.tcell[data-r="${r}"][data-c="${c}"]`);
 
@@ -2535,6 +2637,7 @@ const ProjectView = {
     const blockEnd = (r) => Tree.blockEnd(p, r);
 
     const startRowDrag = (e, r) => {
+      if (filterActive()) { toast("Effacez les filtres pour déplacer des tâches"); return; }
       if (editor) editor.input.blur();
       const end = blockEnd(r);
       for (let k = r; k < end; k++) el.leftBody.querySelector(`.tcell[data-r="${k}"]`)?.parentElement.classList.add("moving");
@@ -2755,8 +2858,11 @@ const ProjectView = {
       const R = rect();
       // une nouvelle tâche se place après le groupe de la tâche sélectionnée (pas au milieu de ses filles)
       const at = R ? Tree.blockEnd(p, R.r2) : p.tasks.length;
+      // pendant un filtrage, la nouvelle tâche reste visible même si elle ne correspond pas aux filtres
+      const added = () => keepVisible.add(p.tasks[at].id);
       const level = R ? p.tasks[R.r2].level : 1;
       p.tasks.splice(at, 0, Task.create(level));
+      added();
       save();
       renderAll();
       select(at, level - 1);

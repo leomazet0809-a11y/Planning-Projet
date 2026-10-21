@@ -27,6 +27,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic ou Entrée pour modifier le contenu existant) |
 | Valider / annuler | Entrée / Échap |
+| Filtrer | Bouton entonnoir : une recherche par colonne (Tâche, Responsable, Heures, Durée, Dates, Avancement), sans tenir compte des majuscules ni des accents ; les filtres se combinent. Les tâches mères des tâches trouvées restent affichées en pâle. Échap efface le filtre en cours. |
 | Choisir une date | Double-clic sur Date début ou Date fin : un calendrier s'ouvre (la saisie au clavier reste possible) |
 | Se déplacer | Flèches du clavier |
 | Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis une cellule des colonnes de niveau (1 à 4) |
