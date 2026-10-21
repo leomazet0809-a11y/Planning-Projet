@@ -401,6 +401,8 @@ const ICONS = {
   saveAs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v5"/><path d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7"/><path d="M7 3v6h9V3M17 16v6M14 19h6"/></svg>',
   fullscreen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
   exitFullscreen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
+  exportFile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3 3 3-3"/></svg>',
+  importFile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15l3-3 3 3"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>',
 };
 
@@ -787,6 +789,21 @@ const Files = {
     try { handle = await window.showSaveFilePicker({ suggestedName: "Nouveau projet" + PROJ_EXT, types: FILE_TYPES }); }
     catch (e) { return null; }   // fenêtre fermée
     const p = this.register(Store.blank(this.baseName(handle.name)), handle);
+    await this.write(p);
+    this.recentKeys.set(p.id, await Recents.add(handle, p.title));
+    return p;
+  },
+
+  // Nouveau projet rempli par « build » (import Excel / CSV) : on choisit où l'enregistrer
+  async createFrom(title, build) {
+    const p = Store.blank(title);
+    build(p);
+    if (!this.supported) return this.register(p, null);
+    let handle;
+    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(title) + PROJ_EXT, types: FILE_TYPES }); }
+    catch (e) { return null; }
+    p.title = this.baseName(handle.name);
+    this.register(p, handle);
     await this.write(p);
     this.recentKeys.set(p.id, await Recents.add(handle, p.title));
     return p;
@@ -1252,6 +1269,7 @@ const MenuView = {
       <header class="topbar">
         <div class="brand">${LOGO_SVG}<span>Plan Projet</span></div>
         <div class="spacer"></div>
+        <button class="icon-btn" data-act="import" title="Importer un fichier Excel ou CSV dans un nouveau projet" aria-label="Importer">${ICONS.importFile}</button>
         <div data-slot="theme"></div>
       </header>
       <main class="menu-page">
@@ -1275,6 +1293,17 @@ const MenuView = {
     root.querySelector('[data-act="open"]').addEventListener("click", async () => {
       try { openProject(await Files.open()); }
       catch (e) { toast("Ce fichier n'est pas un projet Plan Projet"); }
+    });
+    root.querySelector('[data-act="import"]').addEventListener("click", async () => {
+      const file = await Exchange.pick();
+      if (!file) return;
+      let res;
+      try { res = Exchange.toTasks(await Exchange.readFile(file)); }
+      catch (e) { toast(e.message && !/^(zip|xlsx)$/.test(e.message) ? e.message : "Fichier illisible : choisissez un .xlsx ou un .csv"); return; }
+      const p = await Files.createFrom(file.name.replace(/\.[^.]+$/, ""), (np) => { np.tasks = res.tasks; Exchange.applyLinks(np, res.links, res.warnings); });
+      if (!p) return;
+      openProject(p);
+      Exchange.report(res.tasks.length, res.warnings);
     });
     this.renderRecents(root);
   },
@@ -1465,6 +1494,395 @@ const toTSVCell = (s) => (/[\t\n"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
 /* ============================================================
    Page Projet : tableau à gauche, planning à droite
    ============================================================ */
+/* ============================================================
+   Export / import Excel (.xlsx) et CSV
+   Une ligne par tâche, dans l'ordre du tableau. Colonnes :
+   N° · 1 · 2 · 3 · 4 · Responsable · Heures effectives · Durée jours · Date début · Date fin · Avancement · Dépend de
+   Le nom de la tâche est dans la colonne de son niveau ; « Dépend de » liste les N° des tâches d'origine.
+   Les valeurs des tâches mères sont exportées (calculées) mais recalculées à l'import.
+   ============================================================ */
+const EX_HEADERS = ["N°", "1", "2", "3", "4", "Responsable", "Heures effectives", "Durée jours", "Date début", "Date fin", "Avancement", "Dépend de"];
+
+/* ---------- Archive ZIP minimale (format des fichiers .xlsx) ---------- */
+const Zip = {
+  crcTable: null,
+  crc32(bytes) {
+    if (!this.crcTable) {
+      this.crcTable = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+        this.crcTable[n] = c >>> 0;
+      }
+    }
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) crc = this.crcTable[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+    return (crc ^ 0xffffffff) >>> 0;
+  },
+
+  // fichiers stockés sans compression : { "chemin": "texte" } → Uint8Array
+  create(files) {
+    const enc = new TextEncoder(), parts = [], central = [];
+    let offset = 0;
+    for (const [name, text] of Object.entries(files)) {
+      const nameBytes = enc.encode(name), data = enc.encode(text), crc = this.crc32(data);
+      const local = new DataView(new ArrayBuffer(30));
+      local.setUint32(0, 0x04034b50, true); local.setUint16(4, 20, true); local.setUint16(6, 0x0800, true);
+      local.setUint32(14, crc, true); local.setUint32(18, data.length, true); local.setUint32(22, data.length, true);
+      local.setUint16(26, nameBytes.length, true);
+      parts.push(new Uint8Array(local.buffer), nameBytes, data);
+      const cen = new DataView(new ArrayBuffer(46));
+      cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
+      cen.setUint32(16, crc, true); cen.setUint32(20, data.length, true); cen.setUint32(24, data.length, true);
+      cen.setUint16(28, nameBytes.length, true); cen.setUint32(42, offset, true);
+      central.push(new Uint8Array(cen.buffer), nameBytes);
+      offset += 30 + nameBytes.length + data.length;
+    }
+    const cenSize = central.reduce((n, b) => n + b.length, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(8, Object.keys(files).length, true); end.setUint16(10, Object.keys(files).length, true);
+    end.setUint32(12, cenSize, true); end.setUint32(16, offset, true);
+    const all = [...parts, ...central, new Uint8Array(end.buffer)];
+    const out = new Uint8Array(all.reduce((n, b) => n + b.length, 0));
+    let pos = 0;
+    for (const b of all) { out.set(b, pos); pos += b.length; }
+    return out;
+  },
+
+  // lit une archive : renvoie { "chemin": async () => texte }
+  read(buffer) {
+    const bytes = new Uint8Array(buffer), view = new DataView(buffer);
+    let eocd = -1;
+    for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+      if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error("zip");
+    const count = view.getUint16(eocd + 10, true);
+    let p = view.getUint32(eocd + 16, true);
+    const entries = {}, dec = new TextDecoder();
+    for (let n = 0; n < count; n++) {
+      if (view.getUint32(p, true) !== 0x02014b50) throw new Error("zip");
+      const method = view.getUint16(p + 10, true), size = view.getUint32(p + 20, true);
+      const nameLen = view.getUint16(p + 28, true), extraLen = view.getUint16(p + 30, true), commentLen = view.getUint16(p + 32, true);
+      const localOff = view.getUint32(p + 42, true);
+      const name = dec.decode(bytes.subarray(p + 46, p + 46 + nameLen));
+      entries[name] = async () => {
+        const start = localOff + 30 + view.getUint16(localOff + 26, true) + view.getUint16(localOff + 28, true);
+        const raw = bytes.subarray(start, start + size);
+        if (method === 0) return dec.decode(raw);
+        if (method !== 8) throw new Error("zip");
+        const stream = new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+        return dec.decode(await new Response(stream).arrayBuffer());
+      };
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    return entries;
+  },
+};
+
+const Exchange = {
+  /* ---------- Projet → lignes (valeurs typées) ---------- */
+  // chaque cellule : { v: texte|nombre, kind: "text"|"num"|"date"|"formula"|"pct", calc: bool }
+  rows(p) {
+    Tree.compute(p);
+    const num = new Map(p.tasks.map((t, i) => [t.id, i + 1]));
+    const deps = (t) => (p.links || []).filter((l) => l.to === t.id).map((l) => num.get(l.from)).filter(Boolean).sort((a, b) => a - b).join(", ");
+    const numOrText = (s) => { const n = parseNum(s); return String(s).trim() === "" ? null : isNaN(n) ? { v: String(s), kind: "text" } : { v: n, kind: "num" }; };
+    return p.tasks.map((t, i) => {
+      const parent = Task.isParent(t), a = Agg.get(t);
+      const row = [{ v: i + 1, kind: "num" }];
+      for (let l = 1; l <= 4; l++) row.push(t.level === l && t.label ? { v: t.label, kind: "text", bold: l === 1 } : null);
+      row.push(t.responsable ? { v: t.responsable, kind: "text" } : null);
+      if (parent) {
+        row.push(a.hours == null ? null : { v: a.hours, kind: "num", calc: true });
+        row.push(a.dur == null ? null : { v: a.dur, kind: "num", calc: true });
+        row.push(a.start ? { v: a.start, kind: "date", calc: true } : null);
+        row.push(a.end ? { v: a.end, kind: "date", calc: true } : null);
+      } else {
+        row.push(numOrText(t.heures));
+        const d = Task.duration(t);
+        row.push(t.dureeText ? { v: t.dureeText, kind: "text" } : d == null ? null : { v: d, kind: "num" });
+        row.push(t.debutText ? { v: t.debutText, kind: "text" } : t.start ? { v: t.start, kind: "date" } : null);
+        const end = Task.end(t);
+        row.push(t.finText ? { v: t.finText, kind: "text" } : end ? { v: end, kind: "date" } : null);
+      }
+      const av = (t.avancement || "").trim();
+      if (!av) row.push(null);
+      else if (av.startsWith("=")) row.push({ v: av, kind: "formula" });
+      else { const n = parseNum(av.replace(/\s*%$/, "")); row.push(isNaN(n) ? { v: av, kind: "text" } : { v: n, kind: "pct" }); }
+      const dp = deps(t);
+      row.push(dp ? { v: dp, kind: "text" } : null);
+      return row;
+    });
+  },
+
+  /* ---------- CSV (Excel français : séparateur ; et UTF-8 avec BOM) ---------- */
+  toCSV(p) {
+    const cell = (c) => {
+      if (!c) return "";
+      let s = c.kind === "date" ? Dates.format(c.v) : c.kind === "num" || c.kind === "pct" ? fmtNum(c.v) : String(c.v);
+      if (c.kind === "pct") s += " %";
+      return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [EX_HEADERS.join(";"), ...this.rows(p).map((r) => r.map(cell).join(";"))];
+    return "﻿" + lines.join("\r\n") + "\r\n";
+  },
+
+  /* ---------- XLSX ---------- */
+  toXLSX(p) {
+    const xmlEsc = (s) => esc(String(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ""));
+    const colName = (i) => { let s = ""; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+    const serial = (iso) => { const [y, m, d] = iso.split("-").map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 864e5; };
+    // styles : 0 normal · 1 gras · 2 date · 3 pourcentage · 4 italique gris (calculé) · 5 date calculée
+    const cellXml = (c, ref) => {
+      if (!c) return "";
+      if (c.kind === "formula") return `<c r="${ref}" s="3"><f>${xmlEsc(c.v.slice(1))}</f></c>`;
+      if (c.kind === "date") return `<c r="${ref}" s="${c.calc ? 5 : 2}"><v>${serial(c.v)}</v></c>`;
+      if (c.kind === "num" || c.kind === "pct") return `<c r="${ref}" s="${c.kind === "pct" ? 3 : c.calc ? 4 : 0}"><v>${c.v}</v></c>`;
+      return `<c r="${ref}" t="inlineStr"${c.bold ? ' s="1"' : ""}><is><t xml:space="preserve">${xmlEsc(c.v)}</t></is></c>`;
+    };
+    const head = `<row r="1">${EX_HEADERS.map((h, i) => `<c r="${colName(i)}1" t="inlineStr" s="1"><is><t>${xmlEsc(h)}</t></is></c>`).join("")}</row>`;
+    const body = this.rows(p).map((r, ri) => `<row r="${ri + 2}">${r.map((c, ci) => cellXml(c, colName(ci) + (ri + 2))).join("")}</row>`).join("");
+    const widths = [6, 4, 4, 4, 40, 18, 10, 10, 12, 12, 12, 12];
+    const sheetName = xmlEsc((p.title || "Planning").replace(/[\[\]:*?/\\]/g, "-").slice(0, 31));
+    const NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+    return Zip.create({
+      "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
+      "_rels/.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+      "xl/workbook.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ${NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${sheetName}" sheetId="1" r:id="rId1"/></sheets><calcPr fullCalcOnLoad="1"/></workbook>`,
+      "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+      "xl/styles.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet ${NS}><numFmts count="1"><numFmt numFmtId="164" formatCode="General&quot; %&quot;"/></numFmts><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><i/><sz val="11"/><color rgb="FF6B7189"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="14" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`,
+      "xl/worksheets/sheet1.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ${NS}><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${head}${body}</sheetData></worksheet>`,
+    });
+  },
+
+  /* ---------- Lecture d'un fichier → tableau de lignes ---------- */
+  async readFile(file) {
+    if (/\.xlsx$/i.test(file.name)) return this.readXLSX(await file.arrayBuffer());
+    const buf = await file.arrayBuffer();
+    let text;
+    try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
+    catch (e) { text = new TextDecoder("windows-1252").decode(buf); }   // CSV enregistré par un ancien Excel
+    return this.parseCSV(text.replace(/^﻿/, ""));
+  },
+
+  parseCSV(text) {
+    const first = text.split(/\r?\n/, 1)[0];
+    const count = (ch) => first.split(ch).length - 1;
+    const sep = [";", "\t", ","].sort((a, b) => count(b) - count(a))[0];
+    const rows = [];
+    let row = [], cell = "", quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+        else if (ch === '"') quoted = false;
+        else cell += ch;
+      } else if (ch === '"' && cell === "") quoted = true;
+      else if (ch === sep) { row.push(cell); cell = ""; }
+      else if (ch === "\n" || ch === "\r") {
+        if (ch === "\r" && text[i + 1] === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += ch;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  },
+
+  async readXLSX(buffer) {
+    const zip = Zip.read(buffer);
+    const xml = async (path) => (zip[path] ? new DOMParser().parseFromString(await zip[path](), "application/xml") : null);
+    // première feuille du classeur
+    let sheetPath = "xl/worksheets/sheet1.xml";
+    const wb = await xml("xl/workbook.xml"), rels = await xml("xl/_rels/workbook.xml.rels");
+    const firstSheet = wb && wb.getElementsByTagName("sheet")[0];
+    if (firstSheet && rels) {
+      const rid = firstSheet.getAttribute("r:id") || firstSheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+      const rel = [...rels.getElementsByTagName("Relationship")].find((r) => r.getAttribute("Id") === rid);
+      if (rel) { const target = rel.getAttribute("Target"); sheetPath = target.startsWith("/") ? target.slice(1) : "xl/" + target; }
+    }
+    const shared = [];
+    const ss = await xml("xl/sharedStrings.xml");
+    if (ss) for (const si of ss.getElementsByTagName("si")) shared.push([...si.getElementsByTagName("t")].map((t) => t.textContent).join(""));
+    const sheet = await xml(sheetPath);
+    if (!sheet) throw new Error("xlsx");
+    const colIndex = (ref) => { let n = 0; for (const ch of ref.replace(/\d+$/, "")) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; };
+    const rows = [];
+    for (const r of sheet.getElementsByTagName("row")) {
+      const ri = Number(r.getAttribute("r")) - 1;
+      const row = [];
+      for (const c of r.getElementsByTagName("c")) {
+        const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0], f = c.getElementsByTagName("f")[0];
+        let val = "";
+        if (t === "s") val = shared[Number(v && v.textContent)] ?? "";
+        else if (t === "inlineStr") val = [...c.getElementsByTagName("t")].map((x) => x.textContent).join("");
+        else if (t === "str" || t === "e") val = v ? v.textContent : "";
+        else if (t === "b") val = v && v.textContent === "1" ? "VRAI" : "FAUX";
+        else if (v) val = Number(v.textContent);
+        row[colIndex(c.getAttribute("r"))] = f && f.textContent ? { value: val, formula: "=" + f.textContent } : val;
+      }
+      rows[ri] = row;
+    }
+    return Array.from(rows, (r) => r || []);
+  },
+
+  /* ---------- Tableau de lignes → tâches et liens ---------- */
+  norm(s) { return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, ""); },
+
+  toTasks(rows) {
+    const ALIASES = {
+      num: ["n", "no", "numero", "num", "id"],
+      l1: ["1", "niv1", "niveau1"], l2: ["2", "niv2", "niveau2"], l3: ["3", "niv3", "niveau3"], l4: ["4", "niv4", "niveau4"],
+      responsable: ["responsable"], realise: ["realise"], surveille: ["surveille"],
+      heures: ["heureseffectives", "heures"], duree: ["dureejours", "duree"],
+      debut: ["datedebut", "debut"], fin: ["datefin", "fin"],
+      avancement: ["avancement"], deps: ["dependde", "depend", "predecesseurs", "predecesseur", "dependances"],
+    };
+    // ligne d'en-tête : la première où l'on reconnaît au moins une colonne de niveau
+    let hr = -1, map = {};
+    for (let i = 0; i < Math.min(rows.length, 20) && hr < 0; i++) {
+      const m = {};
+      (rows[i] || []).forEach((h, ci) => {
+        const n = this.norm(typeof h === "object" ? h.value : h);
+        for (const [key, names] of Object.entries(ALIASES)) if (names.includes(n) && m[key] == null) m[key] = ci;
+      });
+      if (m.l1 != null || m.l2 != null) { hr = i; map = m; }
+    }
+    if (hr < 0) throw new Error("Colonnes 1, 2, 3, 4 introuvables : la première ligne doit contenir les titres des colonnes.");
+
+    const val = (row, key) => {
+      if (map[key] == null) return "";
+      const c = row[map[key]];
+      return c == null ? "" : typeof c === "object" ? c : c;
+    };
+    const plain = (c) => (typeof c === "object" && c !== null ? c.value : c);
+    const asText = (c) => { const v = plain(c); return typeof v === "number" ? String(Math.round(v * 1e6) / 1e6).replace(".", ",") : String(v ?? "").trim(); };
+    const asDate = (c) => {
+      const v = plain(c);
+      if (typeof v === "number" && v > 0) { const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 864e5); return Dates.format(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`); }
+      return asText(c);
+    };
+
+    const tasks = [], byNum = new Map(), depsOf = [], warnings = [];
+    for (let i = hr + 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      if (!row.some((c) => asText(c) !== "")) continue;   // ligne vide
+      let level = 0, label = "";
+      for (let l = 1; l <= 4 && !level; l++) { const s = asText(val(row, "l" + l)); if (s) { level = l; label = s; } }
+      if (!level) { warnings.push(`Ligne ${i + 1} : aucun nom de tâche dans les colonnes 1 à 4 (ligne ignorée)`); continue; }
+      const t = Task.create(level);
+      t.label = label;
+      const resp = asText(val(row, "responsable")) || [asText(val(row, "realise")), asText(val(row, "surveille"))].filter(Boolean).join(" / ");
+      if (resp) t.responsable = resp;
+      const h = asText(val(row, "heures")), d = asText(val(row, "duree")), deb = asDate(val(row, "debut")), fin = asDate(val(row, "fin"));
+      if (h) commitCell(t, "heures", h);
+      else if (d) commitCell(t, "duree", d);
+      if (deb) {
+        commitCell(t, "debut", deb);
+        if (t.debutText) warnings.push(`Ligne ${i + 1} : date de début « ${deb} » non reconnue`);
+      }
+      if (fin && !h && !d) commitCell(t, "fin", fin);
+      const av = val(row, "avancement");
+      if (typeof av === "object" && av && av.formula) t.avancement = av.formula;
+      else if (asText(av)) t.avancement = asText(av);
+      const n = parseInt(asText(val(row, "num")), 10);
+      if (!isNaN(n)) byNum.set(n, t);
+      byNum.set(`ligne${tasks.length + 1}`, t);
+      depsOf.push([t, asText(val(row, "deps")), i + 1]);
+      tasks.push(t);
+    }
+    // liens : « Dépend de » contient les N° des tâches d'origine
+    const links = [];
+    for (const [t, deps, line] of depsOf) {
+      if (!deps) continue;
+      for (const part of deps.split(/[,;\s]+/).filter(Boolean)) {
+        const n = parseInt(part, 10);
+        const from = byNum.get(n) || (map.num == null ? byNum.get(`ligne${n}`) : null);
+        if (!from || from === t) warnings.push(`Ligne ${line} : « Dépend de » ${part} ne correspond à aucune tâche`);
+        else links.push({ from: from.id, to: t.id });
+      }
+    }
+    return { tasks, links, warnings };
+  },
+
+  // applique les liens importés (en écartant ceux qui créeraient une boucle)
+  applyLinks(p, links, warnings) {
+    p.links = [];
+    for (const l of links) {
+      const a = Links.byId(p, l.from), b = Links.byId(p, l.to);
+      if (!Links.add(p, a, b)) warnings.push(`Lien « ${a.label} » → « ${b.label} » ignoré (boucle, doublon ou tâche mère)`);
+    }
+  },
+
+  /* ---------- Enregistrement du fichier exporté ---------- */
+  async save(p, kind) {
+    const isX = kind === "xlsx";
+    const data = isX ? this.toXLSX(p) : this.toCSV(p);
+    const name = Files.safeName(p.title) + (isX ? ".xlsx" : ".csv");
+    const type = isX ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "text/csv";
+    if (typeof window.showSaveFilePicker === "function") {
+      let handle;
+      try {
+        handle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: isX ? "Classeur Excel" : "Fichier CSV", accept: { [type]: [isX ? ".xlsx" : ".csv"] } }] });
+      } catch (e) { return null; }
+      const w = await handle.createWritable();
+      await w.write(new Blob([data], { type }));
+      await w.close();
+      return handle.name;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type }));
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return name;
+  },
+
+  // choisir un fichier .xlsx ou .csv à importer
+  pick() {
+    return new Promise((resolve) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".xlsx,.csv,.txt";
+      input.onchange = () => resolve(input.files[0] || null);
+      input.click();
+    });
+  },
+
+  // compte rendu d'import
+  report(n, warnings) {
+    const msg = `${n} tâche${n > 1 ? "s" : ""} importée${n > 1 ? "s" : ""}.`;
+    if (!warnings.length) { toast(msg); return; }
+    const list = warnings.slice(0, 12).join("\n") + (warnings.length > 12 ? `\n… et ${warnings.length - 12} autre(s)` : "");
+    choiceDialog({ title: "Import terminé avec des remarques", message: `${msg}\n\n${list}`, choices: [{ label: "OK", value: true, primary: true }] });
+  },
+};
+
+/* Fenêtre à plusieurs choix : renvoie la valeur du bouton cliqué (null si fermée) */
+function choiceDialog({ title, message, choices }) {
+  return new Promise((resolve) => {
+    const bd = document.createElement("div");
+    bd.className = "modal-backdrop";
+    bd.innerHTML = `
+      <div class="modal" role="dialog" aria-modal="true">
+        <h3>${esc(title)}</h3>
+        <p style="white-space:pre-line">${esc(message)}</p>
+        <div class="modal-actions">${choices.map((c, i) => `<button class="btn${c.primary ? " btn-primary" : ""}" data-i="${i}">${esc(c.label)}</button>`).join("")}</div>
+      </div>`;
+    const close = (val) => { bd.remove(); document.removeEventListener("keydown", onKey, true); resolve(val); };
+    const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(null); } };
+    bd.addEventListener("click", (e) => {
+      if (e.target === bd) close(null);
+      const b = e.target.closest("[data-i]");
+      if (b) close(choices[+b.dataset.i].value);
+    });
+    document.addEventListener("keydown", onKey, true);
+    document.body.appendChild(bd);
+    (bd.querySelector(".btn-primary") || bd.querySelector("[data-i]")).focus();
+  });
+}
+
 // historique d'annulation par projet, depuis l'ouverture de l'application
 const History = new Map();   // id du projet → { undo: [], redo: [], last }
 
@@ -1484,6 +1902,8 @@ const ProjectView = {
           <span class="save-status"></span>
           <button class="icon-btn" data-act="save" title="Enregistrer maintenant (Ctrl + S) — l'enregistrement est aussi automatique" aria-label="Enregistrer">${ICONS.save}</button>
           <button class="icon-btn" data-act="save-as" title="Enregistrer sous… : choisir un autre dossier ou un autre nom (Ctrl + Maj + S)" aria-label="Enregistrer sous">${ICONS.saveAs}</button>
+          <button class="icon-btn" data-act="export" title="Exporter le projet (Excel ou CSV)" aria-label="Exporter">${ICONS.exportFile}</button>
+          <button class="icon-btn" data-act="import" title="Importer un fichier Excel ou CSV" aria-label="Importer">${ICONS.importFile}</button>
           <div data-slot="theme"></div>
         </header>
         <div class="toolbar">
@@ -1653,6 +2073,50 @@ const ProjectView = {
     };
     root.querySelector('[data-act="save"]').addEventListener("click", saveNow);
     root.querySelector('[data-act="save-as"]').addEventListener("click", saveAsNow);
+
+    /* ---------- Exporter / importer (Excel, CSV) ---------- */
+    root.querySelector('[data-act="export"]').addEventListener("click", async () => {
+      if (editor) editor.input.blur();
+      const kind = await choiceDialog({
+        title: "Exporter le projet",
+        message: "Une ligne par tâche, avec les colonnes du tableau et les liens (« Dépend de »).",
+        choices: [{ label: "Annuler", value: null }, { label: "CSV (.csv)", value: "csv" }, { label: "Excel (.xlsx)", value: "xlsx", primary: true }],
+      });
+      if (!kind) return;
+      try {
+        const name = await Exchange.save(p, kind);
+        if (name) toast(`Exporté dans « ${name} »`);
+      } catch (e) { toast("Échec de l'export"); }
+    });
+    root.querySelector('[data-act="import"]').addEventListener("click", async () => {
+      if (editor) editor.input.blur();
+      const file = await Exchange.pick();
+      if (!file) return;
+      let res;
+      try { res = Exchange.toTasks(await Exchange.readFile(file)); }
+      catch (e) { toast(e.message && !/^(zip|xlsx)$/.test(e.message) ? e.message : "Fichier illisible : choisissez un .xlsx ou un .csv"); return; }
+      const n = res.tasks.length;
+      const choice = await choiceDialog({
+        title: `Importer « ${file.name} »`,
+        message: `${n} tâche${n > 1 ? "s" : ""} trouvée${n > 1 ? "s" : ""}. Où les mettre ?`,
+        choices: [
+          { label: "Annuler", value: null },
+          { label: "Remplacer le projet ouvert", value: "replace" },
+          { label: "Créer un nouveau projet", value: "new", primary: true },
+        ],
+      });
+      if (choice === "replace") {
+        sel = null;
+        mutate(() => { p.tasks = res.tasks; Exchange.applyLinks(p, res.links, res.warnings); });
+        renderAll();
+        Exchange.report(n, res.warnings);   // Ctrl + Z ramène le projet d'avant l'import
+      } else if (choice === "new") {
+        const np = await Files.createFrom(file.name.replace(/\.[^.]+$/, ""), (q) => { q.tasks = res.tasks; Exchange.applyLinks(q, res.links, res.warnings); });
+        if (!np) return;
+        openProject(np);
+        Exchange.report(n, res.warnings);
+      }
+    });
     on(document, "keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); if (e.shiftKey) saveAsNow(); else saveNow(); }
     });
@@ -2013,7 +2477,11 @@ const ProjectView = {
         return;
       }
       if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); openEditor(); return; }
-      if (e.key === "Delete") { e.preventDefault(); deleteSelection(); return; }
+      if (e.key === "Delete") {
+        e.preventDefault();
+        if (isNivCol(sel.c)) deleteSelection(); else clearRange();   // colonnes 1 à 4 : la tâche ; ailleurs : le contenu
+        return;
+      }
       if (e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
       if (e.key === "Escape") { select(sel.r, sel.c); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
@@ -2567,8 +3035,9 @@ const Router = {
 
 Store.load();
 Theme.init();
+// fermeture de l'onglet ou du navigateur pendant qu'un projet est ouvert : le navigateur demande confirmation
 window.addEventListener("beforeunload", (e) => {
-  if (Files.hasPending()) { e.preventDefault(); e.returnValue = ""; }
+  if (Store.currentId || Files.hasPending()) { e.preventDefault(); e.returnValue = ""; }
 });
 // application installée (Chrome / Edge) : ouverture d'un fichier .proj par double-clic
 if ("launchQueue" in window) {

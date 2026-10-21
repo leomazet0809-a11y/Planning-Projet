@@ -33,8 +33,8 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Défiler | Molette au-dessus du tableau ou du planning (les deux restent alignés) |
 | Sélectionner plusieurs cellules | Glisser la souris, ou Maj + clic, ou Maj + flèches |
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
-| Effacer le contenu des cellules | Retour arrière (⌫) |
-| Supprimer les tâches sélectionnées | Suppr, puis Entrée pour confirmer (Oui) |
+| Effacer le contenu des cellules | Retour arrière (⌫), ou Suppr dans les colonnes Responsable à Avancement |
+| Supprimer les tâches sélectionnées | Suppr dans une colonne de niveau (1 à 4), puis Entrée pour confirmer (Oui) |
 | Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture) / Ctrl + Y |
 | Largeur d'une colonne | Glisser le bord droit de son en-tête (double-clic : taille d'origine) |
 
@@ -57,6 +57,16 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 
 Une tâche liée commence toujours après la fin de sa tâche d'origine et suit ses déplacements.
 Les samedis et dimanches sont grisés : aucune tâche ne peut y commencer ou y finir.
+
+### Export / import Excel et CSV
+Boutons **Exporter** et **Importer** dans le bandeau (l'import existe aussi sur la page Menu, pour créer un nouveau projet).
+- Format : une ligne par tâche, colonnes `N° · 1 · 2 · 3 · 4 · Responsable · Heures effectives · Durée jours · Date début · Date fin · Avancement · Dépend de`.
+- Le nom de la tâche est dans la colonne de son niveau ; « Dépend de » liste les N° des tâches d'origine (ex. `2, 5`).
+- Excel (`.xlsx`) : en-tête en gras et figée, vraies dates, formules d'avancement calculées par Excel. CSV : séparateur `;`, UTF-8, s'ouvre directement dans Excel en français.
+- Les valeurs des tâches mères sont exportées pour information et recalculées à l'import.
+- À l'import, l'application demande s'il faut créer un nouveau projet ou remplacer le projet ouvert (Ctrl + Z pour revenir en arrière). Les colonnes sont reconnues par leur titre ; un compte rendu signale les lignes ignorées.
+
+**Fermeture** : si un projet est ouvert, le navigateur demande confirmation avant de fermer l'onglet ou la fenêtre.
 
 **Plein écran** : bouton à quatre coins dans le bandeau (Échap pour en sortir).
 
