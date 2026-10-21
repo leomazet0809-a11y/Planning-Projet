@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Plan Projet</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#5b5bf0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -77,11 +82,7 @@ button { font: inherit; color: inherit; }
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
-.brand-logo {
-  width: 30px; height: 30px; border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), #b07cff);
-  display: grid; place-items: center; color: #fff; font-size: 15px;
-}
+.brand-logo { width: 30px; height: 30px; display: block; }
 .spacer { flex: 1; }
 
 /* ---------- Boutons ---------- */
@@ -151,7 +152,7 @@ button { font: inherit; color: inherit; }
 .project-title:hover { border-color: var(--border); }
 .project-title:focus { outline: none; border-color: var(--accent); background: var(--surface-2); }
 .save-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
-.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 34px; --head-h: 88px; }
+.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 34px; --bar-h: 20px; --head-h: 88px; }
 .toolbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
@@ -199,6 +200,13 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .tcell.num { text-align: right; }
 .tcell.center { text-align: center; }
 .tcell.lvl1 { font-weight: 600; }
+/* libellé d'un niveau qui déborde sur les colonnes Niv suivantes (vides) */
+.tcell.spill-from { overflow: visible; z-index: 1; }
+.tcell.spill-from, .tcell.spill-over { border-right-color: transparent; }
+.spill-text {
+  position: absolute; left: 10px; top: 0; pointer-events: none;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
 .tcell.invalid { color: var(--danger); font-weight: 600; }
 .tcell.in-range { background: var(--accent-soft); }
 .tcell.sel { box-shadow: inset 0 0 0 2px var(--accent); }
@@ -218,6 +226,21 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .cell-editor.num { text-align: right; }
 .cell-editor.center { text-align: center; }
 .table-empty { padding: 32px 24px; color: var(--text-muted); }
+/* poignée pour déplacer une tâche (et ses sous-tâches) dans le tableau */
+.pane-left .pane-body { position: relative; }
+.tcell[data-c="0"] { padding-left: 18px; }
+.tcell[data-c="0"] .spill-text { left: 18px; }
+.grip {
+  position: absolute; left: 2px; top: 50%; width: 14px; height: 20px; margin-top: -10px;
+  border-radius: 4px; cursor: grab; opacity: 0; z-index: 2;
+  background: radial-gradient(circle, var(--text-muted) 1.2px, transparent 1.6px) 0 0 / 7px 6px;
+  background-origin: content-box; padding: 2px 1px;
+}
+.trow:hover .grip { opacity: .7; }
+.grip:hover { opacity: 1 !important; background-color: var(--surface-2); }
+.drop-line { position: absolute; left: 0; right: 0; height: 3px; margin-top: -1.5px; background: var(--accent); border-radius: 2px; pointer-events: none; z-index: 5; }
+.trow.moving { opacity: .45; }
+body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-select: none !important; }
 
 /* ---------- Planning Gantt ---------- */
 .gantt-head { position: relative; height: 100%; }
@@ -236,13 +259,14 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .gh-cell.today { background: var(--accent); color: #fff; font-weight: 600; }
 .gh-row.years .gh-cell { font-weight: 600; color: var(--text); }
 .gh-row.months .gh-cell { color: var(--text); text-transform: capitalize; }
-.gantt-canvas { position: relative; min-height: 100%; }
+.gantt-canvas { position: relative; min-height: 100%; cursor: grab; }
+.gantt-canvas.panning, .gantt-canvas.panning * { cursor: grabbing !important; }
 .grow { position: relative; height: var(--row-h); border-bottom: 1px solid var(--grid-line); }
 .grow.row-sel { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .grow.drop-target { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: .55; pointer-events: none; z-index: 1; }
 .bar {
-  position: absolute; top: 7px; height: 20px; border-radius: 6px; z-index: 2;
+  position: absolute; top: calc((var(--row-h) - var(--bar-h)) / 2 - .5px); height: var(--bar-h); border-radius: 6px; z-index: 2;
   background: var(--c); cursor: grab; touch-action: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
 }
@@ -253,7 +277,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .bar.dragging { cursor: grabbing; opacity: .85; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
 .bar.sel { outline: 2px solid var(--text); outline-offset: 1px; }
 .bar .h-end { position: absolute; right: 0; top: 0; bottom: 0; width: 9px; cursor: ew-resize; border-radius: 0 6px 6px 0; }
-.bar .h-end::after { content: ""; position: absolute; right: 3px; top: 5px; bottom: 5px; width: 2px; border-radius: 1px; background: rgba(255, 255, 255, .7); }
+.bar .h-end::after { content: ""; position: absolute; right: 3px; top: 25%; bottom: 25%; width: 2px; border-radius: 1px; background: rgba(255, 255, 255, .7); }
 .bar .link-dot {
   position: absolute; right: -16px; top: 50%; width: 11px; height: 11px; margin-top: -5.5px;
   border-radius: 50%; border: 2px solid var(--c); background: var(--surface);
@@ -261,12 +285,12 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 }
 .bar:hover .link-dot, .bar.dragging .link-dot { opacity: 1; }
 .bar-label {
-  position: absolute; left: calc(100% + 22px); top: 0; line-height: 20px;
+  position: absolute; left: calc(100% + 22px); top: 0; line-height: var(--bar-h);
   font-size: 12px; white-space: nowrap; color: var(--text); pointer-events: none;
 }
 /* jalon (durée 0) : losange */
-.bar.ms { width: 14px !important; height: 20px; background: none; box-shadow: none; }
-.bar.ms::before { content: ""; position: absolute; left: 2px; top: 5px; width: 10px; height: 10px; background: var(--c); transform: rotate(45deg); border-radius: 2px; }
+.bar.ms { width: 14px !important; background: none; box-shadow: none; }
+.bar.ms::before { content: ""; position: absolute; left: 2px; top: calc(var(--bar-h) / 2 - 5px); width: 10px; height: 10px; background: var(--c); transform: rotate(45deg); border-radius: 2px; }
 .bar.ms .h-end { display: none; }
 .bar.ms .bar-label { left: calc(100% + 8px); }
 .links-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; overflow: visible; }
@@ -337,6 +361,8 @@ const ICONS = {
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>',
   upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></svg>',
 };
+
+const LOGO_SVG = `<svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5bf0"/><stop offset="1" stop-color="#b07cff"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#logo-g)"/><rect x="19" y="19" width="26" height="26" rx="3" fill="#fff"/><path d="M27.7 19v26M36.3 19v26M19 27.7h26M19 36.3h26" stroke="#8a6cf6" stroke-width="1.6"/></svg>`;
 
 function toast(msg) {
   document.querySelectorAll(".toast").forEach((t) => t.remove());
@@ -672,7 +698,7 @@ const MenuView = {
     const projects = Store.data.projects;
     root.innerHTML = `
       <header class="topbar">
-        <div class="brand"><div class="brand-logo">▦</div><span>Plan Projet</span></div>
+        <div class="brand">${LOGO_SVG}<span>Plan Projet</span></div>
         <div class="spacer"></div>
         <div data-slot="theme"></div>
       </header>
@@ -777,7 +803,10 @@ const isNivCol = (c) => c <= COL.niv4;
 const DEFAULT_GRID_RATIO = 0.55;
 const MIN_PANE = 200;
 const MIN_COL = 50;
-const ROW_H = 34;
+const DEFAULT_ROW_H = 34;
+const MIN_ROW_H = 22;
+const MAX_ROW_H = 72;
+const ROW_H_STEP = 4;
 const ZOOMS = [6, 10, 14, 20, 28, 40, 56];
 const DEFAULT_ZOOM = 28;
 
@@ -877,6 +906,7 @@ const ProjectView = {
     root.innerHTML = `
       <div class="project-page">
         <header class="topbar">
+          ${LOGO_SVG}
           <button class="btn" data-act="back" title="Retour à la liste des projets">${ICONS.back}<span class="lbl">Menu</span></button>
           <input class="project-title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
           <span class="save-status"></span>
@@ -886,12 +916,16 @@ const ProjectView = {
         <div class="toolbar">
           <button class="btn btn-primary" data-act="add" title="Ajoute une ligne sous la ligne sélectionnée">${ICONS.plus}<span class="lbl">Ajouter une tâche</span></button>
           <button class="btn btn-danger" data-act="del" disabled title="Supprime les lignes sélectionnées">${ICONS.trash}<span class="lbl">Supprimer</span></button>
-          <span class="hint">Tab / Maj+Tab : changer de niveau · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
+          <div class="sep"></div>
+          <button class="icon-btn" data-act="row-down" title="Réduire la hauteur des lignes (molette sur le tableau)" aria-label="Réduire la hauteur des lignes">${ICONS.minus}</button>
+          <span class="zoom-label">Hauteur</span>
+          <button class="icon-btn" data-act="row-up" title="Augmenter la hauteur des lignes (molette sur le tableau)" aria-label="Augmenter la hauteur des lignes">${ICONS.plus}</button>
+          <span class="hint">Tab / Maj+Tab dans une colonne Niv : changer de niveau · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
           <div class="spacer"></div>
           <button class="btn" data-act="today" title="Afficher la date du jour">${ICONS.today}<span class="lbl">Aujourd'hui</span></button>
           <div class="sep"></div>
           <button class="icon-btn" data-act="zoom-out" title="Dézoomer (Ctrl + molette)" aria-label="Dézoomer">${ICONS.minus}</button>
-          <span class="zoom-label"></span>
+          <span class="zoom-label" data-slot="zoom"></span>
           <button class="icon-btn" data-act="zoom-in" title="Zoomer (Ctrl + molette)" aria-label="Zoomer">${ICONS.plus}</button>
         </div>
         <div class="split">
@@ -923,7 +957,8 @@ const ProjectView = {
       canvas: root.querySelector(".gantt-canvas"),
       splitter: root.querySelector(".splitter"),
       del: root.querySelector('[data-act="del"]'),
-      zoomLabel: root.querySelector(".zoom-label"),
+      zoomLabel: root.querySelector('[data-slot="zoom"]'),
+      page: root.querySelector(".project-page"),
       status: root.querySelector(".save-status"),
     };
 
@@ -950,6 +985,13 @@ const ProjectView = {
     /* ========================================================
        TABLEAU
        ======================================================== */
+    let rowH = p.ui.rowH || DEFAULT_ROW_H;   // hauteur des lignes en pixels
+    const applyRowH = () => {
+      el.page.style.setProperty("--row-h", rowH + "px");
+      el.page.style.setProperty("--bar-h", Math.min(20, rowH - 10) + "px");
+    };
+    applyRowH();
+
     let sel = null;      // sélection { r, c, r2, c2 } : (r, c) = cellule active, (r2, c2) = autre coin
     let editor = null;   // champ de saisie ouvert
 
@@ -965,19 +1007,44 @@ const ProjectView = {
       el.leftHead.scrollLeft = el.leftBody.scrollLeft;
     };
 
+    // largeur du texte affiché (police du tableau)
+    const measureCtx = document.createElement("canvas").getContext("2d");
+    const textWidth = (text, bold) => {
+      measureCtx.font = `${bold ? 600 : 400} 14px ${getComputedStyle(document.body).fontFamily}`;
+      return measureCtx.measureText(text).width;
+    };
+    // nombre de colonnes Niv suivantes recouvertes par le libellé de la tâche
+    const spillCount = (t) => {
+      const c0 = t.level - 1;
+      if (!t.label || c0 >= COL.niv4) return 0;
+      const need = textWidth(t.label, t.level === 1) + (c0 === 0 ? 28 : 20);
+      let w = colWidth(COLUMNS[c0]), n = 0;
+      while (w < need && c0 + n < COL.niv4) { n++; w += colWidth(COLUMNS[c0 + n]); }
+      return n;
+    };
+
     const renderRows = () => {
       const R = rect();
       el.leftBody.innerHTML = p.tasks.length
         ? p.tasks.map((t, r) => {
             const inRows = R && r >= R.r1 && r <= R.r2;
+            const c0 = t.level - 1, spill = spillCount(t);
             return `<div class="trow${inRows ? " row-sel" : ""}">${COLUMNS.map((c, i) => {
               const d = cellDisplay(t, c.key);
+              let content = esc(d.text), spillCls = "";
+              if (spill && i === c0) {
+                let w = c0 === 0 ? -28 : -20;
+                for (let k = c0; k <= c0 + spill; k++) w += colWidth(COLUMNS[k]);
+                content = `<span class="spill-text" style="width:${w}px">${content}</span>`;
+                spillCls = "spill-from";
+              } else if (spill && i > c0 && i < c0 + spill) spillCls = "spill-over";
               const cls = ["tcell", c.align || "",
                 d.invalid ? "invalid" : "",
                 isNivCol(i) && t.level === 1 ? "lvl1" : "",
                 inRows && i >= R.c1 && i <= R.c2 && (R.r1 !== R.r2 || R.c1 !== R.c2) ? "in-range" : "",
-                sel && sel.r === r && sel.c === i ? "sel" : ""].join(" ");
-              return `<div class="${cls}" data-r="${r}" data-c="${i}" style="width:${colWidth(c)}px"${d.invalid ? ' title="Valeur non numérique : le calcul est bloqué"' : ""}>${esc(d.text)}</div>`;
+                sel && sel.r === r && sel.c === i ? "sel" : "", spillCls].join(" ");
+              const grip = i === 0 ? `<span class="grip" data-r="${r}" title="Glisser pour déplacer la tâche (avec ses sous-tâches)"></span>` : "";
+              return `<div class="${cls}" data-r="${r}" data-c="${i}" style="width:${colWidth(c)}px"${d.invalid ? ' title="Valeur non numérique : le calcul est bloqué"' : ""}>${grip}${content}</div>`;
             }).join("")}</div>`;
           }).join("")
         : `<div class="table-empty">Aucune tâche. Cliquez sur « Ajouter une tâche » pour commencer.</div>`;
@@ -991,7 +1058,7 @@ const ProjectView = {
     const ensureVisible = (r, c) => {
       const cell = cellEl(r, c);
       if (!cell) return;
-      const top = r * ROW_H, bottom = top + ROW_H, vb = el.rightBody;
+      const top = r * rowH, bottom = top + rowH, vb = el.rightBody;
       if (top < vb.scrollTop) vb.scrollTop = top;
       else if (bottom > vb.scrollTop + vb.clientHeight) vb.scrollTop = bottom - vb.clientHeight;
       const lb = el.leftBody;
@@ -1053,7 +1120,11 @@ const ProjectView = {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); finish(true); saveNow(); }
         else if (e.key === "Enter") { e.preventDefault(); finish(true, () => select(sel.r + (e.shiftKey ? -1 : 1), sel.c)); }
         else if (e.key === "Escape") { e.preventDefault(); finish(false); }
-        else if (e.key === "Tab") { e.preventDefault(); finish(true, () => indent(e.shiftKey ? -1 : 1)); }
+        else if (e.key === "Tab") {
+          e.preventDefault();
+          if (isNivCol(sel.c)) finish(true, () => indent(e.shiftKey ? -1 : 1));
+          else finish(true, () => select(sel.r, sel.c + (e.shiftKey ? -1 : 1)));
+        }
         else if (e.key === "ArrowUp") { e.preventDefault(); finish(true, () => select(sel.r - 1, sel.c)); }
         else if (e.key === "ArrowDown") { e.preventDefault(); finish(true, () => select(sel.r + 1, sel.c)); }
       });
@@ -1077,7 +1148,68 @@ const ProjectView = {
 
     /* ---------- Souris : sélection d'une cellule ou d'une plage ---------- */
     let dragSel = false;
+    // fin du bloc d'une tâche = elle + les lignes suivantes de niveau inférieur (ses sous-tâches)
+    const blockEnd = (r) => {
+      let end = r + 1;
+      while (end < p.tasks.length && p.tasks[end].level > p.tasks[r].level) end++;
+      return end;
+    };
+
+    const startRowDrag = (e, r) => {
+      if (editor) editor.input.blur();
+      const end = blockEnd(r);
+      const rows = [...el.leftBody.querySelectorAll(".trow")];
+      for (let k = r; k < end; k++) rows[k]?.classList.add("moving");
+      const line = document.createElement("div");
+      line.className = "drop-line";
+      line.style.display = "none";
+      line.style.width = el.leftBody.scrollWidth + "px";
+      el.leftBody.appendChild(line);
+      document.body.classList.add("row-dragging");
+      let target = null, scrollTimer = null, lastY = e.clientY;
+
+      const update = () => {
+        const box = el.leftBody.getBoundingClientRect();
+        const y = lastY - box.top + el.leftBody.scrollTop;
+        target = Math.max(0, Math.min(p.tasks.length, Math.round(y / rowH)));
+        const inside = target >= r && target <= end;   // dans son propre bloc : rien ne bouge
+        line.style.display = inside ? "none" : "block";
+        line.style.top = target * rowH + "px";
+        if (inside) target = null;
+      };
+      const autoScroll = () => {
+        const box = el.leftBody.getBoundingClientRect();
+        const edge = 30;
+        if (lastY < box.top + edge) el.rightBody.scrollTop -= 12;
+        else if (lastY > box.bottom - edge) el.rightBody.scrollTop += 12;
+        else return;
+        update();
+      };
+      const move = (ev) => { lastY = ev.clientY; update(); };
+      const up = () => {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+        clearInterval(scrollTimer);
+        document.body.classList.remove("row-dragging");
+        line.remove();
+        if (target == null) { renderRows(); return; }
+        const block = p.tasks.splice(r, end - r);
+        const at = target > r ? target - block.length : target;
+        p.tasks.splice(at, 0, ...block);
+        save();
+        sel = null;
+        renderRows(); renderGantt();
+        select(at, block[0].level - 1);
+        el.leftBody.focus({ preventScroll: true });
+      };
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+      scrollTimer = setInterval(autoScroll, 30);
+    };
+
     el.leftBody.addEventListener("mousedown", (e) => {
+      const grip = e.target.closest(".grip");
+      if (grip && e.button === 0) { e.preventDefault(); startRowDrag(e, +grip.dataset.r); return; }
       const cell = e.target.closest(".tcell[data-r]");
       if (!cell || e.target.classList.contains("cell-editor") || e.button !== 0) return;
       e.preventDefault();
@@ -1109,7 +1241,13 @@ const ProjectView = {
         else select(sel.r + dr, sel.c + dc);
         return;
       }
-      if (e.key === "Tab") { e.preventDefault(); indent(e.shiftKey ? -1 : 1); return; }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        // Tab / Maj+Tab changent le niveau uniquement depuis une colonne Niv ; ailleurs, ils passent à la cellule voisine
+        if (isNivCol(sel.c)) indent(e.shiftKey ? -1 : 1);
+        else select(sel.r, sel.c + (e.shiftKey ? -1 : 1));
+        return;
+      }
       if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); openEditor(); return; }
       if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
       if (e.key === "Escape") { select(sel.r, sel.c); return; }
@@ -1225,7 +1363,7 @@ const ProjectView = {
         p.ui.colWidths = p.ui.colWidths || {};
         p.ui.colWidths[col.key] = Math.max(MIN_COL, Math.round(startW + ev.clientX - startX));
         el.leftHead.querySelectorAll(".tcell")[+h.dataset.c].style.width = p.ui.colWidths[col.key] + "px";
-        el.leftBody.querySelectorAll(`.tcell[data-c="${h.dataset.c}"]`).forEach((c) => { c.style.width = p.ui.colWidths[col.key] + "px"; });
+        renderRows();
       };
       const up = () => {
         h.removeEventListener("pointermove", move);
@@ -1314,18 +1452,18 @@ const ProjectView = {
       const ea = Task.end(a), da = Task.duration(a), db = Task.duration(b);
       if (ra < 0 || rb < 0 || !ea || !b.start || db == null) return null;
       const x1 = da === 0 ? dayX(a.start) + dw / 2 + 8 : dayX(ea) + dw;
-      const y1 = ra * ROW_H + ROW_H / 2;
+      const y1 = ra * rowH + rowH / 2;
       const x2 = db === 0 ? dayX(b.start) + dw / 2 - 8 : dayX(b.start);
-      const y2 = rb * ROW_H + ROW_H / 2;
+      const y2 = rb * rowH + rowH / 2;
       if (x2 - x1 >= 16) return `M${x1} ${y1} H${x1 + 8} V${y2} H${x2 - 1}`;
-      const ym = rb > ra ? rb * ROW_H : (rb + 1) * ROW_H;
+      const ym = rb > ra ? rb * rowH : (rb + 1) * rowH;
       return `M${x1} ${y1} H${x1 + 8} V${ym} H${x2 - 10} V${y2} H${x2 - 1}`;
     };
 
     const renderGantt = () => {
       computeRange();
       renderGanttHead();
-      const W = range.days * dw, H = p.tasks.length * ROW_H;
+      const W = range.days * dw, H = p.tasks.length * rowH;
       const R = rect();
       const rows = p.tasks.map((t, r) => {
         const d = Task.duration(t);
@@ -1424,8 +1562,30 @@ const ProjectView = {
       }
       const bar = e.target.closest(".bar");
       if (!bar) {
-        const row = e.target.closest(".grow");
-        if (row) select(+row.dataset.r, sel ? sel.c : 0);
+        // clic maintenu sur le fond : on fait glisser le planning dans tous les sens
+        e.preventDefault();
+        const sx = e.clientX, sy = e.clientY, sl = el.rightBody.scrollLeft, st = el.rightBody.scrollTop;
+        let panned = false;
+        el.rightBody.setPointerCapture(e.pointerId);
+        const move = (ev) => {
+          const dx = ev.clientX - sx, dy = ev.clientY - sy;
+          if (!panned && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+          panned = true;
+          el.canvas.classList.add("panning");
+          el.rightBody.scrollLeft = sl - dx;
+          el.rightBody.scrollTop = st - dy;
+        };
+        const up = (ev) => {
+          el.rightBody.removeEventListener("pointermove", move);
+          el.canvas.classList.remove("panning");
+          if (!panned) {
+            const row = document.elementFromPoint(ev.clientX, ev.clientY)?.closest(".grow");
+            if (row) select(+row.dataset.r, sel ? sel.c : 0);
+          }
+        };
+        el.rightBody.addEventListener("pointermove", move);
+        el.rightBody.addEventListener("pointerup", up, { once: true });
+        el.rightBody.addEventListener("pointercancel", up, { once: true });
         return;
       }
       e.preventDefault();
@@ -1449,7 +1609,7 @@ const ProjectView = {
         const dx = ev.clientX - sx, dy = ev.clientY - sy;
         if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
         moved = true;
-        if (startMode === "move") mode = Math.abs(dy) > ROW_H * 0.7 ? "link" : "move";
+        if (startMode === "move") mode = Math.abs(dy) > rowH * 0.7 ? "link" : "move";
         const days = Math.round(dx / dw);
         el.canvas.querySelector(".drop-target")?.classList.remove("drop-target");
         ghost.setAttribute("d", "");
@@ -1475,9 +1635,9 @@ const ProjectView = {
           resetBar();
           const box = canvasBox();
           const x = ev.clientX - box.left, y = ev.clientY - box.top;
-          const x0 = parseFloat(bar.style.left) + bar.offsetWidth, y0 = r * ROW_H + ROW_H / 2;
+          const x0 = parseFloat(bar.style.left) + bar.offsetWidth, y0 = r * rowH + rowH / 2;
           ghost.setAttribute("d", `M${x0} ${y0} L${x} ${y}`);
-          const rr = Math.floor(y / ROW_H);
+          const rr = Math.floor(y / rowH);
           const target = p.tasks[rr];
           if (target && rr !== r && target.start && Task.duration(target) != null) {
             dropRow = rr;
@@ -1518,10 +1678,24 @@ const ProjectView = {
       el.rightHead.scrollLeft = el.rightBody.scrollLeft;
     });
     el.leftBody.addEventListener("scroll", () => { el.leftHead.scrollLeft = el.leftBody.scrollLeft; });
+    // hauteur des lignes : boutons − / + et molette au-dessus du tableau
+    const setRowH = (next) => {
+      next = Math.max(MIN_ROW_H, Math.min(MAX_ROW_H, next));
+      if (next === rowH) return;
+      const top = el.rightBody.scrollTop / rowH;
+      rowH = next;
+      p.ui.rowH = rowH;
+      Store.save();
+      applyRowH();
+      renderGantt();
+      el.rightBody.scrollTop = top * rowH;
+    };
+    root.querySelector('[data-act="row-up"]').addEventListener("click", () => setRowH(rowH + ROW_H_STEP));
+    root.querySelector('[data-act="row-down"]').addEventListener("click", () => setRowH(rowH - ROW_H_STEP));
     el.leftBody.addEventListener("wheel", (e) => {
       if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // défilement horizontal natif
       e.preventDefault();
-      el.rightBody.scrollTop += e.deltaY;
+      setRowH(rowH + (e.deltaY < 0 ? ROW_H_STEP : -ROW_H_STEP));
     }, { passive: false });
 
     const applyRatio = () => {
@@ -1565,6 +1739,7 @@ const ProjectView = {
     });
 
     /* ---------- Premier affichage ---------- */
+    document.fonts?.ready.then(() => { if (el.leftBody.isConnected && !editor) renderRows(); });
     applyRatio();
     renderAll();
     scrollToToday();
