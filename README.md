@@ -10,6 +10,8 @@ Ouvrir `index.html` dans Chrome ou Edge (ou l'adresse ci-dessus). Aucune install
 Les données sont enregistrées dans le navigateur ; **Exporter** (page Menu) crée un fichier de sauvegarde, **Importer** le recharge.
 
 ### Tableau
+Des flèches colorées relient chaque tâche à sa tâche parente (niveau supérieur) pour visualiser la hiérarchie.
+
 | Action | Comment |
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic ou Entrée pour modifier le contenu existant) |
@@ -17,7 +19,8 @@ Les données sont enregistrées dans le navigateur ; **Exporter** (page Menu) cr
 | Se déplacer | Flèches du clavier |
 | Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis une cellule des colonnes Niv |
 | Déplacer une tâche | Glisser la poignée ⋮⋮ au début de la ligne (la tâche part avec ses sous-tâches) |
-| Hauteur des lignes | Boutons − / + « Hauteur » ou molette de la souris au-dessus du tableau |
+| Hauteur des lignes | Boutons − / + « Hauteur » ou Ctrl + molette au-dessus du tableau |
+| Défiler | Molette au-dessus du tableau ou du planning (les deux restent alignés) |
 | Sélectionner plusieurs cellules | Glisser la souris, ou Maj + clic, ou Maj + flèches |
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
 | Effacer | Suppr |
@@ -36,6 +39,7 @@ Les données sont enregistrées dans le navigateur ; **Exporter** (page Menu) cr
 | Supprimer un lien | Cliquer sur la flèche |
 | Zoomer / dézoomer | Boutons − / + ou Ctrl + molette |
 | Revenir à aujourd'hui | Bouton « Aujourd'hui » |
+| Noms des tâches sur le planning | Bouton « Masquer les noms » / « Afficher les noms » |
 | Se déplacer dans le planning | Clic gauche maintenu sur le fond et glisser dans tous les sens |
 
 Une tâche liée commence toujours après la fin de sa tâche d'origine et suit ses déplacements.

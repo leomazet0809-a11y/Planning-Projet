@@ -132,8 +132,7 @@ button { font: inherit; color: inherit; }
 }
 .inline-edit:hover { border-color: var(--border); }
 .inline-edit:focus { outline: none; border-color: var(--accent); background: var(--surface-2); }
-.inline-edit.name { font-size: 17px; font-weight: 600; }
-.inline-edit.title { color: var(--text-muted); }
+.inline-edit.title { font-size: 17px; font-weight: 600; }
 .card-meta { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 .card-actions { display: flex; gap: 8px; margin-top: 12px; }
 .card-actions .btn-primary { flex: 1; justify-content: center; }
@@ -230,6 +229,10 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .pane-left .pane-body { position: relative; }
 .tcell[data-c="0"] { padding-left: 18px; }
 .tcell[data-c="0"] .spill-text { left: 18px; }
+.tcell.child { padding-left: 26px; }
+.tcell.child .spill-text { left: 26px; }
+.tree-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; overflow: visible; }
+.tree-svg path { fill: none; stroke-width: 1.4; opacity: .75; }
 .grip {
   position: absolute; left: 2px; top: 50%; width: 14px; height: 20px; margin-top: -10px;
   border-radius: 4px; cursor: grab; opacity: 0; z-index: 2;
@@ -261,6 +264,7 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .gh-row.months .gh-cell { color: var(--text); text-transform: capitalize; }
 .gantt-canvas { position: relative; min-height: 100%; cursor: grab; }
 .gantt-canvas.panning, .gantt-canvas.panning * { cursor: grabbing !important; }
+.gantt-canvas.no-labels .bar-label { display: none; }
 .grow { position: relative; height: var(--row-h); border-bottom: 1px solid var(--grid-line); }
 .grow.row-sel { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .grow.drop-target { background: color-mix(in srgb, var(--accent) 18%, transparent); }
@@ -326,7 +330,7 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .modal p { margin: 0 0 20px; color: var(--text-muted); line-height: 1.5; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
-@media (max-width: 1200px) { .hint { display: none; } }
+@media (max-width: 1750px) { .hint { display: none; } }
 @media (max-width: 760px) {
   .topbar, .toolbar { padding-left: 16px; padding-right: 16px; }
   .menu-page { padding: 24px 16px 48px; }
@@ -357,6 +361,8 @@ const ICONS = {
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
   save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h9V3M7 21v-7h10v7"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a10.5 10.5 0 0 0 5.4-1.6M3 3l18 18M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>',
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>',
   upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></svg>',
@@ -537,7 +543,17 @@ const Store = {
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) { raw = null; }
     this.data = raw && Array.isArray(raw.projects) ? raw : { version: 1, theme: null, projects: [] };
-    this.data.projects.forEach((p) => { p.ui = p.ui || {}; p.tasks = p.tasks || []; p.links = p.links || []; });
+    this.data.projects.forEach((p) => this.normalize(p));
+  },
+
+  // complète un projet et regroupe l'ancien couple « nom / titre » en un seul titre
+  normalize(p) {
+    p.ui = p.ui || {}; p.tasks = p.tasks || []; p.links = p.links || [];
+    if ("name" in p) {
+      if (!p.title || p.title === "Titre du projet") p.title = p.name || "Projet";
+      delete p.name;
+    }
+    p.title = p.title || "Projet";
   },
 
   save() {
@@ -551,8 +567,7 @@ const Store = {
     const n = this.data.projects.length + 1;
     const p = {
       id: uid("p"),
-      name: "Nouveau projet " + n,
-      title: "Titre du projet",
+      title: "Nouveau projet " + n,
       createdAt: todayISO(),
       updatedAt: todayISO(),
       ui: {},
@@ -576,7 +591,7 @@ const Store = {
     if (!src) return;
     const copy = JSON.parse(JSON.stringify(src));
     copy.id = uid("p");
-    copy.name = src.name + " (copie)";
+    copy.title = src.title + " (copie)";
     copy.createdAt = copy.updatedAt = todayISO();
     const idx = this.data.projects.indexOf(src);
     this.data.projects.splice(idx + 1, 0, copy);
@@ -603,7 +618,7 @@ const Store = {
     if (!raw || !Array.isArray(raw.projects)) throw new Error("format");
     raw.projects.forEach((p) => {
       if (!p || !p.id || !Array.isArray(p.tasks)) return;
-      p.ui = p.ui || {}; p.links = p.links || [];
+      this.normalize(p);
       const i = this.data.projects.findIndex((x) => x.id === p.id);
       if (i >= 0) this.data.projects[i] = p; else this.data.projects.push(p);
     });
@@ -706,7 +721,7 @@ const MenuView = {
         <div class="menu-head">
           <div>
             <h1>Mes projets</h1>
-            <p>Cliquez sur un nom ou un titre pour le modifier. Ouvrez un projet pour planifier ses tâches.</p>
+            <p>Cliquez sur le titre d'un projet pour le modifier. Ouvrez un projet pour planifier ses tâches.</p>
           </div>
           <div class="spacer"></div>
           <button class="btn" data-act="import" title="Charger des projets depuis un fichier de sauvegarde">${ICONS.upload}<span class="lbl">Importer</span></button>
@@ -728,7 +743,7 @@ const MenuView = {
       Store.createProject();
       MenuView.render(root);
       // place le curseur sur le nom du nouveau projet pour le renommer tout de suite
-      const first = root.querySelector(".inline-edit.name");
+      const first = root.querySelector(".inline-edit.title");
       if (first) { first.focus(); first.select(); }
     }));
 
@@ -749,7 +764,6 @@ const MenuView = {
 
     root.querySelectorAll(".card").forEach((card) => {
       const id = card.dataset.id;
-      bindInlineEdit(card.querySelector(".inline-edit.name"), (v) => Store.updateProject(id, { name: v }));
       bindInlineEdit(card.querySelector(".inline-edit.title"), (v) => Store.updateProject(id, { title: v }));
       card.querySelector('[data-act="open"]').addEventListener("click", () => Router.go("projet/" + id));
       card.querySelector('[data-act="dup"]').addEventListener("click", () => { Store.duplicateProject(id); MenuView.render(root); });
@@ -757,7 +771,7 @@ const MenuView = {
         const p = Store.getProject(id);
         const ok = await confirmDialog({
           title: "Supprimer ce projet ?",
-          message: `« ${p.name} » et toutes ses tâches seront définitivement supprimés.`,
+          message: `« ${p.title} » et toutes ses tâches seront définitivement supprimés.`,
           okLabel: "Supprimer", danger: true,
         });
         if (ok) { Store.deleteProject(id); MenuView.render(root); }
@@ -768,8 +782,6 @@ const MenuView = {
       const n = p.tasks.length;
       return `
         <article class="card" data-id="${p.id}">
-          <span class="card-label">Nom</span>
-          <input class="inline-edit name" value="${esc(p.name)}" aria-label="Nom du projet" maxlength="80">
           <span class="card-label">Titre</span>
           <input class="inline-edit title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
           <div class="card-meta">${n} tâche${n > 1 ? "s" : ""} · modifié le ${formatDateFR(p.updatedAt)}</div>
@@ -917,11 +929,12 @@ const ProjectView = {
           <button class="btn btn-primary" data-act="add" title="Ajoute une ligne sous la ligne sélectionnée">${ICONS.plus}<span class="lbl">Ajouter une tâche</span></button>
           <button class="btn btn-danger" data-act="del" disabled title="Supprime les lignes sélectionnées">${ICONS.trash}<span class="lbl">Supprimer</span></button>
           <div class="sep"></div>
-          <button class="icon-btn" data-act="row-down" title="Réduire la hauteur des lignes (molette sur le tableau)" aria-label="Réduire la hauteur des lignes">${ICONS.minus}</button>
+          <button class="icon-btn" data-act="row-down" title="Réduire la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Réduire la hauteur des lignes">${ICONS.minus}</button>
           <span class="zoom-label">Hauteur</span>
-          <button class="icon-btn" data-act="row-up" title="Augmenter la hauteur des lignes (molette sur le tableau)" aria-label="Augmenter la hauteur des lignes">${ICONS.plus}</button>
+          <button class="icon-btn" data-act="row-up" title="Augmenter la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Augmenter la hauteur des lignes">${ICONS.plus}</button>
           <span class="hint">Tab / Maj+Tab dans une colonne Niv : changer de niveau · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
           <div class="spacer"></div>
+          <button class="btn" data-act="labels"></button>
           <button class="btn" data-act="today" title="Afficher la date du jour">${ICONS.today}<span class="lbl">Aujourd'hui</span></button>
           <div class="sep"></div>
           <button class="icon-btn" data-act="zoom-out" title="Dézoomer (Ctrl + molette)" aria-label="Dézoomer">${ICONS.minus}</button>
@@ -1013,11 +1026,38 @@ const ProjectView = {
       measureCtx.font = `${bold ? 600 : 400} 14px ${getComputedStyle(document.body).fontFamily}`;
       return measureCtx.measureText(text).width;
     };
+    // marges gauche + droite autour du libellé (poignée en Niv 1, flèche pour les sous-niveaux)
+    const labelPad = (t) => (t.level === 1 ? 28 : 36);
+    const colLeft = (c) => { let x = 0; for (let k = 0; k < c; k++) x += colWidth(COLUMNS[k]); return x; };
+
+    // flèches qui relient chaque tâche à sa tâche parente (niveau supérieur le plus proche au-dessus)
+    const treeSVG = () => {
+      let paths = "", markers = "";
+      const used = new Set();
+      p.tasks.forEach((t, r) => {
+        if (t.level === 1) return;
+        let pr = r - 1;
+        while (pr >= 0 && p.tasks[pr].level >= t.level) pr--;
+        if (pr < 0) return;
+        const P = p.tasks[pr].level - 1;
+        const x = colLeft(P) + (P === 0 ? 22 : 18);
+        const y0 = (pr + 1) * rowH - 4, y = r * rowH + rowH / 2;
+        const x2 = colLeft(t.level - 1) + 20;
+        used.add(t.level);
+        paths += `<path d="M${x} ${y0} V${y - 4} Q${x} ${y} ${x + 4} ${y} H${x2}" style="stroke:var(--lvl${t.level})" marker-end="url(#tree-arrow-${t.level})"/>`;
+      });
+      if (!paths) return "";
+      used.forEach((l) => {
+        markers += `<marker id="tree-arrow-${l}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--lvl${l});stroke:none"/></marker>`;
+      });
+      return `<svg class="tree-svg" width="${colLeft(COL.niv4 + 1)}" height="${p.tasks.length * rowH}"><defs>${markers}</defs>${paths}</svg>`;
+    };
+
     // nombre de colonnes Niv suivantes recouvertes par le libellé de la tâche
     const spillCount = (t) => {
       const c0 = t.level - 1;
       if (!t.label || c0 >= COL.niv4) return 0;
-      const need = textWidth(t.label, t.level === 1) + (c0 === 0 ? 28 : 20);
+      const need = textWidth(t.label, t.level === 1) + labelPad(t);
       let w = colWidth(COLUMNS[c0]), n = 0;
       while (w < need && c0 + n < COL.niv4) { n++; w += colWidth(COLUMNS[c0 + n]); }
       return n;
@@ -1033,7 +1073,7 @@ const ProjectView = {
               const d = cellDisplay(t, c.key);
               let content = esc(d.text), spillCls = "";
               if (spill && i === c0) {
-                let w = c0 === 0 ? -28 : -20;
+                let w = -labelPad(t);
                 for (let k = c0; k <= c0 + spill; k++) w += colWidth(COLUMNS[k]);
                 content = `<span class="spill-text" style="width:${w}px">${content}</span>`;
                 spillCls = "spill-from";
@@ -1042,11 +1082,12 @@ const ProjectView = {
                 d.invalid ? "invalid" : "",
                 isNivCol(i) && t.level === 1 ? "lvl1" : "",
                 inRows && i >= R.c1 && i <= R.c2 && (R.r1 !== R.r2 || R.c1 !== R.c2) ? "in-range" : "",
-                sel && sel.r === r && sel.c === i ? "sel" : "", spillCls].join(" ");
+                sel && sel.r === r && sel.c === i ? "sel" : "", spillCls,
+                i === c0 && t.level > 1 ? "child" : ""].join(" ");
               const grip = i === 0 ? `<span class="grip" data-r="${r}" title="Glisser pour déplacer la tâche (avec ses sous-tâches)"></span>` : "";
               return `<div class="${cls}" data-r="${r}" data-c="${i}" style="width:${colWidth(c)}px"${d.invalid ? ' title="Valeur non numérique : le calcul est bloqué"' : ""}>${grip}${content}</div>`;
             }).join("")}</div>`;
-          }).join("")
+          }).join("") + treeSVG()
         : `<div class="table-empty">Aucune tâche. Cliquez sur « Ajouter une tâche » pour commencer.</div>`;
       el.del.disabled = !sel;
     };
@@ -1528,6 +1569,17 @@ const ProjectView = {
     root.querySelector('[data-act="zoom-in"]').addEventListener("click", () => zoomStep(1));
     root.querySelector('[data-act="zoom-out"]').addEventListener("click", () => zoomStep(-1));
     root.querySelector('[data-act="today"]').addEventListener("click", scrollToToday);
+
+    // afficher / masquer les noms des tâches à côté des barres
+    const labelsBtn = root.querySelector('[data-act="labels"]');
+    const paintLabels = () => {
+      const hidden = !!p.ui.hideLabels;
+      el.canvas.classList.toggle("no-labels", hidden);
+      labelsBtn.innerHTML = `${hidden ? ICONS.eye : ICONS.eyeOff}<span class="lbl">${hidden ? "Afficher les noms" : "Masquer les noms"}</span>`;
+      labelsBtn.title = hidden ? "Afficher les noms des tâches sur le planning" : "Masquer les noms des tâches sur le planning";
+    };
+    labelsBtn.addEventListener("click", () => { p.ui.hideLabels = !p.ui.hideLabels; Store.save(); paintLabels(); });
+    paintLabels();
     el.rightBody.addEventListener("wheel", (e) => {
       if (!e.ctrlKey) return;
       e.preventDefault();
@@ -1687,15 +1739,19 @@ const ProjectView = {
       p.ui.rowH = rowH;
       Store.save();
       applyRowH();
+      renderRows();
       renderGantt();
       el.rightBody.scrollTop = top * rowH;
     };
     root.querySelector('[data-act="row-up"]').addEventListener("click", () => setRowH(rowH + ROW_H_STEP));
     root.querySelector('[data-act="row-down"]').addEventListener("click", () => setRowH(rowH - ROW_H_STEP));
     el.leftBody.addEventListener("wheel", (e) => {
+      // Ctrl + molette : hauteur des lignes
+      if (e.ctrlKey) { e.preventDefault(); setRowH(rowH + (e.deltaY < 0 ? ROW_H_STEP : -ROW_H_STEP)); return; }
       if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // défilement horizontal natif
+      // molette seule : défile le planning, que le tableau suit (toujours alignés)
       e.preventDefault();
-      setRowH(rowH + (e.deltaY < 0 ? ROW_H_STEP : -ROW_H_STEP));
+      el.rightBody.scrollTop += e.deltaMode === 1 ? e.deltaY * rowH : e.deltaY;
     }, { passive: false });
 
     const applyRatio = () => {
