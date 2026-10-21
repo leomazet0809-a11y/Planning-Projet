@@ -22,7 +22,7 @@ Chaque projet est un classeur **`.xlsx`** enregistré sur l'ordinateur, dans le 
 - Sur les autres navigateurs (Firefox, Safari), l'enregistrement se fait en téléchargeant le fichier (Ctrl + S).
 
 ### Tableau
-Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » (⇊) / « Tout réduire » (⇈) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
+Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » (double flèche ↕) / « Tout réduire » (deux flèches qui se rejoignent) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
 
 | Action | Comment |
 |---|---|
