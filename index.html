@@ -191,7 +191,10 @@ button { font: inherit; color: inherit; }
 body.resizing, body.resizing * { cursor: col-resize !important; user-select: none !important; }
 
 /* ---------- Tableau ---------- */
-.trow { display: flex; height: var(--row-h); border-bottom: 1px solid var(--grid-line); width: max-content; min-width: 100%; }
+.trow { display: flex; height: var(--row-h); border-bottom: 1px solid var(--grid-line); width: max-content; min-width: 100%; padding-left: var(--gutter); }
+.project-page { --gutter: 28px; }
+/* la première colonne laisse dépasser la poignée de déplacement dans la marge de gauche */
+.pane-left .pane-body .tcell[data-c="0"] { overflow: visible; }
 .tcell {
   position: relative; flex: 0 0 auto; border-right: 1px solid var(--grid-line);
   padding: 0 10px; line-height: calc(var(--row-h) - 1px);
@@ -250,7 +253,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .twisty svg { width: 10px; height: 10px; transition: transform .15s; }
 .twisty.closed svg { transform: rotate(-90deg); }
 .grip {
-  position: absolute; left: 1px; top: 50%; width: 12px;
+  position: absolute; left: calc(2px - var(--gutter)); top: 50%; width: 12px;
   height: min(16px, calc(var(--row-h) - 2px)); transform: translateY(-50%);
   border-radius: 4px; cursor: grab; opacity: 0; z-index: 2;
   background: radial-gradient(circle, var(--text-muted) 1.2px, transparent 1.6px) 0 0 / 7px 6px;
@@ -510,7 +513,7 @@ function parseNum(s) {
 
 const Task = {
   create(level = 1) {
-    return { id: uid("t"), level, label: "", realise: "", surveille: "", heures: "", start: Dates.nextWorkday(todayISO()) };
+    return { id: uid("t"), level, label: "", responsable: "", heures: "", start: Dates.nextWorkday(todayISO()) };
   },
   // Durée jours = Heures effectives × 1,5, arrondie à l'entier le plus proche ; null si incalculable
   duration(t) {
@@ -696,6 +699,12 @@ const Store = {
       delete p.name;
     }
     p.title = p.title || "Projet";
+    p.tasks.forEach((t) => {
+      if ("realise" in t || "surveille" in t) {
+        if (!t.responsable) t.responsable = [t.realise, t.surveille].map((x) => (x || "").trim()).filter(Boolean).join(" / ");
+        delete t.realise; delete t.surveille;
+      }
+    });
   },
 
   savePrefs() {
@@ -803,6 +812,7 @@ const Files = {
     }
     const file = await handle.getFile();
     const p = this.register(this.fromText(await file.text(), this.baseName(handle.name)), handle);
+    p.title = this.baseName(handle.name);   // fichier renommé sur le PC : le projet prend son nom
     const perm = await handle.queryPermission?.({ mode: "readwrite" });
     if (perm && perm !== "granted") this.setState(p.id, "permission");
     await Recents.add(handle, p.title);
@@ -857,6 +867,29 @@ const Files = {
     if (this.states.get(p.id) === "permission") return this.allow(p);
     this.setState(p.id, "saving");
     return this.write(p);
+  },
+
+  // le titre du projet a changé : on renomme le fichier sur le PC (Chrome / Edge récents)
+  // renvoie "ok", "same", "unsupported", "exists" ou "error"
+  async rename(p) {
+    const handle = this.handles.get(p.id);
+    if (!handle) return "same";
+    const newName = this.safeName(p.title) + PROJ_EXT;
+    if (handle.name === newName) return "same";
+    if (typeof handle.move !== "function") return "unsupported";
+    clearTimeout(this.timers.get(p.id));
+    this.timers.delete(p.id);
+    this.setState(p.id, "saving");
+    const job = (this.chains.get(p.id) || Promise.resolve()).then(() => handle.move(newName));
+    this.chains.set(p.id, job.catch(() => {}));
+    try {
+      await job;
+    } catch (e) {
+      this.setState(p.id, "saved");
+      return e && e.name === "InvalidModificationError" ? "exists" : "error";
+    }
+    await this.write(p);   // enregistre aussi le nouveau titre dans le fichier
+    return "ok";
   },
 
   async saveAs(p) {
@@ -1225,12 +1258,11 @@ const MenuView = {
    ============================================================ */
 const COLUMNS = [
   // Niv 1 à 3 : colonnes étroites et fixes (retrait des niveaux) ; le libellé déborde sur les suivantes
-  { key: "niv1", label: "Niv 1", w: 24, fixed: true },
-  { key: "niv2", label: "Niv 2", w: 24, fixed: true },
-  { key: "niv3", label: "Niv 3", w: 24, fixed: true },
-  { key: "niv4", label: "Niv 4", w: 220 },
-  { key: "realise", label: "Réalise", w: 110 },
-  { key: "surveille", label: "Surveille", w: 110 },
+  { key: "niv1", label: "1", title: "Niveau 1", w: 24, fixed: true },
+  { key: "niv2", label: "2", title: "Niveau 2", w: 24, fixed: true },
+  { key: "niv3", label: "3", title: "Niveau 3", w: 24, fixed: true },
+  { key: "niv4", label: "4", title: "Niveau 4", w: 220 },
+  { key: "responsable", label: "Responsable", w: 140 },
   { key: "heures", label: "Heures effectives", w: 90, align: "num" },
   { key: "duree", label: "Durée jours", w: 80, align: "num" },
   { key: "debut", label: "Date début", w: 100, align: "center" },
@@ -1265,12 +1297,16 @@ function cellDisplay(t, key) {
   const m = key.match(/^niv(\d)$/);
   if (m) return { text: t.level === Number(m[1]) ? t.label : "" };
   switch (key) {
-    case "realise": case "surveille": return { text: t[key] };
+    case "responsable": return { text: t.responsable || "" };
     case "avancement": {
+      // affiché en pourcentage : nombre saisi (« 50 » ou « 50 % ») ou résultat d'un calcul (« =32/3 »)
       const raw = t.avancement || "";
-      if (!raw.startsWith("=")) return { text: raw };
-      const v = evalFormula(raw);
-      return v == null ? { text: raw, invalid: true, formulaError: true } : { text: fmtNum(v) };
+      if (raw.startsWith("=")) {
+        const v = evalFormula(raw);
+        return v == null ? { text: raw, invalid: true, formulaError: true } : { text: fmtNum(v) + " %" };
+      }
+      const n = parseNum(raw.replace(/\s*%$/, ""));
+      return { text: isNaN(n) ? raw : fmtNum(n) + " %" };
     }
     case "heures": return { text: t.heures, invalid: String(t.heures).trim() !== "" && isNaN(parseNum(t.heures)) };
     case "duree": {
@@ -1297,7 +1333,7 @@ function commitCell(t, key, raw) {
   }
   const ensureStart = () => { if (!t.start) { t.start = Dates.nextWorkday(todayISO()); delete t.debutText; } };
   switch (key) {
-    case "realise": case "surveille": case "avancement": t[key] = v; break;
+    case "responsable": case "avancement": t[key] = v; break;
     case "heures":
       t.heures = v; delete t.dureeText; delete t.finText;
       if (v) ensureStart();
@@ -1372,7 +1408,7 @@ const ProjectView = {
           <input class="project-title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
           <span class="file-chip" hidden></span>
           <span class="save-status"></span>
-          <button class="btn" data-act="save" title="Enregistrer maintenant (Ctrl + S) — l'enregistrement est aussi automatique">${ICONS.save}<span class="lbl">Enregistrer</span></button>
+          <button class="icon-btn" data-act="save" title="Enregistrer maintenant (Ctrl + S) — l'enregistrement est aussi automatique" aria-label="Enregistrer">${ICONS.save}</button>
           <button class="icon-btn" data-act="save-as" title="Enregistrer sous… : choisir un autre dossier ou un autre nom (Ctrl + Maj + S)" aria-label="Enregistrer sous">${ICONS.saveAs}</button>
           <div data-slot="theme"></div>
         </header>
@@ -1386,7 +1422,7 @@ const ProjectView = {
           <button class="icon-btn" data-act="row-down" title="Réduire la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Réduire la hauteur des lignes">${ICONS.minus}</button>
           <span class="zoom-label">Hauteur</span>
           <button class="icon-btn" data-act="row-up" title="Augmenter la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Augmenter la hauteur des lignes">${ICONS.plus}</button>
-          <span class="hint">Tab / Maj+Tab dans une colonne Niv : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
+          <span class="hint">Tab / Maj+Tab dans une colonne de niveau (1 à 4) : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
           <div class="spacer"></div>
           <button class="btn" data-act="today" title="Afficher la date du jour">${ICONS.today}<span class="lbl">Aujourd'hui</span></button>
           <div class="sep"></div>
@@ -1409,7 +1445,25 @@ const ProjectView = {
       </div>`;
     root.querySelector('[data-slot="theme"]').replaceWith(Settings.button(), Theme.button());
     root.querySelector('[data-act="back"]').addEventListener("click", () => Router.go(""));
-    bindInlineEdit(root.querySelector(".project-title"), (v) => { p.title = v; save(); document.title = v + " — Plan Projet"; });
+    const titleInput = root.querySelector(".project-title");
+    const showTitle = () => { titleInput.value = p.title; document.title = p.title + " — Plan Projet"; };
+    bindInlineEdit(titleInput, async (v) => {
+      const before = Files.fileName(id);
+      p.title = v;
+      save();
+      showTitle();
+      const res = await Files.rename(p);
+      if (res !== "ok" && res !== "same") {
+        p.title = Files.baseName(before);
+        save();
+        showTitle();
+      }
+      if (res === "ok") toast(`Fichier renommé : « ${before} » → « ${Files.fileName(id)} »`);
+      else if (res === "exists") toast("Un fichier porte déjà ce nom dans ce dossier : le fichier n'a pas été renommé");
+      else if (res === "unsupported") toast("Ce navigateur ne sait pas renommer le fichier : utilisez « Enregistrer sous » avec le nouveau nom");
+      else if (res === "error") toast("Le fichier n'a pas pu être renommé");
+      paintStatus();
+    });
     document.title = p.title + " — Plan Projet";
 
     const el = {
@@ -1515,7 +1569,13 @@ const ProjectView = {
     };
     const saveAsNow = async () => {
       if (editor) editor.input.blur();
-      if (await Files.saveAs(p)) toast(Files.fileName(id) ? `Enregistré dans « ${Files.fileName(id)} »` : "Fichier téléchargé");
+      if (!(await Files.saveAs(p))) return;
+      if (Files.fileName(id)) {
+        p.title = Files.baseName(Files.fileName(id));   // le titre suit le nom du nouveau fichier
+        save();
+        showTitle();
+        toast(`Enregistré dans « ${Files.fileName(id)} »`);
+      } else toast("Fichier téléchargé");
     };
     root.querySelector('[data-act="save"]').addEventListener("click", saveNow);
     root.querySelector('[data-act="save-as"]').addEventListener("click", saveAsNow);
@@ -1549,15 +1609,16 @@ const ProjectView = {
 
     const renderTableHead = () => {
       el.leftHead.innerHTML = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
-        `<div class="tcell"${c.fixed ? " data-fixed" : ""} style="width:${colWidth(c)}px">${esc(c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
+        `<div class="tcell"${c.fixed ? " data-fixed" : ""}${c.title ? ` title="${c.title}"` : ""} style="width:${colWidth(c)}px">${esc(c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
       el.leftHead.scrollLeft = el.leftBody.scrollLeft;
     };
 
     const colLeft = (c) => { let x = 0; for (let k = 0; k < c; k++) x += colWidth(COLUMNS[k]); return x; };
-    // position (dans la cellule de son niveau) du bouton réduire/déployer et du libellé :
-    // identique à tous les niveaux, la place du bouton étant réservée sur toutes les lignes
-    const twistyLeft = () => 14;
-    const labelLeft = () => 28;
+    // le libellé commence au bord gauche de la colonne de son niveau ;
+    // le bouton réduire/déployer est juste à gauche, dans la colonne précédente (ou la marge pour le niveau 1)
+    const GUTTER = 28;
+    const twistyLeft = () => -14;
+    const labelLeft = () => 4;
 
     /* ---------- Lignes visibles (groupes réduits masqués) ---------- */
     let vis = [], visPos = [];   // vis : indices des tâches affichées ; visPos[r] : rang affiché (-1 si masquée)
@@ -1583,14 +1644,14 @@ const ProjectView = {
         while (pr >= 0 && p.tasks[pr].level >= t.level) pr--;
         if (pr < 0) return;
         const P = p.tasks[pr].level - 1;
-        const x = colLeft(P) + twistyLeft() + 6;
+        const x = GUTTER + colLeft(P) + twistyLeft() + 6;
         const y0 = visPos[pr] * rowH + rowH / 2 + 6, y = visPos[r] * rowH + rowH / 2;
         // la flèche s'arrête juste avant le bouton (tâche mère) ou le libellé (tâche simple)
-        const x2 = colLeft(t.level - 1) + (Task.isParent(t) ? twistyLeft() - 1 : labelLeft() - 3);
+        const x2 = GUTTER + colLeft(t.level - 1) + (Task.isParent(t) ? twistyLeft() - 1 : labelLeft() - 2);
         paths += `<path class="tree-line" d="M${x} ${y0} V${y - 3} Q${x} ${y} ${x + 3} ${y} H${x2}" marker-end="url(#tree-arrow)"/>`;
       });
       if (!paths) return "";
-      return `<svg class="tree-svg" width="${colLeft(COL.niv4 + 1)}" height="${vis.length * rowH}"><defs><marker id="tree-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>${paths}</svg>`;
+      return `<svg class="tree-svg" width="${GUTTER + colLeft(COL.niv4 + 1)}" height="${vis.length * rowH}"><defs><marker id="tree-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>${paths}</svg>`;
     };
     const CHEVRON = '<svg viewBox="0 0 10 10"><path d="M2 3.5L5 6.5L8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -1611,11 +1672,12 @@ const ProjectView = {
               let content = esc(d.text), spillCls = "";
               let style = `width:${colWidth(c)}px`;
               if (i === c0) {
-                // colonnes Niv 1 à 3 (40 px) : pas de marge, le libellé est placé par-dessus ; sinon la cellule
+                // colonnes 1 à 3 (24 px) : pas de marge, le libellé est placé par-dessus ; sinon la cellule
                 // s'élargirait et décalerait toutes les colonnes suivantes de la ligne
                 style += c0 < COL.niv4 ? ";padding:0" : `;padding-left:${labelLeft(t)}px`;
+                if (parent) spillCls = "spill-from";   // le bouton dépasse à gauche de la cellule
                 if (spill) {
-                  let w = -labelLeft(t) - 10;
+                  let w = -labelLeft(t) - 8;
                   for (let k = c0; k <= c0 + spill; k++) w += colWidth(COLUMNS[k]);
                   content = `<span class="spill-text" style="left:${labelLeft(t)}px;width:${w}px">${content}</span>`;
                   spillCls = "spill-from";
@@ -1942,6 +2004,8 @@ const ProjectView = {
           // Durée et Date fin sont recalculées si Heures est collée en même temps
           if (key === "duree" && pasted("heures")) continue;
           if (key === "fin" && (pasted("heures") || pasted("duree"))) continue;
+          // une Date début vide dans les cellules collées ne supprime pas la date existante
+          if (key === "debut" && !String(row[j] ?? "").trim()) continue;
           commitCell(t, key, row[j] ?? "");
         }
       }));
