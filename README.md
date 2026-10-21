@@ -8,17 +8,17 @@ En ligne : https://leomazet0809-a11y.github.io/Planning-Projet/
 
 Ouvrir `index.html` dans Chrome ou Edge (ou l'adresse ci-dessus). Aucune installation nécessaire.
 
-### Fichiers de projet (.proj)
+### Fichiers de projet : de vrais classeurs Excel (.xlsx)
 Un clic sur le **logo** en haut à gauche ramène au menu (ouvrir ou créer un projet).
-Chaque projet est un fichier **`.proj`** enregistré sur l'ordinateur, dans le dossier choisi par l'utilisateur. Rien n'est envoyé sur Internet.
-- **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier.
-- **Ouvrir un fichier** : choisir un fichier `.proj` existant. Les **fichiers récents** se rouvrent en un clic depuis la page Menu.
-- **Enregistrement en temps réel** : chaque modification est écrite dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
-- Le titre du projet et le nom du fichier sont liés : renommer le projet renomme le fichier ; un fichier renommé sur le PC donne son nom au projet à l'ouverture.
-- Actualiser la page (F5) garde le projet ouvert ; si Chrome redemande l'autorisation d'écrire dans le fichier, un lien « Autoriser l'enregistrement » apparaît dans le bandeau.
-- Le nom du fichier ouvert est affiché dans le bandeau. Le navigateur ne communique pas le dossier où il se trouve.
+
+Chaque projet est un classeur **`.xlsx`** enregistré sur l'ordinateur, dans le dossier choisi par l'utilisateur. Rien n'est envoyé sur Internet.
+- Le classeur s'ouvre **aussi dans Excel** (double-clic ou glisser-déposer) : la feuille visible présente le planning (colonnes `N° · 1 · 2 · 3 · 4 · Responsable · Heures · Durée · Dates · Avancement · Dépend de`). Une feuille masquée contient les données propres à l'application (liens, groupes réduits, réglages).
+- **Modifications faites dans Excel** (libellés, heures, lignes ajoutées…) : elles sont reprises à la prochaine ouverture dans l'application ; la mise en forme ajoutée dans Excel n'est pas conservée. Fermer le classeur dans Excel avant de l'ouvrir dans l'application (Windows empêche d'écrire dans un fichier ouvert dans Excel).
+- **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier. **Ouvrir un fichier** : choisir un projet `.xlsx` (les anciens `.proj` restent lisibles). Un classeur Excel quelconque peut être importé dans un nouveau projet.
+- **Enregistrement en temps réel** dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
+- Le titre du projet et le nom du fichier sont liés ; le nom du fichier ouvert est affiché dans le bandeau.
+- Actualiser la page (F5) garde le projet ouvert.
 - Sur les autres navigateurs (Firefox, Safari), l'enregistrement se fait en téléchargeant le fichier (Ctrl + S).
-- Application installée (menu du navigateur › Installer) : un fichier `.proj` peut s'ouvrir par double-clic.
 
 ### Tableau
 Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » (⇊) / « Tout réduire » (⇈) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
