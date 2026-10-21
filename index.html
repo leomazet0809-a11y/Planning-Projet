@@ -157,11 +157,11 @@ button { font: inherit; color: inherit; }
 }
 .save-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 24px; --bar-h: 16px; --cell-font: 12px; --head-h: 72px; }
-.toolbar {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 4px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
-}
-.toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.ribbon { height: 46px; gap: 0; }
+.rb-block { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.rb-doc { flex: 0 1 auto; min-width: 120px; gap: 10px; }
+.rb-sep { flex: 0 0 auto; width: 1px; height: 24px; margin: 0 14px; background: var(--border); }
+.ribbon .spacer { min-width: 14px; }
 /* groupes de boutons accolés */
 .btn-group { display: inline-flex; align-items: center; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); overflow: hidden; }
 .btn-group > .icon-btn { border: 0; border-radius: 0; height: 28px; }
@@ -181,7 +181,6 @@ button { font: inherit; color: inherit; }
   display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 4px; text-align: center;
   border: 1px solid color-mix(in srgb, var(--surface) 35%, transparent); font: inherit; font-size: 11px;
 }
-.hint { font-size: 12px; color: var(--text-muted); }
 .zoom-label { font-size: 12px; color: var(--text-muted); min-width: 64px; text-align: center; }
 .split { flex: 1; min-height: 0; display: flex; background: var(--surface); }
 .pane { display: flex; flex-direction: column; min-width: 0; }
@@ -447,9 +446,8 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .bar.ms .cmt-ico { left: 30px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
-@media (max-width: 1750px) { .hint { display: none; } }
 @media (max-width: 760px) {
-  .topbar, .toolbar { padding-left: 16px; padding-right: 16px; }
+  .topbar { padding-left: 16px; padding-right: 16px; }
   .menu-page { padding: 24px 16px 48px; }
   .brand span, .btn .lbl, .save-status { display: none; }
 }
@@ -2314,43 +2312,49 @@ const ProjectView = {
     Files.remember(p);
     root.innerHTML = `
       <div class="project-page">
-        <header class="topbar">
-          <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
-          <h1 class="project-title"></h1>
-          <div class="spacer"></div>
-          <span class="save-status"></span>
-          <button class="icon-btn" data-act="undo" disabled ${tipAttrs("Annuler", "Revenir en arrière d'une action", "Ctrl+Z")}>${ICONS.undo}</button>
-          <div class="btn-group">
-            <button class="icon-btn" data-act="save" ${tipAttrs("Enregistrer", "L'enregistrement est aussi automatique", "Ctrl+S")}>${ICONS.save}</button>
-            <button class="icon-btn" data-act="save-as" ${tipAttrs("Enregistrer sous…", "Choisir un autre dossier ou un autre nom", "Ctrl+Maj+S")}>${ICONS.saveAs}</button>
-            <button class="icon-btn" data-act="export" ${tipAttrs("Exporter", "Le projet en Excel ou CSV")}>${ICONS.exportFile}</button>
-            <button class="icon-btn" data-act="import" ${tipAttrs("Importer", "Un fichier Excel ou CSV")}>${ICONS.importFile}</button>
+        <!-- ruban unique : infos du document · boutons du tableau · boutons du planning · boutons du fichier -->
+        <header class="topbar ribbon">
+          <div class="rb-block rb-doc">
+            <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
+            <h1 class="project-title"></h1>
           </div>
-          <div class="btn-group"><div data-slot="theme"></div></div>
+          <div class="rb-sep"></div>
+          <div class="rb-block" aria-label="Tableau">
+            <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
+            <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
+            <div class="btn-group">
+              <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
+              <button class="icon-btn" data-act="collapse-all" ${tipAttrs("Tout réduire", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.collapseAll}</button>
+            </div>
+            <button class="icon-btn filter-btn" data-act="filter" ${tipAttrs("Filtrer", "Une recherche par colonne · Échap efface le filtre en cours")}>${ICONS.filter}<span class="badge" hidden></span></button>
+            <div class="btn-group">
+              <button class="icon-btn" data-act="row-down" ${tipAttrs("Lignes moins hautes", "", "Ctrl+molette")}>${ICONS.minus}</button>
+              <span class="zoom-label">Hauteur</span>
+              <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
+            </div>
+          </div>
+          <div class="spacer"></div>
+          <div class="rb-block" aria-label="Planning">
+            <button class="icon-btn" data-act="today" ${tipAttrs("Aujourd'hui", "Afficher la date du jour sur le planning")}>${ICONS.today}</button>
+            <div class="btn-group">
+              <button class="icon-btn" data-act="zoom-out" ${tipAttrs("Dézoomer", "", "Ctrl+molette")}>${ICONS.minus}</button>
+              <span class="zoom-label" data-slot="zoom"></span>
+              <button class="icon-btn" data-act="zoom-in" ${tipAttrs("Zoomer", "", "Ctrl+molette")}>${ICONS.plus}</button>
+            </div>
+          </div>
+          <div class="rb-sep"></div>
+          <div class="rb-block" aria-label="Fichier">
+            <span class="save-status"></span>
+            <button class="icon-btn" data-act="undo" disabled ${tipAttrs("Annuler", "Revenir en arrière d'une action", "Ctrl+Z")}>${ICONS.undo}</button>
+            <div class="btn-group">
+              <button class="icon-btn" data-act="save" ${tipAttrs("Enregistrer", "L'enregistrement est aussi automatique", "Ctrl+S")}>${ICONS.save}</button>
+              <button class="icon-btn" data-act="save-as" ${tipAttrs("Enregistrer sous…", "Choisir un autre dossier ou un autre nom", "Ctrl+Maj+S")}>${ICONS.saveAs}</button>
+              <button class="icon-btn" data-act="export" ${tipAttrs("Exporter", "Le projet en Excel ou CSV")}>${ICONS.exportFile}</button>
+              <button class="icon-btn" data-act="import" ${tipAttrs("Importer", "Un fichier Excel ou CSV")}>${ICONS.importFile}</button>
+            </div>
+            <div class="btn-group"><div data-slot="theme"></div></div>
+          </div>
         </header>
-        <div class="toolbar">
-          <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
-          <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
-          <div class="sep"></div>
-          <div class="btn-group">
-            <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
-            <button class="icon-btn" data-act="collapse-all" ${tipAttrs("Tout réduire", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.collapseAll}</button>
-          </div>
-          <button class="icon-btn filter-btn" data-act="filter" ${tipAttrs("Filtrer", "Une recherche par colonne · Échap efface le filtre en cours")}>${ICONS.filter}<span class="badge" hidden></span></button>
-          <div class="btn-group">
-            <button class="icon-btn" data-act="row-down" ${tipAttrs("Lignes moins hautes", "", "Ctrl+molette")}>${ICONS.minus}</button>
-            <span class="zoom-label">Hauteur</span>
-            <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
-          </div>
-          <span class="hint">Tab / Maj+Tab dans la colonne Tâche : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
-          <div class="spacer"></div>
-          <button class="icon-btn" data-act="today" ${tipAttrs("Aujourd'hui", "Afficher la date du jour sur le planning")}>${ICONS.today}</button>
-          <div class="btn-group">
-            <button class="icon-btn" data-act="zoom-out" ${tipAttrs("Dézoomer", "", "Ctrl+molette")}>${ICONS.minus}</button>
-            <span class="zoom-label" data-slot="zoom"></span>
-            <button class="icon-btn" data-act="zoom-in" ${tipAttrs("Zoomer", "", "Ctrl+molette")}>${ICONS.plus}</button>
-          </div>
-        </div>
         <div class="split">
           <section class="pane pane-left">
             <div class="pane-head"></div>
@@ -2813,7 +2817,7 @@ const ProjectView = {
     // (les boutons des barres d'outils, les barres du planning et les fenêtres gardent la sélection)
     on(document, "pointerdown", (e) => {
       if (!sel || e.button !== 0) return;
-      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .topbar button, .toolbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .topbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
       deselect();
     });
 
