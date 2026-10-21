@@ -1340,10 +1340,10 @@ const Settings = {
     const close = (e) => {
       if (e.type === "keydown" ? e.key !== "Escape" : panel.contains(e.target) || anchor.contains(e.target)) return;
       panel.remove();
-      document.removeEventListener("mousedown", close, true);
+      document.removeEventListener("pointerdown", close, true);
       document.removeEventListener("keydown", close, true);
     };
-    document.addEventListener("mousedown", close, true);
+    document.addEventListener("pointerdown", close, true);
     document.addEventListener("keydown", close, true);
   },
 
