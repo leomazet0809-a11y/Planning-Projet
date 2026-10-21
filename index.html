@@ -119,6 +119,9 @@ button { font: inherit; color: inherit; }
 .menu-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
 .menu-head h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .menu-head p { margin: 4px 0 0; color: var(--text-muted); }
+.workdir-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.workdir-line svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.link-btn { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
 .grid-cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 .card {
   background: var(--surface); border: 1px solid var(--border);
@@ -145,7 +148,7 @@ button { font: inherit; color: inherit; }
 .notice { background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 20px; line-height: 1.5; }
 .save-status.error { color: var(--danger); font-weight: 600; }
 .file-chip {
-  display: inline-flex; align-items: center; gap: 5px; max-width: 280px; flex: 0 1 auto;
+  display: inline-flex; align-items: center; gap: 5px; max-width: 560px; flex: 0 1 auto;
   font-size: 12px; color: var(--text-muted); background: var(--surface-2);
   border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; white-space: nowrap;
 }
@@ -386,6 +389,10 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .set-row input[type="color"] { width: 36px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
 .set-row select { flex: 1; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; padding: 0 8px; }
 .settings-panel .btn { margin-top: 14px; width: 100%; justify-content: center; }
+.settings-panel .set-btns { gap: 8px; }
+.settings-panel .set-btns .btn { margin-top: 0; }
+.workdir-name { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.workdir-name svg { width: 14px; height: 14px; color: var(--text-muted); }
 
 /* ---------- Calendrier des dates ---------- */
 .cal-pop {
@@ -882,7 +889,7 @@ const Files = {
   async create() {
     if (!this.supported) return this.register(Store.blank("Nouveau projet"), null);
     let handle;
-    try { handle = await window.showSaveFilePicker({ suggestedName: "Nouveau projet" + PROJ_EXT, types: FILE_TYPES }); }
+    try { handle = await window.showSaveFilePicker({ suggestedName: "Nouveau projet" + PROJ_EXT, types: FILE_TYPES, ...(await WorkDir.pickerStart()) }); }
     catch (e) { return null; }   // fenêtre fermée
     const p = this.register(Store.blank(this.baseName(handle.name)), handle);
     await this.write(p);
@@ -896,7 +903,7 @@ const Files = {
     build(p);
     if (!this.supported) return this.register(p, null);
     let handle;
-    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(title) + PROJ_EXT, types: FILE_TYPES }); }
+    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(title) + PROJ_EXT, types: FILE_TYPES, ...(await WorkDir.pickerStart()) }); }
     catch (e) { return null; }
     p.title = this.baseName(handle.name);
     this.register(p, handle);
@@ -921,7 +928,7 @@ const Files = {
       return this.register(res.p, null);
     }
     let handle;
-    try { [handle] = await window.showOpenFilePicker({ types: OPEN_TYPES, multiple: false }); }
+    try { [handle] = await window.showOpenFilePicker({ types: OPEN_TYPES, multiple: false, ...(await WorkDir.pickerStart()) }); }
     catch (e) { return null; }
     try { await handle.requestPermission({ mode: "readwrite" }); } catch (e) { /* demandé plus tard */ }
     return this.openHandle(handle);
@@ -1036,7 +1043,7 @@ const Files = {
   async saveAs(p) {
     if (!this.supported) { this.download(p); this.setState(p.id, "saved"); return true; }
     let handle;
-    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(p.title) + PROJ_EXT, types: FILE_TYPES }); }
+    try { handle = await window.showSaveFilePicker({ suggestedName: this.safeName(p.title) + PROJ_EXT, types: FILE_TYPES, ...(await WorkDir.pickerStart()) }); }
     catch (e) { return false; }
     this.handles.set(p.id, handle);
     this.setState(p.id, "saving");
@@ -1113,7 +1120,7 @@ const Recents = {
     });
   },
   async list() {
-    try { return ((await this.run("readonly", (st) => st.getAll())) || []).sort((a, b) => b.openedAt - a.openedAt); }
+    try { return ((await this.run("readonly", (st) => st.getAll())) || []).filter((e) => e.key !== WORKDIR_KEY).sort((a, b) => b.openedAt - a.openedAt); }
     catch (e) { return []; }
   },
   async find(handle) {
@@ -1145,6 +1152,48 @@ const Recents = {
   },
   async remove(key) {
     try { await this.run("readwrite", (st) => st.delete(key)); } catch (err) { /* ignoré */ }
+  },
+};
+
+/* ============================================================
+   Dossier de travail : le navigateur ne donne pas le chemin complet d'un fichier,
+   mais il sait dire où il se trouve à l'intérieur d'un dossier choisi par l'utilisateur
+   ============================================================ */
+const WORKDIR_KEY = "dossier-de-travail";   // mémorisé avec les fichiers récents (IndexedDB)
+const WorkDir = {
+  supported: typeof window.showDirectoryPicker === "function",
+  handle: null,
+  loading: null,
+  load() {
+    if (!this.loading) this.loading = Recents.get(WORKDIR_KEY).then((e) => { this.handle = e ? e.handle : null; });
+    return this.loading.then(() => this.handle);   // dossier actuel, même s'il a été changé depuis
+  },
+  async choose() {
+    await this.load();
+    let h;
+    try { h = await window.showDirectoryPicker({ id: "plan-projet-dossier", mode: "read", ...(this.handle ? { startIn: this.handle } : { startIn: "documents" }) }); }
+    catch (e) { return false; }   // fenêtre fermée
+    this.handle = h;
+    try { await Recents.run("readwrite", (st) => st.put({ key: WORKDIR_KEY, handle: h, name: h.name })); } catch (e) { /* non mémorisé */ }
+    this.changed();
+    return true;
+  },
+  async clear() {
+    this.handle = null;
+    await Recents.remove(WORKDIR_KEY);
+    this.changed();
+  },
+  changed() { document.dispatchEvent(new CustomEvent("workdir")); },
+  // les fenêtres Ouvrir / Enregistrer s'ouvrent dans le dossier de travail
+  async pickerStart() { return (await this.load()) ? { startIn: this.handle } : {}; },
+  // chemin du fichier à partir du dossier de travail (["Projets", "Chantier A", "Planning.xlsx"]), null s'il est ailleurs
+  async pathOf(fileHandle) {
+    const dir = await this.load();
+    if (!dir || !fileHandle) return null;
+    try {
+      const parts = await dir.resolve(fileHandle);
+      return parts ? [dir.name, ...parts] : null;
+    } catch (e) { return null; }
   },
 };
 
@@ -1226,12 +1275,17 @@ const Settings = {
       <div class="set-row"><span>Couleur de fond</span><input type="color" data-k="bg" value="${this.current("--surface")}"></div>
       <h4>Couleurs des tâches</h4>
       ${this.COLORS.map((c) => `<div class="set-row"><span>${c.label}</span><input type="color" data-k="${c.key}" value="${this.current(c.key === "summary" ? (st.summary ? "--summary" : "--summary-default") : "--" + c.key)}"></div>`).join("")}
+      ${WorkDir.supported ? `<h4>Dossier de travail</h4>
+      <div class="set-row"><span class="workdir-name">${WorkDir.handle ? `${ICONS.folder} ${esc(WorkDir.handle.name)}` : "Aucun"}</span></div>
+      <div class="set-row set-btns"><button class="btn" data-act="workdir">${WorkDir.handle ? "Changer…" : "Choisir…"}</button>${WorkDir.handle ? `<button class="btn" data-act="workdir-clear">Retirer</button>` : ""}</div>` : ""}
       <button class="btn" data-act="reset">Rétablir les réglages d'origine</button>`;
     panel.querySelector('[data-k="font"]').addEventListener("change", (e) => this.set("font", e.target.value === "Inter" ? null : e.target.value));
     panel.querySelectorAll('input[type="color"]').forEach((inp) => inp.addEventListener("input", () => {
       const k = inp.dataset.k === "bg" ? "bg-" + Theme.current() : inp.dataset.k;
       this.set(k, inp.value);
     }));
+    panel.querySelector('[data-act="workdir"]')?.addEventListener("click", async () => { if (await WorkDir.choose()) this.open(anchor); });
+    panel.querySelector('[data-act="workdir-clear"]')?.addEventListener("click", async () => { await WorkDir.clear(); this.open(anchor); });
     panel.querySelector('[data-act="reset"]').addEventListener("click", () => {
       Store.data.settings = {};
       Store.save();
@@ -1253,7 +1307,7 @@ const Settings = {
     const b = document.createElement("button");
     b.className = "icon-btn";
     b.innerHTML = ICONS.gear;
-    setTip(b, "Paramètres", "Couleurs et police d'écriture");
+    setTip(b, "Paramètres", "Couleurs, police d'écriture et dossier de travail");
     b.addEventListener("click", () => {
       if (document.querySelector(".settings-panel")) document.querySelector(".settings-panel").remove();
       else this.open(b);
@@ -1432,6 +1486,7 @@ const MenuView = {
           <div>
             <h1>Mes projets</h1>
             <p>Chaque projet est un classeur Excel <b>${PROJ_EXT}</b> enregistré sur votre ordinateur, dans le dossier de votre choix : il s'ouvre aussi dans Excel.</p>
+            ${WorkDir.supported ? `<p class="workdir-line" data-slot="workdir"></p>` : ""}
           </div>
           <div class="spacer"></div>
           <button class="btn" data-act="open">${ICONS.folder} Ouvrir un fichier</button>
@@ -1461,6 +1516,20 @@ const MenuView = {
       Exchange.report(res.tasks.length, res.warnings);
     });
     this.renderRecents(root);
+    this.renderWorkDir(root);
+  },
+
+  async renderWorkDir(root) {
+    const slot = root.querySelector('[data-slot="workdir"]');
+    if (!slot) return;
+    const dir = await WorkDir.load();
+    if (!slot.isConnected) return;
+    slot.innerHTML = dir
+      ? `${ICONS.folder} Dossier de travail : <b>${esc(dir.name)}</b> <button class="link-btn" data-act="workdir">Changer</button>`
+      : `${ICONS.folder} Choisissez votre dossier de travail (par exemple « Projets ») pour voir dans quel sous-dossier se trouve chaque projet. <button class="link-btn" data-act="workdir">Choisir…</button>`;
+    slot.querySelector('[data-act="workdir"]').addEventListener("click", async () => {
+      if (await WorkDir.choose()) { this.renderWorkDir(root); this.renderRecents(root); }
+    });
   },
 
   async renderRecents(root) {
@@ -1477,7 +1546,7 @@ const MenuView = {
     slot.innerHTML = `<div class="grid-cards">${list.map((e) => `
       <article class="card recent" data-key="${e.key}" tabindex="0" title="Ouvrir ${esc(e.name)}">
         <div class="recent-title">${esc(e.title || Files.baseName(e.name))}</div>
-        <div class="card-meta">${ICONS.file} ${esc(e.name)}</div>
+        <div class="card-meta" data-path="${e.key}">${ICONS.file} <span>${esc(e.name)}</span></div>
         <div class="card-meta">Ouvert le ${new Date(e.openedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</div>
         <div class="card-actions">
           <button class="btn btn-primary" data-act="open-recent">Ouvrir</button>
@@ -1485,6 +1554,12 @@ const MenuView = {
         </div>
       </article>`).join("")}</div>`;
 
+    // chemin à partir du dossier de travail, quand le fichier s'y trouve
+    list.forEach(async (e) => {
+      const parts = await WorkDir.pathOf(e.handle);
+      const span = parts && slot.querySelector(`[data-path="${e.key}"] span`);
+      if (span) span.textContent = parts.join(" › ");
+    });
     slot.querySelectorAll(".card.recent").forEach((card) => {
       const entry = list.find((e) => e.key === card.dataset.key);
       const openIt = async () => {
@@ -2281,14 +2356,25 @@ const ProjectView = {
     };
     // état de l'enregistrement dans le fichier, affiché dans le bandeau
     const chip = root.querySelector(".file-chip");
+    // fichier en cours de modification : chemin à partir du dossier de travail, sinon son nom seul
+    let chipName = null;
+    const paintChip = async () => {
+      const name = Files.fileName(id);
+      chipName = name;
+      chip.hidden = !name;
+      if (!name) return;
+      const parts = await WorkDir.pathOf(Files.handles.get(id));
+      if (chipName !== name || !chip.isConnected) return;
+      chip.innerHTML = `${ICONS.file}<span>${esc(parts ? parts.join(" › ") : name)}</span>`;
+      chip.title = parts ? `Fichier en cours de modification : ${parts.join(" › ")}`
+        : `Fichier en cours de modification : ${name}\n` + (WorkDir.handle
+          ? `Ce fichier n'est pas dans le dossier de travail « ${WorkDir.handle.name} » : seul son nom peut être affiché.`
+          : "Pour afficher le dossier du fichier, choisissez votre dossier de travail dans Paramètres (roue dentée).");
+    };
+    on(document, "workdir", paintChip);
     const paintStatus = () => {
       const st = Files.states.get(id), name = Files.fileName(id);
-      // fichier en cours de modification (le navigateur ne donne que son nom, pas le dossier)
-      chip.hidden = !name;
-      if (name) {
-        chip.innerHTML = `${ICONS.file}<span>${esc(name)}</span>`;
-        chip.title = `Fichier en cours de modification : ${name}\nPour le retrouver sur l'ordinateur, utilisez « Enregistrer sous » ou l'explorateur de fichiers (le navigateur ne communique pas le dossier).`;
-      }
+      if (name !== chipName) paintChip();
       el.status.className = "save-status" + (st === "error" ? " error" : "");
       if (st === "saving") el.status.textContent = "Enregistrement…";
       else if (st === "saved" && name) el.status.textContent = "Enregistré";
@@ -3427,6 +3513,7 @@ const Router = {
 
 Store.load();
 Theme.init();
+WorkDir.load();
 // fermeture de l'onglet ou du navigateur pendant qu'un projet est ouvert : le navigateur demande confirmation
 window.addEventListener("beforeunload", (e) => {
   if (Store.currentId || Files.hasPending()) { e.preventDefault(); e.returnValue = ""; }
