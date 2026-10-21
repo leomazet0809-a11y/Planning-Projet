@@ -2808,6 +2808,21 @@ const ProjectView = {
       ensureVisible(extend ? sel.r2 : sel.r, extend ? sel.c2 : sel.c);
     };
 
+    const deselect = () => {
+      if (!sel) return;
+      if (editor) editor.input.blur();
+      sel = null;
+      renderRows();
+      highlightGantt();
+    };
+    // clic ailleurs que sur une cellule (bas vide du tableau, fond du planning, en-têtes…) : plus de cellule sélectionnée
+    // (les boutons des barres d'outils, les barres du planning et les fenêtres gardent la sélection)
+    on(document, "pointerdown", (e) => {
+      if (!sel || e.button !== 0) return;
+      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .topbar button, .toolbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      deselect();
+    });
+
     // applique une modification à des tâches puis met à jour liens, affichage et sauvegarde
     const mutate = (fn) => {
       Tree.compute(p);
@@ -3519,7 +3534,7 @@ const ProjectView = {
             const r = +row.dataset.r, now = performance.now();
             const dbl = lastBgClick.r === r && now - lastBgClick.time < 450;
             lastBgClick = dbl ? { r: -1, time: 0 } : { r, time: now };
-            if (dbl) placeTask(r, ev.clientX); else select(r, sel ? sel.c : 0);
+            if (dbl) placeTask(r, ev.clientX);
           }
         };
         el.rightBody.addEventListener("pointermove", move);
