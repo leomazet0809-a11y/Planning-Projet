@@ -10,7 +10,7 @@ Ouvrir `index.html` dans Chrome ou Edge (ou l'adresse ci-dessus). Aucune install
 Les données sont enregistrées dans le navigateur ; **Exporter** (page Menu) crée un fichier de sauvegarde, **Importer** le recharge.
 
 ### Tableau
-Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe.
+Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » / « Tout réduire » (doubles chevrons) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
 
 | Action | Comment |
 |---|---|
@@ -23,13 +23,16 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Défiler | Molette au-dessus du tableau ou du planning (les deux restent alignés) |
 | Sélectionner plusieurs cellules | Glisser la souris, ou Maj + clic, ou Maj + flèches |
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
-| Effacer | Suppr |
+| Effacer le contenu des cellules | Retour arrière (⌫) |
+| Supprimer les tâches sélectionnées | Suppr, puis Entrée pour confirmer (Oui) |
+| Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture) / Ctrl + Y |
 | Largeur d'une colonne | Glisser le bord droit de son en-tête (double-clic : taille d'origine) |
 
 - **Durée jours** = Heures effectives × 1,5, arrondie à l'entier le plus proche (jours ouvrés, lundi → vendredi).
 - Une valeur non numérique dans Heures ou Durée s'affiche en rouge et bloque le calcul.
+- **Avancement** : texte libre (ex. « 50 % ») ; commencer par `=` pour un calcul (ex. `=32/3` affiche 10,67 ; opérations + - * / et parenthèses). Une formule incorrecte s'affiche en rouge.
 - Modifier Durée, Date début ou Date fin recalcule les heures (arrondies à l'heure entière).
-- **Tâches mères** (une tâche suivie de tâches de niveau inférieur) : Heures = somme des heures des tâches filles, Durée = somme de leurs durées, Début = début le plus tôt des filles. Ces valeurs (en italique gris) ne se saisissent pas ; sur le planning, la tâche mère est une barre récapitulative noire. La déplacer déplace toutes ses tâches filles.
+- **Tâches mères** (une tâche suivie de tâches de niveau inférieur) : Heures = somme des heures des tâches filles, Durée = somme de leurs durées, Début = début le plus tôt des filles, Date fin = fin la plus tardive des filles. Ces valeurs (en italique gris) ne se saisissent pas ; sur le planning, la tâche mère est une barre récapitulative noire qui couvre la période réelle de ses filles. La déplacer déplace toutes ses tâches filles.
 
 ### Planning
 | Action | Comment |
@@ -40,7 +43,6 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Supprimer un lien | Cliquer sur la flèche |
 | Zoomer / dézoomer | Boutons − / + ou Ctrl + molette |
 | Revenir à aujourd'hui | Bouton « Aujourd'hui » |
-| Noms des tâches sur le planning | Bouton « Masquer les noms » / « Afficher les noms » |
 | Se déplacer dans le planning | Clic gauche maintenu sur le fond et glisser dans tous les sens |
 
 Une tâche liée commence toujours après la fin de sa tâche d'origine et suit ses déplacements.
@@ -48,6 +50,6 @@ Les samedis et dimanches sont grisés : aucune tâche ne peut y commencer ou y f
 
 **Enregistrer** (ou Ctrl + S) confirme l'enregistrement du projet.
 
-**Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleurs des tâches par niveau et des tâches mères.
+**Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 
 L'application peut être ajoutée aux favoris ou installée comme raccourci (menu du navigateur › « Installer Plan Projet » / « Créer un raccourci ») : elle utilise son propre logo.
