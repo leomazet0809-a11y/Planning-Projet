@@ -2821,11 +2821,19 @@ const ProjectView = {
       renderRows();
       highlightGantt();
     };
-    // clic ailleurs que sur une cellule (bas vide du tableau, fond du planning, en-têtes…) : plus de cellule sélectionnée
-    // (les boutons des barres d'outils, les barres du planning et les fenêtres gardent la sélection)
+    // clic ailleurs que sur une ligne (bas vide du tableau ou du planning, en-têtes…) : plus de cellule sélectionnée
+    // (les boutons du ruban, les lignes du planning et les fenêtres gardent la sélection)
     on(document, "pointerdown", (e) => {
       if (!sel || e.button !== 0) return;
-      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .topbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .pane-right .grow, .topbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      deselect();
+    });
+
+    // Échap : plus de ligne sélectionnée (sauf pendant une saisie ou dans une fenêtre, où Échap a son propre rôle)
+    on(document, "keydown", (e) => {
+      if (e.key !== "Escape" || !sel || editor || document.querySelector(".modal-backdrop")) return;
+      const a = document.activeElement;
+      if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
       deselect();
     });
 
@@ -3160,7 +3168,6 @@ const ProjectView = {
         return;
       }
       if (e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
-      if (e.key === "Escape") { select(sel.r, sel.c); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
         sel = { r: 0, c: 0, r2: p.tasks.length - 1, c2: COLUMNS.length - 1 };
@@ -3550,7 +3557,7 @@ const ProjectView = {
             const r = +row.dataset.r, now = performance.now();
             const dbl = lastBgClick.r === r && now - lastBgClick.time < 450;
             lastBgClick = dbl ? { r: -1, time: 0 } : { r, time: now };
-            if (dbl) placeTask(r, ev.clientX);
+            if (dbl) placeTask(r, ev.clientX); else select(r, sel ? sel.c : COL.label);   // clic sur une ligne du planning : elle est sélectionnée
           }
         };
         el.rightBody.addEventListener("pointermove", move);

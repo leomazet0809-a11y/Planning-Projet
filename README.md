@@ -28,7 +28,8 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic, Entrée ou F2 pour modifier le contenu existant) |
 | Colonne Tâche | Dans l'application, le nom de la tâche occupe une seule colonne « Tâche » (retrait selon le niveau, largeur réglable) ; dans Excel et pour le copier / coller, il reste réparti sur une colonne par niveau (1, 2, 3, 4… : 4 colonnes au moins, jusqu'à 10 si le projet a des tâches aussi fines) |
-| Désélectionner | Cliquer ailleurs : bas vide du tableau, fond du planning, en-têtes… (les boutons et les barres du planning gardent la sélection) |
+| Sélectionner une ligne | Cliquer sur la ligne, dans le tableau ou dans le planning (même à côté de la barre) : elle est surlignée des deux côtés |
+| Désélectionner | Échap, ou cliquer ailleurs : bas vide du tableau ou du planning, en-têtes… (les boutons du ruban gardent la sélection) |
 | Renommer une tâche | Un simple clic sur son nom (colonne Tâche) ouvre la modification après un court instant |
 | Commentaires | Double-clic sur le nom de la tâche, ou sur sa barre dans le planning : une fenêtre s'ouvre ; la croix, Échap ou Ctrl + Entrée la ferme et enregistre. Une bulle signale les tâches commentées (dans le tableau, et au survol de la barre). Les commentaires sont aussi dans la colonne « Commentaires » du fichier Excel |
 | Valider / annuler | Entrée / Échap |
