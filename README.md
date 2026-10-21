@@ -27,6 +27,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic ou Entrée pour modifier le contenu existant) |
 | Valider / annuler | Entrée / Échap |
+| Choisir une date | Double-clic sur Date début ou Date fin : un calendrier s'ouvre (la saisie au clavier reste possible) |
 | Se déplacer | Flèches du clavier |
 | Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis une cellule des colonnes de niveau (1 à 4) |
 | Déplacer une tâche | Glisser la poignée ⋮⋮ au début de la ligne (la tâche part avec ses sous-tâches) |

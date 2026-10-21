@@ -346,6 +346,26 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .set-row select { flex: 1; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; padding: 0 8px; }
 .settings-panel .btn { margin-top: 14px; width: 100%; justify-content: center; }
 
+/* ---------- Calendrier des dates ---------- */
+.cal-pop {
+  position: fixed; z-index: 120; width: 232px; padding: 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .18); font-size: 12px; user-select: none;
+}
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 600; text-transform: capitalize; }
+.cal-head button, .cal-foot button { border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; border-radius: 6px; padding: 2px 8px; }
+.cal-head button { font-size: 16px; line-height: 1; }
+.cal-head button:hover, .cal-foot button:hover { background: var(--surface-2); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cal-grid b { font-weight: 600; color: var(--text-muted); font-size: 11px; padding: 2px 0; }
+.cal-grid button { border: 0; background: none; color: var(--text); font: inherit; height: 26px; border-radius: 6px; cursor: pointer; }
+.cal-grid button:hover { background: var(--accent-soft); }
+.cal-grid button.we { color: var(--text-muted); background: var(--weekend); }
+.cal-grid button.today { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.cal-grid button.chosen { background: var(--accent); color: #fff; }
+.cal-foot { margin-top: 6px; text-align: center; }
+.cal-foot button { color: var(--accent); font-weight: 600; }
+
 /* ---------- Message temporaire ---------- */
 .toast {
   position: fixed; left: 50%; bottom: 24px; z-index: 200; transform: translateX(-50%);
@@ -2400,6 +2420,53 @@ const ProjectView = {
       renderGantt();
     };
 
+    /* ---------- Calendrier des colonnes Date début / Date fin ---------- */
+    // s'affiche sous la cellule en cours de saisie ; un clic sur un jour remplit la date, la saisie au clavier reste possible
+    const openCalendar = (input, cell, onPick) => {
+      const pop = document.createElement("div");
+      pop.className = "cal-pop";
+      const view = Dates.parseISO(Dates.parseFR(input.value) || todayISO());
+      view.setDate(1);
+      const render = () => {
+        const y = view.getFullYear(), m = view.getMonth(), today = todayISO(), chosen = Dates.parseFR(input.value);
+        const offset = (new Date(y, m, 1, 12).getDay() + 6) % 7, count = new Date(y, m + 1, 0).getDate();
+        let days = "<span></span>".repeat(offset);
+        for (let d = 1; d <= count; d++) {
+          const date = new Date(y, m, d, 12), iso = Dates.toISO(date);
+          const cls = [Dates.isWeekend(date) ? "we" : "", iso === today ? "today" : "", iso === chosen ? "chosen" : ""].join(" ");
+          days += `<button type="button" class="${cls}" data-iso="${iso}">${d}</button>`;
+        }
+        const title = view.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+        pop.innerHTML = `
+          <div class="cal-head">
+            <button type="button" data-nav="-1" aria-label="Mois précédent">‹</button>
+            <span>${title}</span>
+            <button type="button" data-nav="1" aria-label="Mois suivant">›</button>
+          </div>
+          <div class="cal-grid">${["L", "M", "M", "J", "V", "S", "D"].map((d) => `<b>${d}</b>`).join("")}${days}</div>
+          <div class="cal-foot"><button type="button" data-today>Aujourd'hui</button></div>`;
+      };
+      pop.addEventListener("mousedown", (e) => e.preventDefault());   // la saisie garde le focus
+      pop.addEventListener("click", (e) => {
+        const nav = e.target.closest("[data-nav]"), day = e.target.closest("[data-iso]");
+        if (nav) { view.setMonth(view.getMonth() + Number(nav.dataset.nav)); render(); }
+        else if (day) { input.value = Dates.format(day.dataset.iso); onPick(); }
+        else if (e.target.closest("[data-today]")) { input.value = Dates.format(todayISO()); onPick(); }
+      });
+      // une date tapée au clavier fait suivre le calendrier
+      input.addEventListener("input", () => {
+        const iso = Dates.parseFR(input.value);
+        if (iso) { const d = Dates.parseISO(iso); view.setFullYear(d.getFullYear(), d.getMonth(), 1); }
+        render();
+      });
+      render();
+      document.body.appendChild(pop);
+      const r = cell.getBoundingClientRect(), h = pop.offsetHeight, w = pop.offsetWidth;
+      pop.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+      pop.style.top = (r.bottom + h + 8 > innerHeight ? r.top - h - 4 : r.bottom + 4) + "px";
+      return pop;
+    };
+
     /* ---------- Saisie dans une cellule ---------- */
     const openEditor = (initial) => {
       if (!sel || editor) return;
@@ -2421,11 +2488,14 @@ const ProjectView = {
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
       editor = { input, done: false };
+      // Date début / Date fin : calendrier (sauf si la saisie a commencé par une touche)
+      const cal = initial == null && (key === "debut" || key === "fin") ? openCalendar(input, cell, () => finish(true)) : null;
 
       const finish = (commit, after) => {
         if (!editor || editor.done) return;
         editor.done = true;
         editor = null;
+        if (cal) cal.remove();
         if (commit && input.value !== editValue()) mutate(() => commitCell(t, key, input.value));
         else renderRows();
         if (after) after();
