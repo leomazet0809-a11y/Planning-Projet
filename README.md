@@ -14,6 +14,7 @@ Chaque projet est un fichier **`.proj`** enregistré sur l'ordinateur, dans le d
 - **Ouvrir un fichier** : choisir un fichier `.proj` existant. Les **fichiers récents** se rouvrent en un clic depuis la page Menu.
 - **Enregistrement en temps réel** : chaque modification est écrite dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
 - Le titre du projet et le nom du fichier sont liés : renommer le projet renomme le fichier ; un fichier renommé sur le PC donne son nom au projet à l'ouverture.
+- Actualiser la page (F5) garde le projet ouvert ; si Chrome redemande l'autorisation d'écrire dans le fichier, un lien « Autoriser l'enregistrement » apparaît dans le bandeau.
 - Le nom du fichier ouvert est affiché dans le bandeau. Le navigateur ne communique pas le dossier où il se trouve.
 - Sur les autres navigateurs (Firefox, Safari), l'enregistrement se fait en téléchargeant le fichier (Ctrl + S).
 - Application installée (menu du navigateur › Installer) : un fichier `.proj` peut s'ouvrir par double-clic.

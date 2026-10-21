@@ -718,7 +718,7 @@ const Store = {
   save() {
     this.savePrefs();
     const p = this.currentId && this.getProject(this.currentId);
-    if (p) Files.queue(p);
+    if (p) { Files.queue(p); Files.remember(p); }
     return true;
   },
 
@@ -749,6 +749,8 @@ const Files = {
   timers: new Map(),    // id → enregistrement différé
   chains: new Map(),    // id → écritures en cours (les unes après les autres)
   states: new Map(),    // id → "saved" | "saving" | "unsaved" | "permission" | "error"
+  recentKeys: new Map(),// id → clé du fichier dans les récents (pour le rouvrir après actualisation)
+  dirty: new Set(),     // projets modifiés mais pas encore écrits dans leur fichier
   onStatus: null,
 
   fileName(id) { return this.handles.get(id)?.name || ""; },
@@ -784,7 +786,7 @@ const Files = {
     catch (e) { return null; }   // fenêtre fermée
     const p = this.register(Store.blank(this.baseName(handle.name)), handle);
     await this.write(p);
-    await Recents.add(handle, p.title);
+    this.recentKeys.set(p.id, await Recents.add(handle, p.title));
     return p;
   },
 
@@ -817,12 +819,13 @@ const Files = {
     p.title = this.baseName(handle.name);   // fichier renommé sur le PC : le projet prend son nom
     const perm = await handle.queryPermission?.({ mode: "readwrite" });
     if (perm && perm !== "granted") this.setState(p.id, "permission");
-    await Recents.add(handle, p.title);
+    this.recentKeys.set(p.id, await Recents.add(handle, p.title));
     return p;
   },
 
   // enregistrement en temps réel : quelques instants après la dernière modification
   queue(p) {
+    this.dirty.add(p.id);
     if (!this.handles.has(p.id)) { this.setState(p.id, "unsaved"); return; }
     if (this.states.get(p.id) === "permission") return;
     clearTimeout(this.timers.get(p.id));
@@ -841,6 +844,7 @@ const Files = {
     this.chains.set(p.id, job.catch(() => {}));
     try {
       await job;
+      this.dirty.delete(p.id);
       this.setState(p.id, "saved");
       Recents.touch(handle, p.title);
       return true;
@@ -902,7 +906,7 @@ const Files = {
     this.handles.set(p.id, handle);
     this.setState(p.id, "saving");
     const ok = await this.write(p);
-    await Recents.add(handle, p.title);
+    this.recentKeys.set(p.id, await Recents.add(handle, p.title));
     return ok;
   },
 
@@ -916,7 +920,36 @@ const Files = {
 
   // des modifications ne sont pas encore écrites dans un fichier
   hasPending() {
-    return [...this.states.entries()].some(([id, st]) => st !== "saved" && Store.getProject(id));
+    return [...this.dirty].some((id) => Store.getProject(id) && this.handles.has(id));
+  },
+
+  /* --- Projet ouvert dans cet onglet : retrouvé après une actualisation de la page (F5) --- */
+  SESSION_KEY: "plan-projet:ouvert",
+  remember(p) {
+    try {
+      sessionStorage.setItem(this.SESSION_KEY, JSON.stringify({
+        id: p.id, key: this.recentKeys.get(p.id) || null, text: this.toText(p), dirty: this.dirty.has(p.id),
+      }));
+    } catch (e) { /* stockage de l'onglet indisponible */ }
+  },
+  forget() { try { sessionStorage.removeItem(this.SESSION_KEY); } catch (e) { /* ignoré */ } },
+  async restore(id) {
+    let snap = null;
+    try { snap = JSON.parse(sessionStorage.getItem(this.SESSION_KEY)); } catch (e) { snap = null; }
+    if (!snap || snap.id !== id) return null;
+    const p = this.fromText(snap.text, "Projet");
+    p.id = id;
+    const entry = snap.key ? await Recents.get(snap.key) : null;
+    this.register(p, entry ? entry.handle : null);
+    if (entry) {
+      this.recentKeys.set(id, snap.key);
+      let perm = "granted";
+      try { perm = await entry.handle.queryPermission({ mode: "readwrite" }); } catch (e) { /* ignoré */ }
+      if (snap.dirty) this.dirty.add(id);
+      if (perm !== "granted") this.setState(id, "permission");
+      else if (snap.dirty) this.queue(p);
+    } else if (snap.dirty) this.dirty.add(id);
+    return p;
   },
 };
 
@@ -962,7 +995,11 @@ const Recents = {
       await this.run("readwrite", (st) => st.put(e));
       const all = await this.list();
       for (const old of all.slice(12)) await this.remove(old.key);
-    } catch (err) { /* liste des récents indisponible */ }
+      return e.key;
+    } catch (err) { return null; /* liste des récents indisponible */ }
+  },
+  async get(key) {
+    try { return (await this.run("readonly", (st) => st.get(key))) || null; } catch (err) { return null; }
   },
   // met à jour le titre affiché (sans changer l'ordre)
   async touch(handle, title) {
@@ -1434,6 +1471,7 @@ const ProjectView = {
     const p = Store.getProject(id);
     if (!p) { Router.go(""); return; }   // page rechargée : rouvrir le fichier depuis les récents
     Store.currentId = id;
+    Files.remember(p);
     root.innerHTML = `
       <div class="project-page">
         <header class="topbar">
@@ -2508,8 +2546,20 @@ const Router = {
     document.title = "Plan Projet";
     if (ProjectView.cleanup) { ProjectView.cleanup(); ProjectView.cleanup = null; }
     Store.currentId = null;
-    if (m) ProjectView.render(root, m[1]);
-    else MenuView.render(root);
+    if (m) {
+      if (!Store.getProject(m[1])) {
+        // page actualisée : on rouvre le projet de cet onglet
+        Files.restore(m[1]).then((p) => {
+          if (location.hash.replace(/^#\/?/, "") !== path) return;
+          if (p) ProjectView.render(root, m[1]); else Router.go("");
+        });
+        return;
+      }
+      ProjectView.render(root, m[1]);
+    } else {
+      Files.forget();
+      MenuView.render(root);
+    }
   },
 };
 
