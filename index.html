@@ -17,6 +17,8 @@
   --surface: #ffffff;
   --surface-2: #f0f2f8;
   --border: #e3e6ef;
+  --grid-line: #eef0f5;
+  --weekend: rgba(20, 24, 40, .045);
   --text: #1b1e2b;
   --text-muted: #6b7189;
   --accent: #5b5bf0;
@@ -24,6 +26,10 @@
   --accent-text: #ffffff;
   --danger: #e5484d;
   --danger-soft: #fdecec;
+  --lvl1: #5b5bf0;
+  --lvl2: #9b5cf6;
+  --lvl3: #0ea5e9;
+  --lvl4: #14b8a6;
   --shadow: 0 1px 2px rgba(20, 24, 40, .05), 0 4px 16px rgba(20, 24, 40, .06);
   --radius: 14px;
   --radius-sm: 8px;
@@ -34,6 +40,8 @@
   --surface: #171a23;
   --surface-2: #1f2330;
   --border: #2a2f3e;
+  --grid-line: #20242f;
+  --weekend: rgba(255, 255, 255, .035);
   --text: #e8eaf2;
   --text-muted: #9097ad;
   --accent: #8484ff;
@@ -41,6 +49,10 @@
   --accent-text: #0f1117;
   --danger: #ff6b6f;
   --danger-soft: #3a1d22;
+  --lvl1: #8484ff;
+  --lvl2: #b48cff;
+  --lvl3: #38bdf8;
+  --lvl4: #2dd4bf;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
@@ -53,7 +65,6 @@ body {
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
-  transition: background .2s, color .2s;
 }
 button { font: inherit; color: inherit; }
 
@@ -84,22 +95,24 @@ button { font: inherit; color: inherit; }
 }
 .btn:hover { background: var(--surface-2); }
 .btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: default; transform: none; }
+.btn:disabled:hover { background: var(--surface); border-color: var(--border); }
 .btn:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .btn-primary:hover { background: var(--accent); filter: brightness(1.08); }
 .btn-danger { color: var(--danger); }
 .btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
 .icon-btn {
-  width: 36px; height: 36px; border-radius: 10px;
+  width: 36px; height: 36px; border-radius: 10px; flex: 0 0 auto;
   display: grid; place-items: center;
   border: 1px solid var(--border); background: var(--surface); cursor: pointer;
 }
 .icon-btn:hover { background: var(--surface-2); }
-.icon-btn svg, .btn svg { width: 18px; height: 18px; }
+.icon-btn svg, .btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
 
 /* ---------- Page Menu ---------- */
 .menu-page { max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px; }
-.menu-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.menu-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
 .menu-head h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .menu-head p { margin: 4px 0 0; color: var(--text-muted); }
 .grid-cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
@@ -137,11 +150,15 @@ button { font: inherit; color: inherit; }
 }
 .project-title:hover { border-color: var(--border); }
 .project-title:focus { outline: none; border-color: var(--accent); background: var(--surface-2); }
-.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 34px; --head-h: 66px; }
+.save-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 34px; --head-h: 88px; }
 .toolbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
 }
+.toolbar .sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+.hint { font-size: 12px; color: var(--text-muted); }
+.zoom-label { font-size: 12px; color: var(--text-muted); min-width: 64px; text-align: center; }
 .split { flex: 1; min-height: 0; display: flex; background: var(--surface); }
 .pane { display: flex; flex-direction: column; min-width: 0; }
 .pane-left { flex: 0 0 auto; }
@@ -151,6 +168,7 @@ button { font: inherit; color: inherit; }
   background: var(--surface-2); border-bottom: 1px solid var(--border);
 }
 .pane-body { flex: 1; min-height: 0; }
+.pane-body:focus { outline: none; }
 /* une seule barre verticale : celle du planning, collée au bord droit de la fenêtre */
 .pane-left .pane-body { overflow-x: scroll; overflow-y: hidden; }
 .pane-right .pane-body { overflow: scroll; }
@@ -173,22 +191,103 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 /* ---------- Tableau ---------- */
 .trow { display: flex; height: var(--row-h); border-bottom: 1px solid var(--border); width: max-content; min-width: 100%; }
 .tcell {
-  flex: 0 0 auto; border-right: 1px solid var(--border);
-  padding: 0 10px; line-height: var(--row-h);
+  position: relative; flex: 0 0 auto; border-right: 1px solid var(--border);
+  padding: 0 10px; line-height: calc(var(--row-h) - 1px);
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  user-select: none; cursor: cell;
 }
+.tcell.num { text-align: right; }
+.tcell.center { text-align: center; }
+.tcell.lvl1 { font-weight: 600; }
+.tcell.invalid { color: var(--danger); font-weight: 600; }
+.tcell.in-range { background: var(--accent-soft); }
+.tcell.sel { box-shadow: inset 0 0 0 2px var(--accent); }
+.trow.row-sel { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .thead-row { height: var(--head-h); border-bottom: 0; }
 .thead-row .tcell {
   display: flex; align-items: flex-end; padding-bottom: 8px; line-height: 1.25;
-  white-space: normal; font-size: 12px; font-weight: 600; color: var(--text-muted);
+  white-space: normal; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: default;
 }
-.tcell.num { text-align: right; }
-.trow:hover { background: var(--surface-2); }
+.col-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 2; }
+.col-resize:hover { background: linear-gradient(to right, transparent 3px, var(--accent) 3px 5px, transparent 5px); }
+.cell-editor {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  border: 2px solid var(--accent); padding: 0 8px; margin: 0;
+  font: inherit; color: var(--text); background: var(--surface); outline: none;
+}
+.cell-editor.num { text-align: right; }
+.cell-editor.center { text-align: center; }
 .table-empty { padding: 32px 24px; color: var(--text-muted); }
 
-/* ---------- Planning (contenu à l'étape 6) ---------- */
-.gantt-head-msg { height: 100%; display: flex; align-items: center; padding: 0 20px; color: var(--text-muted); font-size: 13px; }
-.grow { height: var(--row-h); border-bottom: 1px solid var(--border); }
+/* ---------- Planning Gantt ---------- */
+.gantt-head { position: relative; height: 100%; }
+.gh-row { position: relative; height: 22px; border-bottom: 1px solid var(--border); }
+.gh-row:last-child { border-bottom: 0; }
+.gh-cell {
+  position: absolute; top: 0; height: 100%;
+  border-left: 1px solid var(--border);
+  font-size: 11px; line-height: 21px; padding: 0 6px;
+  white-space: nowrap; overflow: clip; color: var(--text-muted);
+}
+.gh-row.days .gh-cell { padding: 0; text-align: center; }
+.gh-cell .stick { position: sticky; left: 0; padding: 0 6px; }
+.gh-row:not(.days) .gh-cell { padding: 0; }
+.gh-cell.we { background: var(--weekend); }
+.gh-cell.today { background: var(--accent); color: #fff; font-weight: 600; }
+.gh-row.years .gh-cell { font-weight: 600; color: var(--text); }
+.gh-row.months .gh-cell { color: var(--text); text-transform: capitalize; }
+.gantt-canvas { position: relative; min-height: 100%; }
+.grow { position: relative; height: var(--row-h); border-bottom: 1px solid var(--grid-line); }
+.grow.row-sel { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.grow.drop-target { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: .55; pointer-events: none; z-index: 1; }
+.bar {
+  position: absolute; top: 7px; height: 20px; border-radius: 6px; z-index: 2;
+  background: var(--c); cursor: grab; touch-action: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
+}
+.bar.lvl1 { --c: var(--lvl1); }
+.bar.lvl2 { --c: var(--lvl2); }
+.bar.lvl3 { --c: var(--lvl3); }
+.bar.lvl4 { --c: var(--lvl4); }
+.bar.dragging { cursor: grabbing; opacity: .85; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+.bar.sel { outline: 2px solid var(--text); outline-offset: 1px; }
+.bar .h-end { position: absolute; right: 0; top: 0; bottom: 0; width: 9px; cursor: ew-resize; border-radius: 0 6px 6px 0; }
+.bar .h-end::after { content: ""; position: absolute; right: 3px; top: 5px; bottom: 5px; width: 2px; border-radius: 1px; background: rgba(255, 255, 255, .7); }
+.bar .link-dot {
+  position: absolute; right: -16px; top: 50%; width: 11px; height: 11px; margin-top: -5.5px;
+  border-radius: 50%; border: 2px solid var(--c); background: var(--surface);
+  cursor: crosshair; opacity: 0; transition: opacity .15s;
+}
+.bar:hover .link-dot, .bar.dragging .link-dot { opacity: 1; }
+.bar-label {
+  position: absolute; left: calc(100% + 22px); top: 0; line-height: 20px;
+  font-size: 12px; white-space: nowrap; color: var(--text); pointer-events: none;
+}
+/* jalon (durée 0) : losange */
+.bar.ms { width: 14px !important; height: 20px; background: none; box-shadow: none; }
+.bar.ms::before { content: ""; position: absolute; left: 2px; top: 5px; width: 10px; height: 10px; background: var(--c); transform: rotate(45deg); border-radius: 2px; }
+.bar.ms .h-end { display: none; }
+.bar.ms .bar-label { left: calc(100% + 8px); }
+.links-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; overflow: visible; }
+.links-svg .link { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
+.links-svg .link-hit { fill: none; stroke: transparent; stroke-width: 10; pointer-events: stroke; cursor: pointer; }
+.links-svg .link-hit:hover + .link { stroke: var(--danger); stroke-width: 2.5; }
+.links-svg .ghost { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 5 4; }
+.links-svg marker path { fill: var(--text-muted); }
+.drag-tip {
+  position: fixed; z-index: 50; pointer-events: none;
+  background: var(--text); color: var(--bg); font-size: 12px; font-weight: 500;
+  padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+}
+
+/* ---------- Message temporaire ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 200; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px;
+  font-weight: 500; box-shadow: var(--shadow); animation: toast-in .2s ease-out;
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 
 /* ---------- Fenêtre de confirmation ---------- */
 .modal-backdrop {
@@ -203,10 +302,11 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .modal p { margin: 0 0 20px; color: var(--text-muted); line-height: 1.5; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
-@media (max-width: 640px) {
-  .topbar { padding: 0 16px; }
+@media (max-width: 1200px) { .hint { display: none; } }
+@media (max-width: 760px) {
+  .topbar, .toolbar { padding-left: 16px; padding-right: 16px; }
   .menu-page { padding: 24px 16px 48px; }
-  .brand span { display: none; }
+  .brand span, .btn .lbl, .save-status { display: none; }
 }
 </style>
 </head>
@@ -220,10 +320,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
    Utilitaires
    ============================================================ */
 const uid = (p) => p + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const todayISO = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+const todayISO = () => Dates.toISO(new Date());
 const formatDateFR = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -231,9 +328,175 @@ const ICONS = {
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
+  save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h9V3M7 21v-7h10v7"/></svg>',
+  today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>',
+  download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>',
+  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></svg>',
+};
+
+function toast(msg) {
+  document.querySelectorAll(".toast").forEach((t) => t.remove());
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+/* ============================================================
+   Dates — jours ouvrés (lundi → vendredi)
+   ============================================================ */
+const Dates = {
+  parseISO(iso) { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d, 12); },
+  toISO(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; },
+  isWeekend(d) { const w = d.getDay(); return w === 0 || w === 6; },
+  addDays(iso, n) { const d = this.parseISO(iso); d.setDate(d.getDate() + n); return this.toISO(d); },
+  diffDays(a, b) { return Math.round((this.parseISO(b) - this.parseISO(a)) / 864e5); },
+  // samedi / dimanche → lundi suivant
+  nextWorkday(iso) { const d = this.parseISO(iso); while (this.isWeekend(d)) d.setDate(d.getDate() + 1); return this.toISO(d); },
+  // samedi / dimanche → vendredi précédent
+  prevWorkday(iso) { const d = this.parseISO(iso); while (this.isWeekend(d)) d.setDate(d.getDate() - 1); return this.toISO(d); },
+  // avance (ou recule si n < 0) de n jours ouvrés
+  addWorkdays(iso, n) {
+    const d = this.parseISO(iso), step = n < 0 ? -1 : 1;
+    while (n !== 0) { d.setDate(d.getDate() + step); if (!this.isWeekend(d)) n -= step; }
+    return this.toISO(d);
+  },
+  // nombre de jours ouvrés de a à b inclus
+  workdaysBetween(a, b) {
+    const d = this.parseISO(a), end = this.parseISO(b);
+    let n = 0;
+    while (d <= end) { if (!this.isWeekend(d)) n++; d.setDate(d.getDate() + 1); }
+    return n;
+  },
+  // écart signé en jours ouvrés entre deux jours ouvrés
+  workdayDiff(a, b) {
+    if (a === b) return 0;
+    return b > a ? this.workdaysBetween(a, b) - 1 : -(this.workdaysBetween(b, a) - 1);
+  },
+  mondayOf(iso) { const d = this.parseISO(iso); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return this.toISO(d); },
+  isoWeek(d) {
+    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+    return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
+  },
+  format(iso) { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`; },
+  // accepte 21/10/2026, 21/10/26, 21-10-2026, 21.10 (année en cours), 2026-10-21
+  parseFR(s) {
+    s = s.trim();
+    let day, month, year;
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) { year = +m[1]; month = +m[2]; day = +m[3]; }
+    else {
+      m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2}|\d{4}))?$/);
+      if (!m) return null;
+      day = +m[1]; month = +m[2];
+      year = m[3] ? +m[3] : new Date().getFullYear();
+      if (year < 100) year += 2000;
+    }
+    const d = new Date(year, month - 1, day, 12);
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+    return this.toISO(d);
+  },
+};
+
+/* ============================================================
+   Calculs d'une tâche
+   ============================================================ */
+const HOURS_TO_DAYS = 1.5;
+
+// nombre positif, virgule ou point acceptés ; NaN sinon
+function parseNum(s) {
+  const v = String(s).trim().replace(",", ".");
+  return /^\d+(\.\d+)?$/.test(v) ? Number(v) : NaN;
+}
+
+const Task = {
+  create(level = 1) {
+    return { id: uid("t"), level, label: "", realise: "", surveille: "", heures: "", start: Dates.nextWorkday(todayISO()) };
+  },
+  // Durée jours = Heures effectives × 1,5, arrondie à l'entier le plus proche ; null si incalculable
+  duration(t) {
+    if (t.dureeText) return null;
+    if (String(t.heures).trim() === "") return null;
+    const h = parseNum(t.heures);
+    return isNaN(h) ? null : Math.round(h * HOURS_TO_DAYS);
+  },
+  // heures arrondies à l'heure entière
+  hoursFromDays(days) { return String(Math.round(days / HOURS_TO_DAYS)); },
+  end(t) {
+    const d = this.duration(t);
+    if (d == null || !t.start) return null;
+    return Dates.addWorkdays(t.start, Math.max(d, 1) - 1);
+  },
+};
+
+/* ============================================================
+   Dépendances : B commence après la fin de A
+   ============================================================ */
+const Links = {
+  byId(p, id) { return p.tasks.find((t) => t.id === id); },
+
+  // A peut-elle être liée à B sans créer de boucle ?
+  canLink(p, a, b) {
+    if (a === b) return false;
+    if ((p.links || []).some((l) => l.from === a.id && l.to === b.id)) return false;
+    const seen = new Set(), stack = [b.id];
+    while (stack.length) {
+      const id = stack.pop();
+      if (id === a.id) return false;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      p.links.forEach((l) => { if (l.from === id) stack.push(l.to); });
+    }
+    return true;
+  },
+
+  add(p, a, b) {
+    p.links = p.links || [];
+    if (!this.canLink(p, a, b)) return false;
+    p.links.push({ from: a.id, to: b.id });
+    this.enforce(p);
+    return true;
+  },
+
+  // Décale les tâches liées du même nombre de jours ouvrés (elles « suivent »)
+  shiftSuccessors(p, t, delta, seen = new Set()) {
+    (p.links || []).forEach((l) => {
+      if (l.from !== t.id) return;
+      const s = this.byId(p, l.to);
+      if (!s || seen.has(s.id) || !s.start) return;
+      seen.add(s.id);
+      s.start = Dates.addWorkdays(s.start, delta);
+      this.shiftSuccessors(p, s, delta, seen);
+    });
+  },
+
+  // Aucune tâche liée ne peut commencer avant la fin de sa tâche d'origine
+  enforce(p) {
+    for (let i = 0; i <= p.tasks.length; i++) {
+      let changed = false;
+      (p.links || []).forEach((l) => {
+        const a = this.byId(p, l.from), b = this.byId(p, l.to);
+        const endA = a && Task.end(a);
+        if (!endA || !b || !b.start) return;
+        const min = Dates.addWorkdays(endA, 1);
+        if (b.start < min) { b.start = min; changed = true; }
+      });
+      if (!changed) break;
+    }
+  },
+
+  // À appeler après toute modification d'une tâche (oldEnd = sa date de fin avant la modification)
+  afterChange(p, t, oldEnd) {
+    const newEnd = Task.end(t);
+    if (oldEnd && newEnd && oldEnd !== newEnd) this.shiftSuccessors(p, t, Dates.workdayDiff(oldEnd, newEnd));
+    this.enforce(p);
+  },
 };
 
 /* ============================================================
@@ -248,10 +511,12 @@ const Store = {
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) { raw = null; }
     this.data = raw && Array.isArray(raw.projects) ? raw : { version: 1, theme: null, projects: [] };
+    this.data.projects.forEach((p) => { p.ui = p.ui || {}; p.tasks = p.tasks || []; p.links = p.links || []; });
   },
 
   save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (e) { console.warn("Sauvegarde impossible", e); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); return true; }
+    catch (e) { console.warn("Sauvegarde impossible", e); return false; }
   },
 
   getProject(id) { return this.data.projects.find((p) => p.id === id); },
@@ -292,17 +557,32 @@ const Store = {
     this.save();
   },
 
-  addTask(projectId) {
-    const p = this.getProject(projectId);
-    const t = { id: uid("t"), level: 1, label: "", realise: "", surveille: "", heures: "", start: null };
-    p.tasks.push(t);
-    this.updateProject(projectId, {});
-    return t;
-  },
-
   deleteProject(id) {
     this.data.projects = this.data.projects.filter((p) => p.id !== id);
     this.save();
+  },
+
+  exportJSON() {
+    const blob = new Blob([JSON.stringify({ version: 1, projects: this.data.projects }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `plan-projet-${todayISO()}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  },
+
+  // ajoute les projets du fichier ; un projet déjà présent (même identifiant) est remplacé
+  importJSON(text) {
+    const raw = JSON.parse(text);
+    if (!raw || !Array.isArray(raw.projects)) throw new Error("format");
+    raw.projects.forEach((p) => {
+      if (!p || !p.id || !Array.isArray(p.tasks)) return;
+      p.ui = p.ui || {}; p.links = p.links || [];
+      const i = this.data.projects.findIndex((x) => x.id === p.id);
+      if (i >= 0) this.data.projects[i] = p; else this.data.projects.push(p);
+    });
+    this.save();
+    return raw.projects.length;
   },
 };
 
@@ -356,14 +636,14 @@ function confirmDialog({ title, message, okLabel = "Confirmer", danger = false }
           <button class="btn ${danger ? "btn-danger" : "btn-primary"}" data-act="ok">${esc(okLabel)}</button>
         </div>
       </div>`;
-    const close = (val) => { bd.remove(); document.removeEventListener("keydown", onKey); resolve(val); };
-    const onKey = (e) => { if (e.key === "Escape") close(false); };
+    const close = (val) => { bd.remove(); document.removeEventListener("keydown", onKey, true); resolve(val); };
+    const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(false); } };
     bd.addEventListener("click", (e) => {
       if (e.target === bd) close(false);
       const act = e.target.closest("[data-act]")?.dataset.act;
       if (act) close(act === "ok");
     });
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     document.body.appendChild(bd);
     bd.querySelector('[data-act="cancel"]').focus();
   });
@@ -403,7 +683,10 @@ const MenuView = {
             <p>Cliquez sur un nom ou un titre pour le modifier. Ouvrez un projet pour planifier ses tâches.</p>
           </div>
           <div class="spacer"></div>
+          <button class="btn" data-act="import" title="Charger des projets depuis un fichier de sauvegarde">${ICONS.upload}<span class="lbl">Importer</span></button>
+          <button class="btn" data-act="export" title="Télécharger une sauvegarde de tous les projets"${projects.length ? "" : " disabled"}>${ICONS.download}<span class="lbl">Exporter</span></button>
           <button class="btn btn-primary" data-act="new">${ICONS.plus} Nouveau projet</button>
+          <input type="file" accept=".json,application/json" hidden data-slot="file">
         </div>
         ${projects.length ? `<div class="grid-cards">${projects.map(cardHTML).join("")}</div>` : `
           <div class="empty">
@@ -422,6 +705,21 @@ const MenuView = {
       const first = root.querySelector(".inline-edit.name");
       if (first) { first.focus(); first.select(); }
     }));
+
+    root.querySelector('[data-act="export"]').addEventListener("click", () => Store.exportJSON());
+    const file = root.querySelector('[data-slot="file"]');
+    root.querySelector('[data-act="import"]').addEventListener("click", () => file.click());
+    file.addEventListener("change", async () => {
+      const f = file.files[0];
+      if (!f) return;
+      try {
+        const n = Store.importJSON(await f.text());
+        MenuView.render(root);
+        toast(`${n} projet${n > 1 ? "s" : ""} importé${n > 1 ? "s" : ""}`);
+      } catch (e) {
+        toast("Ce fichier n'est pas une sauvegarde Plan Projet");
+      }
+    });
 
     root.querySelectorAll(".card").forEach((card) => {
       const id = card.dataset.id;
@@ -460,7 +758,7 @@ const MenuView = {
 };
 
 /* ============================================================
-   Page Projet : tableau à gauche, planning à droite
+   Tableau : colonnes, affichage et saisie des cellules
    ============================================================ */
 const COLUMNS = [
   { key: "niv1", label: "Niv 1", w: 170 },
@@ -469,52 +767,149 @@ const COLUMNS = [
   { key: "niv4", label: "Niv 4", w: 150 },
   { key: "realise", label: "Réalise", w: 110 },
   { key: "surveille", label: "Surveille", w: 110 },
-  { key: "heures", label: "Heures effectives", w: 90, num: true },
-  { key: "duree", label: "Durée jours", w: 80, num: true },
-  { key: "debut", label: "Date début", w: 100 },
-  { key: "fin", label: "Date fin", w: 100 },
+  { key: "heures", label: "Heures effectives", w: 90, align: "num" },
+  { key: "duree", label: "Durée jours", w: 80, align: "num" },
+  { key: "debut", label: "Date début", w: 100, align: "center" },
+  { key: "fin", label: "Date fin", w: 100, align: "center" },
 ];
+const COL = Object.fromEntries(COLUMNS.map((c, i) => [c.key, i]));
+const isNivCol = (c) => c <= COL.niv4;
 const DEFAULT_GRID_RATIO = 0.55;
 const MIN_PANE = 200;
+const MIN_COL = 50;
+const ROW_H = 34;
+const ZOOMS = [6, 10, 14, 20, 28, 40, 56];
+const DEFAULT_ZOOM = 28;
 
-function cellValue(task, key) {
+// Ce qu'affiche une cellule : { text, invalid }
+function cellDisplay(t, key) {
   const m = key.match(/^niv(\d)$/);
-  if (m) return task.level === Number(m[1]) ? task.label : "";
-  if (key === "realise" || key === "surveille" || key === "heures") return task[key];
-  return ""; // Durée / dates : étapes suivantes
+  if (m) return { text: t.level === Number(m[1]) ? t.label : "" };
+  switch (key) {
+    case "realise": case "surveille": return { text: t[key] };
+    case "heures": return { text: t.heures, invalid: String(t.heures).trim() !== "" && isNaN(parseNum(t.heures)) };
+    case "duree": {
+      if (t.dureeText) return { text: t.dureeText, invalid: true };
+      const d = Task.duration(t);
+      return { text: d == null ? "" : String(d) };
+    }
+    case "debut": return t.debutText ? { text: t.debutText, invalid: true } : { text: Dates.format(t.start) };
+    case "fin": return t.finText ? { text: t.finText, invalid: true } : { text: Dates.format(Task.end(t)) };
+  }
+  return { text: "" };
 }
 
+// Enregistre la saisie d'une cellule dans la tâche
+function commitCell(t, key, raw) {
+  raw = String(raw);
+  const v = raw.trim();
+  const m = key.match(/^niv(\d)$/);
+  if (m) {
+    const lvl = Number(m[1]);
+    if (v) { t.level = lvl; t.label = v; } else if (t.level === lvl) t.label = "";
+    return;
+  }
+  const ensureStart = () => { if (!t.start) { t.start = Dates.nextWorkday(todayISO()); delete t.debutText; } };
+  switch (key) {
+    case "realise": case "surveille": t[key] = v; break;
+    case "heures":
+      t.heures = v; delete t.dureeText; delete t.finText;
+      if (v) ensureStart();
+      break;
+    case "duree":
+      delete t.finText;
+      if (!v) { t.heures = ""; delete t.dureeText; break; }
+      if (isNaN(parseNum(v))) { t.dureeText = v; break; }
+      t.heures = Task.hoursFromDays(parseNum(v)); delete t.dureeText;
+      ensureStart();
+      break;
+    case "debut": {
+      if (!v) { t.start = null; delete t.debutText; break; }
+      const iso = Dates.parseFR(v);
+      if (!iso) { t.debutText = v; break; }
+      t.start = Dates.nextWorkday(iso); delete t.debutText;
+      break;
+    }
+    case "fin": {
+      delete t.finText;
+      if (!v) break;
+      let iso = Dates.parseFR(v);
+      if (!iso) { t.finText = v; break; }
+      ensureStart();
+      iso = Dates.prevWorkday(iso);
+      if (iso < t.start) iso = t.start;
+      t.heures = Task.hoursFromDays(Dates.workdaysBetween(t.start, iso));
+      delete t.dureeText;
+      break;
+    }
+  }
+}
+
+// Texte tabulé (Excel) → tableau de lignes / cellules ; gère les cellules entre guillemets
+function parseTSV(text) {
+  const rows = [];
+  let row = [], cell = "", i = 0, quoted = false;
+  text = text.replace(/\r\n?/g, "\n");
+  while (i < text.length) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i += 2; continue; }
+      if (ch === '"') { quoted = false; i++; continue; }
+      cell += ch; i++; continue;
+    }
+    if (ch === '"' && cell === "") { quoted = true; i++; continue; }
+    if (ch === "\t") { row.push(cell); cell = ""; i++; continue; }
+    if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; i++; continue; }
+    cell += ch; i++;
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+const toTSVCell = (s) => (/[\t\n"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+
+/* ============================================================
+   Page Projet : tableau à gauche, planning à droite
+   ============================================================ */
 const ProjectView = {
   render(root, id) {
     const p = Store.getProject(id);
     if (!p) { Router.go(""); return; }
-    p.ui = p.ui || {};
     root.innerHTML = `
       <div class="project-page">
         <header class="topbar">
-          <button class="btn" data-act="back">${ICONS.back} Menu</button>
+          <button class="btn" data-act="back" title="Retour à la liste des projets">${ICONS.back}<span class="lbl">Menu</span></button>
           <input class="project-title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
+          <span class="save-status"></span>
+          <button class="btn" data-act="save" title="Enregistrer (Ctrl + S)">${ICONS.save}<span class="lbl">Enregistrer</span></button>
           <div data-slot="theme"></div>
         </header>
         <div class="toolbar">
-          <button class="btn btn-primary" data-act="add">${ICONS.plus} Ajouter une tâche</button>
+          <button class="btn btn-primary" data-act="add" title="Ajoute une ligne sous la ligne sélectionnée">${ICONS.plus}<span class="lbl">Ajouter une tâche</span></button>
+          <button class="btn btn-danger" data-act="del" disabled title="Supprime les lignes sélectionnées">${ICONS.trash}<span class="lbl">Supprimer</span></button>
+          <span class="hint">Tab / Maj+Tab : changer de niveau · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
+          <div class="spacer"></div>
+          <button class="btn" data-act="today" title="Afficher la date du jour">${ICONS.today}<span class="lbl">Aujourd'hui</span></button>
+          <div class="sep"></div>
+          <button class="icon-btn" data-act="zoom-out" title="Dézoomer (Ctrl + molette)" aria-label="Dézoomer">${ICONS.minus}</button>
+          <span class="zoom-label"></span>
+          <button class="icon-btn" data-act="zoom-in" title="Zoomer (Ctrl + molette)" aria-label="Zoomer">${ICONS.plus}</button>
         </div>
         <div class="split">
           <section class="pane pane-left">
             <div class="pane-head"></div>
-            <div class="pane-body"></div>
+            <div class="pane-body" tabindex="0" aria-label="Tableau des tâches"></div>
           </section>
           <div class="splitter" tabindex="0" role="separator" aria-orientation="vertical"
                title="Glisser pour agrandir le tableau ou le planning (double-clic : réinitialiser)"></div>
           <section class="pane pane-right">
-            <div class="pane-head"><div class="gantt-head-msg">Le planning Gantt s'affichera ici (étape 6).</div></div>
-            <div class="pane-body"><div class="gantt-rows"></div></div>
+            <div class="pane-head"><div class="gantt-head"></div></div>
+            <div class="pane-body"><div class="gantt-canvas"></div></div>
           </section>
         </div>
       </div>`;
     root.querySelector('[data-slot="theme"]').replaceWith(Theme.button());
     root.querySelector('[data-act="back"]').addEventListener("click", () => Router.go(""));
-    bindInlineEdit(root.querySelector(".project-title"), (v) => Store.updateProject(id, { title: v }));
+    bindInlineEdit(root.querySelector(".project-title"), (v) => { Store.updateProject(id, { title: v }); document.title = v + " — Plan Projet"; });
     document.title = p.title + " — Plan Projet";
 
     const el = {
@@ -523,30 +918,601 @@ const ProjectView = {
       leftHead: root.querySelector(".pane-left .pane-head"),
       leftBody: root.querySelector(".pane-left .pane-body"),
       rightHead: root.querySelector(".pane-right .pane-head"),
+      ganttHead: root.querySelector(".gantt-head"),
       rightBody: root.querySelector(".pane-right .pane-body"),
-      ganttRows: root.querySelector(".gantt-rows"),
+      canvas: root.querySelector(".gantt-canvas"),
       splitter: root.querySelector(".splitter"),
+      del: root.querySelector('[data-act="del"]'),
+      zoomLabel: root.querySelector(".zoom-label"),
+      status: root.querySelector(".save-status"),
+    };
+
+    const cleanups = [];
+    const on = (target, type, fn, opts) => { target.addEventListener(type, fn, opts); cleanups.push(() => target.removeEventListener(type, fn, opts)); };
+    ProjectView.cleanup = () => cleanups.forEach((f) => f());
+
+    /* ---------- Enregistrer (bouton + Ctrl + S) ---------- */
+    const save = () => { Store.updateProject(id, {}); el.status.textContent = ""; };
+    const saveNow = () => {
+      if (editor) editor.input.blur();
+      Store.updateProject(id, {});
+      if (Store.save()) {
+        const now = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        el.status.textContent = "Enregistré à " + now;
+        toast("Projet enregistré");
+      } else toast("Échec de l'enregistrement");
+    };
+    root.querySelector('[data-act="save"]').addEventListener("click", saveNow);
+    on(document, "keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); saveNow(); }
+    });
+
+    /* ========================================================
+       TABLEAU
+       ======================================================== */
+    let sel = null;      // sélection { r, c, r2, c2 } : (r, c) = cellule active, (r2, c2) = autre coin
+    let editor = null;   // champ de saisie ouvert
+
+    const colWidth = (c) => (p.ui.colWidths && p.ui.colWidths[c.key]) || c.w;
+    const rect = () => sel && {
+      r1: Math.min(sel.r, sel.r2), r2: Math.max(sel.r, sel.r2),
+      c1: Math.min(sel.c, sel.c2), c2: Math.max(sel.c, sel.c2),
+    };
+
+    const renderTableHead = () => {
+      el.leftHead.innerHTML = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
+        `<div class="tcell" style="width:${colWidth(c)}px">${esc(c.label)}<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span></div>`).join("")}</div>`;
+      el.leftHead.scrollLeft = el.leftBody.scrollLeft;
     };
 
     const renderRows = () => {
-      const widths = COLUMNS.map((c) => (p.ui.colWidths && p.ui.colWidths[c.key]) || c.w);
-      const cells = (fn) => COLUMNS.map((c, i) => fn(c, widths[i])).join("");
-      el.leftHead.innerHTML = `<div class="trow thead-row">${cells((c, w) => `<div class="tcell" style="width:${w}px">${esc(c.label)}</div>`)}</div>`;
+      const R = rect();
       el.leftBody.innerHTML = p.tasks.length
-        ? p.tasks.map((t) => `<div class="trow" data-id="${t.id}">${cells((c, w) =>
-            `<div class="tcell${c.num ? " num" : ""}" style="width:${w}px">${esc(cellValue(t, c.key))}</div>`)}</div>`).join("")
+        ? p.tasks.map((t, r) => {
+            const inRows = R && r >= R.r1 && r <= R.r2;
+            return `<div class="trow${inRows ? " row-sel" : ""}">${COLUMNS.map((c, i) => {
+              const d = cellDisplay(t, c.key);
+              const cls = ["tcell", c.align || "",
+                d.invalid ? "invalid" : "",
+                isNivCol(i) && t.level === 1 ? "lvl1" : "",
+                inRows && i >= R.c1 && i <= R.c2 && (R.r1 !== R.r2 || R.c1 !== R.c2) ? "in-range" : "",
+                sel && sel.r === r && sel.c === i ? "sel" : ""].join(" ");
+              return `<div class="${cls}" data-r="${r}" data-c="${i}" style="width:${colWidth(c)}px"${d.invalid ? ' title="Valeur non numérique : le calcul est bloqué"' : ""}>${esc(d.text)}</div>`;
+            }).join("")}</div>`;
+          }).join("")
         : `<div class="table-empty">Aucune tâche. Cliquez sur « Ajouter une tâche » pour commencer.</div>`;
-      el.ganttRows.innerHTML = p.tasks.map(() => `<div class="grow"></div>`).join("");
+      el.del.disabled = !sel;
     };
-    renderRows();
 
-    root.querySelector('[data-act="add"]').addEventListener("click", () => {
-      Store.addTask(id);
+    const renderAll = () => { renderTableHead(); renderRows(); renderGantt(); };
+
+    const cellEl = (r, c) => el.leftBody.querySelector(`.tcell[data-r="${r}"][data-c="${c}"]`);
+
+    const ensureVisible = (r, c) => {
+      const cell = cellEl(r, c);
+      if (!cell) return;
+      const top = r * ROW_H, bottom = top + ROW_H, vb = el.rightBody;
+      if (top < vb.scrollTop) vb.scrollTop = top;
+      else if (bottom > vb.scrollTop + vb.clientHeight) vb.scrollTop = bottom - vb.clientHeight;
+      const lb = el.leftBody;
+      if (cell.offsetLeft < lb.scrollLeft) lb.scrollLeft = cell.offsetLeft;
+      else if (cell.offsetLeft + cell.offsetWidth > lb.scrollLeft + lb.clientWidth) lb.scrollLeft = cell.offsetLeft + cell.offsetWidth - lb.clientWidth;
+    };
+
+    const clampR = (r) => Math.max(0, Math.min(p.tasks.length - 1, r));
+    const clampC = (c) => Math.max(0, Math.min(COLUMNS.length - 1, c));
+
+    const select = (r, c, extend = false) => {
+      if (!p.tasks.length) { sel = null; renderRows(); highlightGantt(); return; }
+      r = clampR(r); c = clampC(c);
+      if (extend && sel) { sel.r2 = r; sel.c2 = c; }
+      else sel = { r, c, r2: r, c2: c };
       renderRows();
-      el.rightBody.scrollTop = el.rightBody.scrollHeight;
+      highlightGantt();
+      ensureVisible(extend ? sel.r2 : sel.r, extend ? sel.c2 : sel.c);
+    };
+
+    // applique une modification à des tâches puis met à jour liens, affichage et sauvegarde
+    const mutate = (tasks, fn) => {
+      const before = tasks.map((t) => Task.end(t));
+      fn();
+      tasks.forEach((t, i) => Links.afterChange(p, t, before[i]));
+      save();
+      renderRows();
+      renderGantt();
+    };
+
+    /* ---------- Saisie dans une cellule ---------- */
+    const openEditor = (initial) => {
+      if (!sel || editor) return;
+      sel.r2 = sel.r; sel.c2 = sel.c;
+      renderRows();
+      const cell = cellEl(sel.r, sel.c);
+      const t = p.tasks[sel.r], key = COLUMNS[sel.c].key;
+      const input = document.createElement("input");
+      input.className = "cell-editor " + (COLUMNS[sel.c].align || "");
+      input.value = initial != null ? initial : cellDisplay(t, key).text;
+      cell.textContent = "";
+      cell.classList.remove("invalid");
+      cell.appendChild(input);
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+      editor = { input, done: false };
+
+      const finish = (commit, after) => {
+        if (!editor || editor.done) return;
+        editor.done = true;
+        editor = null;
+        if (commit && input.value !== cellDisplay(t, key).text) mutate([t], () => commitCell(t, key, input.value));
+        else renderRows();
+        if (after) after();
+        el.leftBody.focus({ preventScroll: true });
+      };
+      input.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); finish(true); saveNow(); }
+        else if (e.key === "Enter") { e.preventDefault(); finish(true, () => select(sel.r + (e.shiftKey ? -1 : 1), sel.c)); }
+        else if (e.key === "Escape") { e.preventDefault(); finish(false); }
+        else if (e.key === "Tab") { e.preventDefault(); finish(true, () => indent(e.shiftKey ? -1 : 1)); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); finish(true, () => select(sel.r - 1, sel.c)); }
+        else if (e.key === "ArrowDown") { e.preventDefault(); finish(true, () => select(sel.r + 1, sel.c)); }
+      });
+      input.addEventListener("blur", () => finish(true));
+    };
+
+    /* ---------- Niveaux : Tab = descendre d'un niveau, Maj+Tab = remonter ---------- */
+    const indent = (delta) => {
+      if (!sel) return;
+      const R = rect();
+      const tasks = p.tasks.slice(R.r1, R.r2 + 1);
+      tasks.forEach((t) => { t.level = Math.max(1, Math.min(4, t.level + delta)); });
+      if (isNivCol(sel.c)) {
+        const c = p.tasks[sel.r].level - 1;
+        sel.c = c; sel.c2 = c;
+      }
+      save();
+      renderRows();
+      renderGantt();
+    };
+
+    /* ---------- Souris : sélection d'une cellule ou d'une plage ---------- */
+    let dragSel = false;
+    el.leftBody.addEventListener("mousedown", (e) => {
+      const cell = e.target.closest(".tcell[data-r]");
+      if (!cell || e.target.classList.contains("cell-editor") || e.button !== 0) return;
+      e.preventDefault();
+      if (editor) editor.input.blur();
+      select(+cell.dataset.r, +cell.dataset.c, e.shiftKey);
+      dragSel = true;
+      el.leftBody.focus({ preventScroll: true });
+    });
+    el.leftBody.addEventListener("mouseover", (e) => {
+      if (!dragSel || !sel) return;
+      const cell = e.target.closest(".tcell[data-r]");
+      if (!cell) return;
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      if (r !== sel.r2 || c !== sel.c2) select(r, c, true);
+    });
+    on(window, "mouseup", () => { dragSel = false; });
+    el.leftBody.addEventListener("dblclick", (e) => {
+      if (e.target.closest(".tcell[data-r]") && !editor) openEditor();
     });
 
-    // --- Défilement : le planning porte la barre verticale, le tableau suit ---
+    /* ---------- Clavier ---------- */
+    el.leftBody.addEventListener("keydown", (e) => {
+      if (editor || !sel) return;
+      const moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+      if (moves[e.key]) {
+        e.preventDefault();
+        const [dr, dc] = moves[e.key];
+        if (e.shiftKey) select(sel.r2 + dr, sel.c2 + dc, true);
+        else select(sel.r + dr, sel.c + dc);
+        return;
+      }
+      if (e.key === "Tab") { e.preventDefault(); indent(e.shiftKey ? -1 : 1); return; }
+      if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); openEditor(); return; }
+      if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
+      if (e.key === "Escape") { select(sel.r, sel.c); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        sel = { r: 0, c: 0, r2: p.tasks.length - 1, c2: COLUMNS.length - 1 };
+        renderRows(); highlightGantt();
+        return;
+      }
+      // une touche de caractère commence la saisie (comme Excel)
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); openEditor(e.key); }
+    });
+
+    const clearRange = () => {
+      const R = rect();
+      const tasks = p.tasks.slice(R.r1, R.r2 + 1);
+      mutate(tasks, () => tasks.forEach((t) => {
+        for (let c = R.c1; c <= R.c2; c++) commitCell(t, COLUMNS[c].key, "");
+      }));
+    };
+
+    /* ---------- Copier / couper / coller (compatible Excel) ---------- */
+    const tableFocused = () => document.activeElement === el.leftBody && sel && !editor;
+    const copyRange = (e) => {
+      const R = rect();
+      const lines = [];
+      for (let r = R.r1; r <= R.r2; r++) {
+        const cells = [];
+        for (let c = R.c1; c <= R.c2; c++) cells.push(toTSVCell(cellDisplay(p.tasks[r], COLUMNS[c].key).text));
+        lines.push(cells.join("\t"));
+      }
+      e.clipboardData.setData("text/plain", lines.join("\r\n"));
+      e.preventDefault();
+    };
+    on(document, "copy", (e) => { if (tableFocused()) { copyRange(e); toast("Cellules copiées"); } });
+    on(document, "cut", (e) => { if (tableFocused()) { copyRange(e); clearRange(); } });
+    on(document, "paste", (e) => {
+      if (!tableFocused()) return;
+      e.preventDefault();
+      let data = parseTSV(e.clipboardData.getData("text/plain"));
+      if (!data.length) return;
+      const R = rect();
+      // une seule valeur collée sur une plage : elle remplit toute la plage
+      if (data.length === 1 && data[0].length === 1 && (R.r1 !== R.r2 || R.c1 !== R.c2)) {
+        data = Array.from({ length: R.r2 - R.r1 + 1 }, () => Array(R.c2 - R.c1 + 1).fill(data[0][0]));
+      }
+      const r0 = R.r1, c0 = R.c1;
+      const width = Math.min(Math.max(...data.map((row) => row.length)), COLUMNS.length - c0);
+      // ajoute les lignes manquantes
+      while (p.tasks.length < r0 + data.length) p.tasks.push(Task.create(1));
+      const pasted = (key) => COL[key] >= c0 && COL[key] < c0 + width;
+      const tasks = p.tasks.slice(r0, r0 + data.length);
+      mutate(tasks, () => data.forEach((row, i) => {
+        const t = tasks[i];
+        for (let j = 0; j < width; j++) {
+          const key = COLUMNS[c0 + j].key;
+          // Durée et Date fin sont recalculées si Heures est collée en même temps
+          if (key === "duree" && pasted("heures")) continue;
+          if (key === "fin" && (pasted("heures") || pasted("duree"))) continue;
+          commitCell(t, key, row[j] ?? "");
+        }
+      }));
+      sel = { r: r0, c: c0, r2: r0 + data.length - 1, c2: c0 + width - 1 };
+      renderRows(); highlightGantt();
+      toast(`${data.length} ligne${data.length > 1 ? "s" : ""} collée${data.length > 1 ? "s" : ""}`);
+    });
+
+    /* ---------- Ajouter / supprimer des tâches ---------- */
+    root.querySelector('[data-act="add"]').addEventListener("click", () => {
+      if (editor) editor.input.blur();
+      const R = rect();
+      const at = R ? R.r2 + 1 : p.tasks.length;
+      const level = R ? p.tasks[R.r2].level : 1;
+      p.tasks.splice(at, 0, Task.create(level));
+      save();
+      renderAll();
+      select(at, level - 1);
+      el.leftBody.focus({ preventScroll: true });
+    });
+    el.del.addEventListener("click", async () => {
+      if (!sel) return;
+      const R = rect();
+      const victims = p.tasks.slice(R.r1, R.r2 + 1);
+      const named = victims.filter((t) => t.label.trim());
+      if (named.length) {
+        const ok = await confirmDialog({
+          title: victims.length > 1 ? `Supprimer ces ${victims.length} tâches ?` : "Supprimer cette tâche ?",
+          message: victims.length > 1 ? "Les lignes sélectionnées et leurs liens seront supprimés." : `« ${named[0].label} » et ses liens seront supprimés.`,
+          okLabel: "Supprimer", danger: true,
+        });
+        if (!ok) return;
+      }
+      const ids = new Set(victims.map((t) => t.id));
+      p.tasks.splice(R.r1, victims.length);
+      p.links = p.links.filter((l) => !ids.has(l.from) && !ids.has(l.to));
+      save();
+      sel = null;
+      renderAll();
+      if (p.tasks.length) select(Math.min(R.r1, p.tasks.length - 1), sel ? sel.c : 0);
+      el.leftBody.focus({ preventScroll: true });
+    });
+
+    /* ---------- Largeur des colonnes ---------- */
+    el.leftHead.addEventListener("pointerdown", (e) => {
+      const h = e.target.closest(".col-resize");
+      if (!h) return;
+      e.preventDefault();
+      const col = COLUMNS[+h.dataset.c];
+      const startX = e.clientX, startW = colWidth(col);
+      h.setPointerCapture(e.pointerId);
+      document.body.classList.add("resizing");
+      const move = (ev) => {
+        p.ui.colWidths = p.ui.colWidths || {};
+        p.ui.colWidths[col.key] = Math.max(MIN_COL, Math.round(startW + ev.clientX - startX));
+        el.leftHead.querySelectorAll(".tcell")[+h.dataset.c].style.width = p.ui.colWidths[col.key] + "px";
+        el.leftBody.querySelectorAll(`.tcell[data-c="${h.dataset.c}"]`).forEach((c) => { c.style.width = p.ui.colWidths[col.key] + "px"; });
+      };
+      const up = () => {
+        h.removeEventListener("pointermove", move);
+        document.body.classList.remove("resizing");
+        Store.save();
+      };
+      h.addEventListener("pointermove", move);
+      h.addEventListener("pointerup", up, { once: true });
+    });
+    el.leftHead.addEventListener("dblclick", (e) => {
+      const h = e.target.closest(".col-resize");
+      if (!h || !p.ui.colWidths) return;
+      delete p.ui.colWidths[COLUMNS[+h.dataset.c].key];
+      Store.save();
+      renderTableHead(); renderRows();
+    });
+
+    /* ========================================================
+       PLANNING GANTT
+       ======================================================== */
+    let dw = ZOOMS.includes(p.ui.zoom) ? p.ui.zoom : DEFAULT_ZOOM;   // largeur d'un jour en pixels
+    let range = { start: todayISO(), days: 0 };
+
+    const dayX = (iso) => Dates.diffDays(range.start, iso) * dw;
+
+    const computeRange = () => {
+      let min = todayISO(), max = todayISO();
+      p.tasks.forEach((t) => {
+        if (!t.start) return;
+        if (t.start < min) min = t.start;
+        const e = Task.end(t) || t.start;
+        if (e > max) max = e;
+      });
+      const start = Dates.mondayOf(Dates.addDays(min, -28));
+      let days = Dates.diffDays(start, Dates.addDays(max, 180));
+      days = Math.max(days, Math.ceil((el.rightBody.clientWidth || 1200) / dw) + 14);
+      days = Math.ceil(days / 7) * 7;
+      range = { start, days };
+    };
+
+    const renderGanttHead = () => {
+      const s = Dates.parseISO(range.start), today = todayISO();
+      const segs = { years: [], months: [], weeks: [] };
+      const push = (arr, key, i, label) => {
+        const last = arr[arr.length - 1];
+        if (last && last.key === key) last.n++; else arr.push({ key, i, n: 1, label });
+      };
+      let days = "";
+      for (let i = 0; i < range.days; i++) {
+        const d = new Date(s.getFullYear(), s.getMonth(), s.getDate() + i, 12);
+        const iso = Dates.toISO(d);
+        push(segs.years, d.getFullYear(), i, String(d.getFullYear()));
+        push(segs.months, d.getFullYear() * 12 + d.getMonth(), i, d);
+        push(segs.weeks, Dates.mondayOf(iso), i, d);
+        const cls = (Dates.isWeekend(d) ? " we" : "") + (iso === today ? " today" : "");
+        days += `<div class="gh-cell${cls}" style="left:${i * dw}px;width:${dw}px">${dw >= 16 ? d.getDate() : ""}</div>`;
+      }
+      const cells = (arr, fmt) => arr.map((sg) => `<div class="gh-cell" style="left:${sg.i * dw}px;width:${sg.n * dw}px"><span class="stick">${fmt(sg)}</span></div>`).join("");
+      const monthFmt = (sg) => {
+        const w = sg.n * dw;
+        if (w < 28) return "";
+        return sg.label.toLocaleDateString("fr-FR", { month: w > 90 ? "long" : "short" });
+      };
+      const weekFmt = (sg) => {
+        const w = sg.n * dw;
+        if (w < 26) return "";
+        const wk = "S" + Dates.isoWeek(sg.label);
+        return w >= 100 ? `${wk} · ${sg.label.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : wk;
+      };
+      el.ganttHead.style.width = range.days * dw + "px";
+      el.ganttHead.innerHTML = `
+        <div class="gh-row years">${cells(segs.years, (sg) => sg.label)}</div>
+        <div class="gh-row months">${cells(segs.months, monthFmt)}</div>
+        <div class="gh-row weeks">${cells(segs.weeks, weekFmt)}</div>
+        <div class="gh-row days">${days}</div>`;
+      el.zoomLabel.textContent = dw >= 40 ? "Jours" : dw >= 14 ? "Semaines" : "Mois";
+    };
+
+    const barGeom = (start, dur) => {
+      const end = Dates.addWorkdays(start, Math.max(dur, 1) - 1);
+      return { left: dayX(start), width: (Dates.diffDays(start, end) + 1) * dw };
+    };
+
+    const linkPath = (a, b) => {
+      const ra = p.tasks.indexOf(a), rb = p.tasks.indexOf(b);
+      const ea = Task.end(a), da = Task.duration(a), db = Task.duration(b);
+      if (ra < 0 || rb < 0 || !ea || !b.start || db == null) return null;
+      const x1 = da === 0 ? dayX(a.start) + dw / 2 + 8 : dayX(ea) + dw;
+      const y1 = ra * ROW_H + ROW_H / 2;
+      const x2 = db === 0 ? dayX(b.start) + dw / 2 - 8 : dayX(b.start);
+      const y2 = rb * ROW_H + ROW_H / 2;
+      if (x2 - x1 >= 16) return `M${x1} ${y1} H${x1 + 8} V${y2} H${x2 - 1}`;
+      const ym = rb > ra ? rb * ROW_H : (rb + 1) * ROW_H;
+      return `M${x1} ${y1} H${x1 + 8} V${ym} H${x2 - 10} V${y2} H${x2 - 1}`;
+    };
+
+    const renderGantt = () => {
+      computeRange();
+      renderGanttHead();
+      const W = range.days * dw, H = p.tasks.length * ROW_H;
+      const R = rect();
+      const rows = p.tasks.map((t, r) => {
+        const d = Task.duration(t);
+        let bar = "";
+        if (d != null && t.start) {
+          const g = barGeom(t.start, d);
+          const tip = `${t.label || "(sans nom)"}\n${Dates.format(t.start)} → ${Dates.format(Task.end(t))} · ${d} jour${d > 1 ? "s" : ""} ouvré${d > 1 ? "s" : ""}`;
+          const left = d === 0 ? g.left + dw / 2 - 7 : g.left + 1;
+          bar = `<div class="bar lvl${t.level}${d === 0 ? " ms" : ""}${R && r >= R.r1 && r <= R.r2 ? " sel" : ""}" data-r="${r}" style="left:${left}px;width:${Math.max(g.width - 2, 4)}px" title="${esc(tip)}">
+            <span class="h-end" title="Glisser pour allonger ou réduire"></span>
+            <span class="link-dot" title="Glisser vers une autre tâche pour les lier"></span>
+            <span class="bar-label">${esc(t.label)}</span></div>`;
+        }
+        return `<div class="grow${R && r >= R.r1 && r <= R.r2 ? " row-sel" : ""}" data-r="${r}">${bar}</div>`;
+      }).join("");
+      const links = (p.links || []).map((l, i) => {
+        const d = linkPath(Links.byId(p, l.from), Links.byId(p, l.to));
+        return d ? `<path class="link-hit" data-link="${i}" d="${d}"><title>Cliquer pour supprimer ce lien</title></path><path class="link" d="${d}" marker-end="url(#arrow)"/>` : "";
+      }).join("");
+      const today = Dates.diffDays(range.start, todayISO());
+      const bg = dw >= 14
+        ? `linear-gradient(to right, var(--grid-line) 1px, transparent 1px) 0 0 / ${dw}px 100%,`
+        : `linear-gradient(to right, var(--grid-line) 1px, transparent 1px) 0 0 / ${7 * dw}px 100%,`;
+      el.canvas.style.width = W + "px";
+      el.canvas.style.height = H + "px";
+      el.canvas.style.background = `${bg} linear-gradient(to right, transparent ${5 * dw}px, var(--weekend) ${5 * dw}px) 0 0 / ${7 * dw}px 100%`;
+      el.canvas.innerHTML = `${rows}
+        <div class="today-line" style="left:${today * dw + dw / 2 - 1}px" title="Aujourd'hui"></div>
+        <svg class="links-svg" width="${W}" height="${Math.max(H, 1)}">
+          <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>
+          ${links}<path class="ghost" d="" />
+        </svg>`;
+    };
+
+    const highlightGantt = () => {
+      const R = rect();
+      el.canvas.querySelectorAll(".grow").forEach((row) => {
+        const r = +row.dataset.r, on = !!R && r >= R.r1 && r <= R.r2;
+        row.classList.toggle("row-sel", on);
+        row.querySelector(".bar")?.classList.toggle("sel", on);
+      });
+    };
+
+    const scrollToToday = () => {
+      el.rightBody.scrollLeft = Math.max(0, dayX(todayISO()) - el.rightBody.clientWidth * 0.25);
+    };
+
+    const setZoom = (next, anchorX) => {
+      if (next === dw) return;
+      const ax = anchorX ?? el.rightBody.clientWidth / 2;
+      const dayAtAnchor = (el.rightBody.scrollLeft + ax) / dw;
+      dw = next;
+      p.ui.zoom = dw;
+      Store.save();
+      renderGantt();
+      el.rightBody.scrollLeft = dayAtAnchor * dw - ax;
+    };
+    const zoomStep = (dir, anchorX) => {
+      const i = ZOOMS.indexOf(dw);
+      setZoom(ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, i + dir))], anchorX);
+    };
+    root.querySelector('[data-act="zoom-in"]').addEventListener("click", () => zoomStep(1));
+    root.querySelector('[data-act="zoom-out"]').addEventListener("click", () => zoomStep(-1));
+    root.querySelector('[data-act="today"]').addEventListener("click", scrollToToday);
+    el.rightBody.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomStep(e.deltaY < 0 ? 1 : -1, e.clientX - el.rightBody.getBoundingClientRect().left);
+    }, { passive: false });
+
+    /* ---------- Souris sur le planning : déplacer, allonger, lier ---------- */
+    const tip = document.createElement("div");
+    tip.className = "drag-tip";
+    const showTip = (e, text) => {
+      tip.textContent = text;
+      if (!tip.isConnected) document.body.appendChild(tip);
+      tip.style.left = e.clientX + 14 + "px";
+      tip.style.top = e.clientY + 16 + "px";
+    };
+    cleanups.push(() => tip.remove());
+
+    el.rightBody.addEventListener("pointerdown", async (e) => {
+      if (e.button !== 0) return;
+      if (editor) editor.input.blur();
+      const hit = e.target.closest(".link-hit");
+      if (hit) {
+        const l = p.links[+hit.dataset.link];
+        const a = Links.byId(p, l.from), b = Links.byId(p, l.to);
+        const ok = await confirmDialog({
+          title: "Supprimer ce lien ?",
+          message: `« ${b.label || "(sans nom)"} » ne dépendra plus de « ${a.label || "(sans nom)"} ».`,
+          okLabel: "Supprimer", danger: true,
+        });
+        if (ok) { p.links.splice(p.links.indexOf(l), 1); save(); renderGantt(); }
+        return;
+      }
+      const bar = e.target.closest(".bar");
+      if (!bar) {
+        const row = e.target.closest(".grow");
+        if (row) select(+row.dataset.r, sel ? sel.c : 0);
+        return;
+      }
+      e.preventDefault();
+      const r = +bar.dataset.r, t = p.tasks[r];
+      const dur = Task.duration(t);
+      const startMode = e.target.closest(".h-end") ? "resize" : e.target.closest(".link-dot") ? "link" : "move";
+      let mode = startMode, moved = false, preview = null, dropRow = null;
+      const sx = e.clientX, sy = e.clientY;
+      const ghost = el.canvas.querySelector(".ghost");
+      const canvasBox = () => el.canvas.getBoundingClientRect();
+      bar.setPointerCapture(e.pointerId);
+      bar.classList.add("dragging");
+
+      const resetBar = () => {
+        const g = barGeom(t.start, dur);
+        bar.style.left = (dur === 0 ? g.left + dw / 2 - 7 : g.left + 1) + "px";
+        if (dur !== 0) bar.style.width = Math.max(g.width - 2, 4) + "px";
+      };
+
+      const onMove = (ev) => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+        moved = true;
+        if (startMode === "move") mode = Math.abs(dy) > ROW_H * 0.7 ? "link" : "move";
+        const days = Math.round(dx / dw);
+        el.canvas.querySelector(".drop-target")?.classList.remove("drop-target");
+        ghost.setAttribute("d", "");
+        dropRow = null;
+
+        if (mode === "move") {
+          let start = Dates.addDays(t.start, days);
+          start = days < 0 ? Dates.prevWorkday(start) : Dates.nextWorkday(start);
+          preview = { start };
+          const g = barGeom(start, dur);
+          bar.style.left = (dur === 0 ? g.left + dw / 2 - 7 : g.left + 1) + "px";
+          showTip(ev, `Début : ${Dates.format(start)}`);
+        } else if (mode === "resize") {
+          let end = Dates.prevWorkday(Dates.addDays(Task.end(t), days));
+          if (end < t.start) end = t.start;
+          const heures = Task.hoursFromDays(Dates.workdaysBetween(t.start, end));
+          const newDur = Math.round(Number(heures) * HOURS_TO_DAYS);
+          preview = { heures };
+          const g = barGeom(t.start, newDur);
+          bar.style.width = Math.max(g.width - 2, 4) + "px";
+          showTip(ev, `${newDur} jour${newDur > 1 ? "s" : ""} · ${heures} h · fin ${Dates.format(Dates.addWorkdays(t.start, Math.max(newDur, 1) - 1))}`);
+        } else {
+          resetBar();
+          const box = canvasBox();
+          const x = ev.clientX - box.left, y = ev.clientY - box.top;
+          const x0 = parseFloat(bar.style.left) + bar.offsetWidth, y0 = r * ROW_H + ROW_H / 2;
+          ghost.setAttribute("d", `M${x0} ${y0} L${x} ${y}`);
+          const rr = Math.floor(y / ROW_H);
+          const target = p.tasks[rr];
+          if (target && rr !== r && target.start && Task.duration(target) != null) {
+            dropRow = rr;
+            el.canvas.querySelector(`.grow[data-r="${rr}"]`)?.classList.add("drop-target");
+            showTip(ev, Links.canLink(p, t, target) ? `Lier à « ${target.label || "(sans nom)"} »` : "Lien impossible (boucle ou déjà lié)");
+          } else showTip(ev, "Relâcher sur une autre tâche pour la lier");
+        }
+      };
+
+      const onUp = () => {
+        bar.removeEventListener("pointermove", onMove);
+        bar.classList.remove("dragging");
+        tip.remove();
+        if (!moved) { select(r, sel ? sel.c : 0); return; }
+        if (mode === "move" && preview && preview.start !== t.start) {
+          mutate([t], () => { t.start = preview.start; delete t.debutText; });
+        } else if (mode === "resize" && preview && preview.heures !== String(t.heures)) {
+          mutate([t], () => { t.heures = preview.heures; delete t.dureeText; delete t.finText; });
+        } else if (mode === "link" && dropRow != null) {
+          const target = p.tasks[dropRow];
+          if (Links.add(p, t, target)) { save(); toast(`« ${target.label || "(sans nom)"} » commence après « ${t.label || "(sans nom)"} »`); }
+          else toast("Ces tâches sont déjà liées, ou le lien créerait une boucle");
+          renderRows(); renderGantt();
+        } else renderGantt();
+        highlightGantt();
+      };
+      bar.addEventListener("pointermove", onMove);
+      bar.addEventListener("pointerup", onUp, { once: true });
+      bar.addEventListener("pointercancel", onUp, { once: true });
+    });
+
+    /* ========================================================
+       DÉFILEMENT ET SÉPARATEUR
+       ======================================================== */
+    // le planning porte la barre verticale, le tableau suit
     el.rightBody.addEventListener("scroll", () => {
       el.leftBody.scrollTop = el.rightBody.scrollTop;
       el.rightHead.scrollLeft = el.rightBody.scrollLeft;
@@ -558,7 +1524,6 @@ const ProjectView = {
       el.rightBody.scrollTop += e.deltaY;
     }, { passive: false });
 
-    // --- Séparateur redimensionnable ---
     const applyRatio = () => {
       const total = el.split.clientWidth - el.splitter.offsetWidth;
       const ratio = p.ui.gridRatio ?? DEFAULT_GRID_RATIO;
@@ -570,9 +1535,7 @@ const ProjectView = {
       applyRatio();
       Store.save();
     };
-    applyRatio();
-    window.addEventListener("resize", applyRatio);
-    ProjectView.cleanup = () => window.removeEventListener("resize", applyRatio);
+    on(window, "resize", applyRatio);
 
     el.splitter.addEventListener("pointerdown", (e) => {
       e.preventDefault();
@@ -600,6 +1563,13 @@ const ProjectView = {
       if (e.key === "ArrowLeft") { e.preventDefault(); setRatio((p.ui.gridRatio ?? DEFAULT_GRID_RATIO) - step); }
       if (e.key === "ArrowRight") { e.preventDefault(); setRatio((p.ui.gridRatio ?? DEFAULT_GRID_RATIO) + step); }
     });
+
+    /* ---------- Premier affichage ---------- */
+    applyRatio();
+    renderAll();
+    scrollToToday();
+    if (p.tasks.length) select(0, 0);
+    el.leftBody.focus({ preventScroll: true });
   },
 };
 
