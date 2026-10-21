@@ -188,7 +188,9 @@ button { font: inherit; color: inherit; }
 .zoom-label { font-size: 12px; color: var(--text-muted); min-width: 64px; text-align: center; }
 .split { flex: 1; min-height: 0; display: flex; background: var(--surface); }
 .pane { display: flex; flex-direction: column; min-width: 0; }
-.pane-left { flex: 0 0 auto; }
+.pane-left { flex: 0 0 auto; position: relative; }
+/* boutons du tableau : dans l'en-tête du tableau, au-dessus des titres de colonnes */
+.table-tools { position: absolute; top: 7px; left: 28px; max-width: calc(100% - 36px); z-index: 5; display: flex; align-items: center; gap: 8px; overflow: hidden; padding-right: 8px; background: var(--surface-2); }
 .pane-right { flex: 1 1 auto; }
 .pane-head {
   flex: 0 0 auto; height: var(--head-h); overflow: hidden;
@@ -2320,26 +2322,11 @@ const ProjectView = {
     Files.remember(p);
     root.innerHTML = `
       <div class="project-page">
-        <!-- ruban unique : infos du document · boutons du tableau · boutons du planning · boutons du fichier -->
+        <!-- ruban : infos du document · boutons du planning · boutons du fichier (ceux du tableau sont dans son en-tête) -->
         <header class="topbar ribbon">
           <div class="rb-block rb-doc">
             <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
             <h1 class="project-title"></h1>
-          </div>
-          <div class="rb-gap"></div>
-          <div class="rb-block" aria-label="Tableau">
-            <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
-            <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
-            <div class="btn-group">
-              <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
-              <button class="icon-btn" data-act="collapse-all" ${tipAttrs("Tout réduire", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.collapseAll}</button>
-            </div>
-            <button class="icon-btn filter-btn" data-act="filter" ${tipAttrs("Filtrer", "Une recherche par colonne · Échap efface le filtre en cours")}>${ICONS.filter}<span class="badge" hidden></span></button>
-            <div class="btn-group">
-              <button class="icon-btn" data-act="row-down" ${tipAttrs("Lignes moins hautes", "", "Ctrl+molette")}>${ICONS.minus}</button>
-              <span class="zoom-label">Hauteur</span>
-              <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
-            </div>
           </div>
           <div class="rb-gap"></div>
           <div class="rb-block" aria-label="Planning">
@@ -2365,6 +2352,20 @@ const ProjectView = {
         </header>
         <div class="split">
           <section class="pane pane-left">
+            <div class="table-tools" aria-label="Tableau">
+              <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
+              <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
+              <div class="btn-group">
+                <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
+                <button class="icon-btn" data-act="collapse-all" ${tipAttrs("Tout réduire", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.collapseAll}</button>
+              </div>
+              <button class="icon-btn filter-btn" data-act="filter" ${tipAttrs("Filtrer", "Une recherche par colonne · Échap efface le filtre en cours")}>${ICONS.filter}<span class="badge" hidden></span></button>
+              <div class="btn-group">
+                <button class="icon-btn" data-act="row-down" ${tipAttrs("Lignes moins hautes", "", "Ctrl+molette")}>${ICONS.minus}</button>
+                <span class="zoom-label">Hauteur</span>
+                <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
+              </div>
+            </div>
             <div class="pane-head"></div>
             <div class="pane-body" tabindex="0" aria-label="Tableau des tâches"></div>
           </section>
@@ -2826,7 +2827,7 @@ const ProjectView = {
     // (les boutons du ruban, les lignes du planning et les fenêtres gardent la sélection)
     on(document, "pointerdown", (e) => {
       if (!sel || e.button !== 0) return;
-      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .pane-right .grow, .topbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .pane-right .grow, .topbar button, .table-tools button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
       deselect();
     });
 
