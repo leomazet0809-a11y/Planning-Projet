@@ -157,11 +157,15 @@ button { font: inherit; color: inherit; }
 }
 .save-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 24px; --bar-h: 16px; --cell-font: 12px; --head-h: 72px; }
+/* ruban : 4 blocs répartis ; les largeurs ne dépendent pas du contenu (nom du fichier, état de l'enregistrement),
+   donc aucun bouton ne se décale */
 .ribbon { height: 46px; gap: 0; }
 .rb-block { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-.rb-doc { flex: 0 1 auto; min-width: 120px; gap: 10px; }
-.rb-sep { flex: 0 0 auto; width: 1px; height: 24px; margin: 0 14px; background: var(--border); }
-.ribbon .spacer { min-width: 14px; }
+.rb-doc { flex: 3 1 0; min-width: 0; gap: 10px; }
+.rb-gap { flex: 1 1 0; min-width: 28px; align-self: stretch; display: flex; align-items: center; justify-content: center; }
+.rb-gap::before { content: ""; width: 1px; height: 24px; background: var(--border); }
+.ribbon .save-status { width: 112px; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.ribbon .save-status button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* groupes de boutons accolés */
 .btn-group { display: inline-flex; align-items: center; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); overflow: hidden; }
 .btn-group > .icon-btn { border: 0; border-radius: 0; height: 28px; }
@@ -1437,9 +1441,9 @@ function commentDialog(task, onClose) {
     <div class="modal comment-modal" role="dialog" aria-modal="true" aria-label="Commentaires">
       <div class="comment-head">
         <h3>${ICONS.comment}<span>Commentaires — ${esc(task.label || "(sans nom)")}</span></h3>
-        <button class="icon-btn modal-close" data-act="close" ${tipAttrs("Fermer", "Les commentaires sont enregistrés", "Échap")}>${ICONS.close}</button>
+        <button class="icon-btn modal-close" data-act="close" ${tipAttrs("Fermer", "Les commentaires sont enregistrés", "Ctrl+Entrée|Échap")}>${ICONS.close}</button>
       </div>
-      <textarea class="comment-text" placeholder="Écrire un commentaire…" spellcheck="true"></textarea>
+      <textarea class="comment-text" placeholder="Écrire un commentaire… (Ctrl + Entrée pour valider)" spellcheck="true"></textarea>
     </div>`;
   const ta = bd.querySelector("textarea");
   ta.value = task.comment || "";
@@ -1449,7 +1453,10 @@ function commentDialog(task, onClose) {
     bd.remove();
     onClose(ta.value.replace(/\s+$/, ""));
   };
-  const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+  // Échap ou Ctrl + Entrée : valider et fermer
+  const onKey = (e) => {
+    if (e.key === "Escape" || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) { e.preventDefault(); e.stopPropagation(); close(); }
+  };
   document.addEventListener("keydown", onKey, true);
   bd.querySelector('[data-act="close"]').addEventListener("click", close);
   bd.addEventListener("mousedown", (e) => { if (e.target === bd) close(); });
@@ -1674,7 +1681,7 @@ const DEFAULT_ROW_H = 24;
 const MIN_ROW_H = 14;
 const MAX_ROW_H = 60;
 const ROW_H_STEP = 2;
-const ZOOMS = [6, 10, 14, 20, 28, 40, 56];
+const ZOOMS = [1, 2, 3, 4, 6, 10, 14, 20, 28, 40, 56];   // largeur d'un jour (px) : de l'année au jour
 const DEFAULT_ZOOM = 28;
 
 const CALC_KEYS = ["heures", "duree", "debut", "fin"];
@@ -2318,7 +2325,7 @@ const ProjectView = {
             <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
             <h1 class="project-title"></h1>
           </div>
-          <div class="rb-sep"></div>
+          <div class="rb-gap"></div>
           <div class="rb-block" aria-label="Tableau">
             <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
             <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
@@ -2333,7 +2340,7 @@ const ProjectView = {
               <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
             </div>
           </div>
-          <div class="spacer"></div>
+          <div class="rb-gap"></div>
           <div class="rb-block" aria-label="Planning">
             <button class="icon-btn" data-act="today" ${tipAttrs("Aujourd'hui", "Afficher la date du jour sur le planning")}>${ICONS.today}</button>
             <div class="btn-group">
@@ -2342,7 +2349,7 @@ const ProjectView = {
               <button class="icon-btn" data-act="zoom-in" ${tipAttrs("Zoomer", "", "Ctrl+molette")}>${ICONS.plus}</button>
             </div>
           </div>
-          <div class="rb-sep"></div>
+          <div class="rb-gap"></div>
           <div class="rb-block" aria-label="Fichier">
             <span class="save-status"></span>
             <button class="icon-btn" data-act="undo" disabled ${tipAttrs("Annuler", "Revenir en arrière d'une action", "Ctrl+Z")}>${ICONS.undo}</button>
@@ -2494,12 +2501,13 @@ const ProjectView = {
       if (st === "saving") el.status.textContent = "Enregistrement…";
       else if (st === "saved" && name) el.status.textContent = "Enregistré";
       else if (st === "permission") {
-        el.status.innerHTML = `<button type="button">Autoriser l'enregistrement dans « ${esc(name)} »</button>`;
+        el.status.innerHTML = `<button type="button" title="Autoriser l'enregistrement dans « ${esc(name)} »">Autoriser l'enregistrement</button>`;
         el.status.querySelector("button").addEventListener("click", async () => {
           if (await Files.allow(p)) toast("Enregistrement en temps réel activé");
         });
       } else if (st === "error") el.status.textContent = "Échec de l'enregistrement : fichier ouvert dans Excel ? Fermez-le puis Ctrl + S";
       else el.status.textContent = Files.supported ? "Non enregistré — Ctrl + S" : "Ctrl + S pour télécharger le fichier";
+      el.status.title = st === "permission" ? "" : el.status.textContent;   // texte complet si coupé (largeur fixe)
     };
     Files.onStatus = (pid) => { if (pid === id) paintStatus(); };
     cleanups.push(() => { if (Files.onStatus) Files.onStatus = null; });
@@ -3348,13 +3356,14 @@ const ProjectView = {
         push(segs.months, d.getFullYear() * 12 + d.getMonth(), i, d);
         push(segs.weeks, Dates.mondayOf(iso), i, d);
         const cls = (Dates.isWeekend(d) ? " we" : "") + (iso === today ? " today" : "");
-        days += `<div class="gh-cell${cls}" style="left:${i * dw}px;width:${dw}px">${dw >= 16 ? d.getDate() : ""}</div>`;
+        // vue « Année » (moins de 4 px par jour) : pas de case par jour, illisible
+        if (dw >= 4) days += `<div class="gh-cell${cls}" style="left:${i * dw}px;width:${dw}px">${dw >= 16 ? d.getDate() : ""}</div>`;
       }
       const cells = (arr, fmt) => arr.map((sg) => `<div class="gh-cell" style="left:${sg.i * dw}px;width:${sg.n * dw}px"><span class="stick">${fmt(sg)}</span></div>`).join("");
       const monthFmt = (sg) => {
         const w = sg.n * dw;
-        if (w < 28) return "";
-        return sg.label.toLocaleDateString("fr-FR", { month: w > 90 ? "long" : "short" });
+        if (w < 14) return "";
+        return sg.label.toLocaleDateString("fr-FR", { month: w > 90 ? "long" : w >= 45 ? "short" : "narrow" });
       };
       const weekFmt = (sg) => {
         const w = sg.n * dw;
@@ -3366,9 +3375,9 @@ const ProjectView = {
       el.ganttHead.innerHTML = `
         <div class="gh-row years">${cells(segs.years, (sg) => sg.label)}</div>
         <div class="gh-row months">${cells(segs.months, monthFmt)}</div>
-        <div class="gh-row weeks">${cells(segs.weeks, weekFmt)}</div>
+        <div class="gh-row weeks">${dw >= 4 ? cells(segs.weeks, weekFmt) : ""}</div>
         <div class="gh-row days">${days}</div>`;
-      el.zoomLabel.textContent = dw >= 40 ? "Jours" : dw >= 14 ? "Semaines" : "Mois";
+      el.zoomLabel.textContent = dw >= 40 ? "Jours" : dw >= 14 ? "Semaines" : dw >= 4 ? "Mois" : "Année";
     };
 
     const barGeom = (start, dur) => {
@@ -3431,7 +3440,8 @@ const ProjectView = {
         : `linear-gradient(to right, var(--grid-line) 1px, transparent 1px) 0 0 / ${7 * dw}px 100%,`;
       el.canvas.style.width = W + "px";
       el.canvas.style.height = H + "px";
-      el.canvas.style.background = `${bg} linear-gradient(to right, transparent ${5 * dw}px, var(--weekend) ${5 * dw}px) 0 0 / ${7 * dw}px 100%`;
+      // vue « Année » : ni quadrillage ni week-ends grisés (une rayure par jour brouillerait tout)
+      el.canvas.style.background = dw < 4 ? "none" : `${bg} linear-gradient(to right, transparent ${5 * dw}px, var(--weekend) ${5 * dw}px) 0 0 / ${7 * dw}px 100%`;
       el.canvas.innerHTML = `${rows}
         <div class="today-line" style="left:${today * dw + dw / 2 - 1}px" title="Aujourd'hui"></div>
         <svg class="links-svg" width="${W}" height="${Math.max(H, 1)}">
