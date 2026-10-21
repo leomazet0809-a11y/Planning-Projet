@@ -224,12 +224,12 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .pane-left .pane-body .tcell[data-c="0"] { overflow: visible; }
 .tcell {
   position: relative; flex: 0 0 auto; border-right: 1px solid var(--grid-line);
-  padding: 0 10px; line-height: calc(var(--row-h) - 1px);
+  padding: 0 calc(10px * var(--scale, 1)); line-height: calc(var(--row-h) - 1px);
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   user-select: none; cursor: cell; font-size: var(--cell-font);
 }
 .tcell.num { text-align: right; }
-.tcell.compact { padding-left: 6px; padding-right: 6px; }   /* colonnes de valeurs étroites : une date tient en entier */
+.tcell.compact { padding-left: calc(4px * var(--scale, 1)); padding-right: calc(4px * var(--scale, 1)); }   /* colonnes de valeurs étroites : une date tient en entier */
 .tcell.center { text-align: center; }
 .tcell.lvl1 { font-weight: 600; }
 /* libellé d'un niveau qui déborde sur les colonnes Niv suivantes (vides) */
@@ -265,7 +265,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .thead-row .tcell[data-fixed] { padding: 0 0 8px; justify-content: center; text-align: center; font-size: 11px; }
 .thead-row .tcell {
   display: flex; align-items: flex-end; padding-bottom: 8px; line-height: 1.25;
-  white-space: normal; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: default;
+  white-space: normal; font-size: var(--head-font, 12px); font-weight: 600; color: var(--text-muted); cursor: default;
 }
 .col-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 2; }
 .col-resize:hover { background: linear-gradient(to right, transparent 3px, var(--accent) 3px 5px, transparent 5px); }
@@ -2607,9 +2607,13 @@ const ProjectView = {
     const barH = () => Math.max(6, Math.min(20, rowH - 8));
     // taille du texte du tableau proportionnelle à la hauteur des lignes
     const cellFont = () => Math.max(8, Math.min(22, Math.round(rowH * 0.5)));
+    // hauteur des lignes, police et largeur des colonnes suivent ensemble : échelle 1 pour 24 px
+    const scale = () => cellFont() / 12;   // police de 12 px à 24 px de hauteur
     const applyRowH = () => {
       el.page.style.setProperty("--row-h", rowH + "px");
       el.page.style.setProperty("--cell-font", cellFont() + "px");
+      el.page.style.setProperty("--head-font", Math.max(8, Math.min(15, Math.round(12 * scale()))) + "px");
+      el.page.style.setProperty("--scale", scale());
       el.page.style.setProperty("--bar-h", barH() + "px");
     };
     applyRowH();
@@ -2617,7 +2621,8 @@ const ProjectView = {
     let sel = null;      // sélection { r, c, r2, c2 } : (r, c) = cellule active, (r2, c2) = autre coin
     let editor = null;   // champ de saisie ouvert
 
-    const colWidth = (c) => (!c.fixed && p.ui.colWidths && p.ui.colWidths[c.key]) || c.w;
+    // largeur affichée = largeur de référence (réglée par l'utilisateur ou d'origine) × échelle des lignes
+    const colWidth = (c) => Math.round(((p.ui.colWidths && p.ui.colWidths[c.key]) || c.w) * scale());
     const rect = () => sel && {
       r1: Math.min(sel.r, sel.r2), r2: Math.max(sel.r, sel.r2),
       c1: Math.min(sel.c, sel.c2), c2: Math.max(sel.c, sel.c2),
@@ -2640,7 +2645,7 @@ const ProjectView = {
     // retrait du nom selon le niveau (24 px par niveau) ;
     // le bouton réduire/déployer est juste à gauche du nom (dans la marge pour le niveau 1)
     const GUTTER = 28, INDENT = 24;
-    const indentOf = (t) => (t.level - 1) * INDENT;
+    const indentOf = (t) => Math.round((t.level - 1) * INDENT * scale());   // retrait proportionnel à la hauteur des lignes
     const twistyLeft = () => -14;
     const labelLeft = () => 4;
 
@@ -3323,8 +3328,8 @@ const ProjectView = {
       document.body.classList.add("resizing");
       const move = (ev) => {
         p.ui.colWidths = p.ui.colWidths || {};
-        p.ui.colWidths[col.key] = Math.max(MIN_COL, Math.round(startW + ev.clientX - startX));
-        el.leftHead.querySelectorAll(".tcell")[+h.dataset.c].style.width = p.ui.colWidths[col.key] + "px";
+        p.ui.colWidths[col.key] = Math.max(MIN_COL, Math.round((startW + ev.clientX - startX) / scale()));
+        el.leftHead.querySelectorAll(".tcell")[+h.dataset.c].style.width = colWidth(col) + "px";
         renderRows();
       };
       const up = () => {
@@ -3689,6 +3694,7 @@ const ProjectView = {
       p.ui.rowHeight = rowH;
       Store.save();
       applyRowH();
+      renderTableHead();   // largeurs des colonnes
       renderRows();
       renderGantt();
       el.rightBody.scrollTop = top * rowH;

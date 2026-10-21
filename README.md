@@ -38,7 +38,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Se déplacer | Flèches du clavier |
 | Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis la colonne Tâche ; le niveau se voit au retrait du nom. Une tâche ne peut descendre qu'à un niveau sous la tâche juste au-dessus (sa tâche mère) |
 | Déplacer une tâche | Glisser la poignée ⋮⋮ au début de la ligne (la tâche part avec ses sous-tâches) |
-| Hauteur des lignes | Boutons − / + « Hauteur » ou Ctrl + molette au-dessus du tableau |
+| Hauteur des lignes | Boutons − / + « Hauteur » ou Ctrl + molette au-dessus du tableau ; la police, la largeur des colonnes et le retrait des niveaux suivent proportionnellement |
 | Défiler | Molette au-dessus du tableau ou du planning (les deux restent alignés) |
 | Sélectionner plusieurs cellules | Glisser la souris, ou Maj + clic, ou Maj + flèches |
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
