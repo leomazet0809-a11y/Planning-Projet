@@ -56,6 +56,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Allonger / réduire | Glisser le bord droit de la barre |
 | Lier deux tâches | Glisser la barre (ou le petit rond à sa droite) sur une autre tâche puis relâcher |
 | Supprimer un lien | Cliquer sur la flèche |
+| Tâche liée décalée | Si une tâche liée commence plus tard que le plus tôt possible, sa flèche est en pointillés (le survol indique l'écart en jours ouvrés) |
 | Zoomer / dézoomer | Boutons − / + ou Ctrl + molette |
 | Revenir à aujourd'hui | Bouton « Aujourd'hui » |
 | Se déplacer dans le planning | Clic gauche maintenu sur le fond et glisser dans tous les sens |

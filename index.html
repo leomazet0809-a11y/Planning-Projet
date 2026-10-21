@@ -363,6 +363,7 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .bar.ms .h-end { display: none; }
 .links-svg { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; overflow: visible; }
 .links-svg .link { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
+.links-svg .link.slack { stroke-dasharray: 4 3; }   /* la tâche liée ne commence pas au plus tôt */
 .links-svg .link-hit { fill: none; stroke: transparent; stroke-width: 10; pointer-events: stroke; cursor: pointer; }
 .links-svg .link-hit:hover + .link { stroke: var(--danger); stroke-width: 2.5; }
 .links-svg .ghost { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 5 4; }
@@ -738,6 +739,15 @@ const Links = {
       });
       if (!changed) break;
     }
+  },
+
+  // jours ouvrés entre le début au plus tôt de la tâche liée et son début réel (0 = commence au plus tôt)
+  slack(p, l) {
+    const a = this.byId(p, l.from), b = this.byId(p, l.to);
+    const endA = a && Task.end(a), startB = b && Task.start(b);
+    if (!endA || !startB) return 0;
+    const min = Dates.addWorkdays(endA, 1);
+    return startB > min ? Dates.workdayDiff(min, startB) : 0;
   },
 
   // À appeler après une modification : les tâches liées suivent toute tâche dont la fin a bougé
@@ -3115,7 +3125,10 @@ const ProjectView = {
       }).join("");
       const links = (p.links || []).map((l, i) => {
         const d = linkPath(Links.byId(p, l.from), Links.byId(p, l.to));
-        return d ? `<path class="link-hit" data-link="${i}" d="${d}"><title>Cliquer pour supprimer ce lien</title></path><path class="link" d="${d}" marker-end="url(#arrow)"/>` : "";
+        if (!d) return "";
+        const gap = Links.slack(p, l);
+        const info = gap ? `Commence ${gap} jour${gap > 1 ? "s" : ""} ouvré${gap > 1 ? "s" : ""} après le plus tôt possible\n` : "";
+        return `<path class="link-hit" data-link="${i}" d="${d}"><title>${info}Cliquer pour supprimer ce lien</title></path><path class="link${gap ? " slack" : ""}" d="${d}" marker-end="url(#arrow)"/>`;
       }).join("");
       const today = Dates.diffDays(range.start, todayISO());
       const bg = dw >= 14
