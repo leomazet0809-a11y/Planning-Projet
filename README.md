@@ -50,6 +50,6 @@ Les samedis et dimanches sont grisés : aucune tâche ne peut y commencer ou y f
 
 **Enregistrer** (ou Ctrl + S) confirme l'enregistrement du projet.
 
-**Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleurs des tâches par niveau et des tâches mères.
+**Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 
 L'application peut être ajoutée aux favoris ou installée comme raccourci (menu du navigateur › « Installer Plan Projet » / « Créer un raccourci ») : elle utilise son propre logo.

@@ -31,10 +31,7 @@
   --accent-text: #ffffff;
   --danger: #e5484d;
   --danger-soft: #fdecec;
-  --lvl1: #5b5bf0;
-  --lvl2: #9b5cf6;
-  --lvl3: #0ea5e9;
-  --lvl4: #14b8a6;
+  --task: #5b5bf0;   /* couleur unique des tâches, quel que soit leur niveau */
   --shadow: 0 1px 2px rgba(20, 24, 40, .05), 0 4px 16px rgba(20, 24, 40, .06);
   --radius: 14px;
   --radius-sm: 8px;
@@ -54,10 +51,7 @@
   --accent-text: #0f1117;
   --danger: #ff6b6f;
   --danger-soft: #3a1d22;
-  --lvl1: #8484ff;
-  --lvl2: #b48cff;
-  --lvl3: #38bdf8;
-  --lvl4: #2dd4bf;
+  --task: #8484ff;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
@@ -285,10 +279,7 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
   background: var(--c); cursor: grab; touch-action: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
 }
-.bar.lvl1 { --c: var(--lvl1); }
-.bar.lvl2 { --c: var(--lvl2); }
-.bar.lvl3 { --c: var(--lvl3); }
-.bar.lvl4 { --c: var(--lvl4); }
+.bar { --c: var(--task); }
 .bar.dragging { cursor: grabbing; opacity: .85; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
 .bar.sel { outline: 2px solid var(--text); outline-offset: 1px; }
 .bar .h-end { position: absolute; right: 0; top: 0; bottom: 0; width: 9px; cursor: ew-resize; border-radius: 0 6px 6px 0; }
@@ -780,10 +771,7 @@ const Settings = {
     { name: "Segoe UI" },
   ],
   COLORS: [
-    { key: "lvl1", label: "Tâches de niveau 1" },
-    { key: "lvl2", label: "Tâches de niveau 2" },
-    { key: "lvl3", label: "Tâches de niveau 3" },
-    { key: "lvl4", label: "Tâches de niveau 4" },
+    { key: "task", label: "Tâches" },
     { key: "summary", label: "Tâches mères" },
   ],
   get() { return (Store.data.settings = Store.data.settings || {}); },
