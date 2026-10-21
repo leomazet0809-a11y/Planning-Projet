@@ -16,7 +16,8 @@ Chaque projet est un classeur **`.xlsx`** enregistré sur l'ordinateur, dans le 
 - **Modifications faites dans Excel** (libellés, heures, lignes ajoutées…) : elles sont reprises à la prochaine ouverture dans l'application ; la mise en forme ajoutée dans Excel n'est pas conservée. Fermer le classeur dans Excel avant de l'ouvrir dans l'application (Windows empêche d'écrire dans un fichier ouvert dans Excel).
 - **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier. **Ouvrir un fichier** : choisir un projet `.xlsx` (un ancien fichier `.proj` est converti une fois pour toutes en `.xlsx` à l'ouverture). Un classeur Excel quelconque peut être importé dans un nouveau projet.
 - **Enregistrement en temps réel** dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
-- Le titre du projet et le nom du fichier sont liés ; le nom du fichier ouvert est affiché dans le bandeau.
+- Le titre du projet est le nom du fichier ; il n'est pas modifiable dans l'application (pour renommer : « Enregistrer sous », ou renommer le fichier dans l'Explorateur). Le nom du fichier ouvert est affiché à droite du titre.
+- Bouton **Annuler** (flèche retour, en haut) : revient en arrière d'une action, comme Ctrl + Z.
 - Actualiser la page (F5) garde le projet ouvert.
 - Sur les autres navigateurs (Firefox, Safari), l'enregistrement se fait en téléchargeant le fichier (Ctrl + S).
 
