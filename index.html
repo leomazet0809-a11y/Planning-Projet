@@ -151,7 +151,7 @@ button { font: inherit; color: inherit; }
 .project-title:hover { border-color: var(--border); }
 .project-title:focus { outline: none; border-color: var(--accent); background: var(--surface-2); }
 .save-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
-.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 34px; --bar-h: 20px; --head-h: 88px; }
+.project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 34px; --bar-h: 20px; --cell-font: 12px; --head-h: 88px; }
 .toolbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
@@ -194,7 +194,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
   position: relative; flex: 0 0 auto; border-right: 1px solid var(--border);
   padding: 0 10px; line-height: calc(var(--row-h) - 1px);
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-  user-select: none; cursor: cell;
+  user-select: none; cursor: cell; font-size: var(--cell-font);
 }
 .tcell.num { text-align: right; }
 .tcell.center { text-align: center; }
@@ -999,8 +999,11 @@ const ProjectView = {
        TABLEAU
        ======================================================== */
     let rowH = p.ui.rowH || DEFAULT_ROW_H;   // hauteur des lignes en pixels
+    // taille du texte du tableau proportionnelle à la hauteur des lignes
+    const cellFont = () => Math.max(9, Math.min(20, Math.round(rowH * 0.36)));
     const applyRowH = () => {
       el.page.style.setProperty("--row-h", rowH + "px");
+      el.page.style.setProperty("--cell-font", cellFont() + "px");
       el.page.style.setProperty("--bar-h", Math.min(20, rowH - 10) + "px");
     };
     applyRowH();
@@ -1023,7 +1026,7 @@ const ProjectView = {
     // largeur du texte affiché (police du tableau)
     const measureCtx = document.createElement("canvas").getContext("2d");
     const textWidth = (text, bold) => {
-      measureCtx.font = `${bold ? 600 : 400} 14px ${getComputedStyle(document.body).fontFamily}`;
+      measureCtx.font = `${bold ? 600 : 400} ${cellFont()}px ${getComputedStyle(document.body).fontFamily}`;
       return measureCtx.measureText(text).width;
     };
     // marges gauche + droite autour du libellé (poignée en Niv 1, flèche pour les sous-niveaux)
@@ -1255,7 +1258,10 @@ const ProjectView = {
       if (!cell || e.target.classList.contains("cell-editor") || e.button !== 0) return;
       e.preventDefault();
       if (editor) editor.input.blur();
-      select(+cell.dataset.r, +cell.dataset.c, e.shiftKey);
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      // double-clic : modifier la cellule (détecté ici car le tableau est redessiné entre les deux clics)
+      if (e.detail >= 2 && !e.shiftKey && sel && sel.r === r && sel.c === c) { openEditor(); return; }
+      select(r, c, e.shiftKey);
       dragSel = true;
       el.leftBody.focus({ preventScroll: true });
     });
