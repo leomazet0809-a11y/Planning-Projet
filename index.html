@@ -157,11 +157,15 @@ button { font: inherit; color: inherit; }
 }
 .save-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .project-page { display: flex; flex-direction: column; height: 100vh; --row-h: 24px; --bar-h: 16px; --cell-font: 12px; --head-h: 72px; }
+/* ruban : 4 blocs répartis ; les largeurs ne dépendent pas du contenu (nom du fichier, état de l'enregistrement),
+   donc aucun bouton ne se décale */
 .ribbon { height: 46px; gap: 0; }
 .rb-block { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-.rb-doc { flex: 0 1 auto; min-width: 120px; gap: 10px; }
-.rb-sep { flex: 0 0 auto; width: 1px; height: 24px; margin: 0 14px; background: var(--border); }
-.ribbon .spacer { min-width: 14px; }
+.rb-doc { flex: 3 1 0; min-width: 0; gap: 10px; }
+.rb-gap { flex: 1 1 0; min-width: 28px; align-self: stretch; display: flex; align-items: center; justify-content: center; }
+.rb-gap::before { content: ""; width: 1px; height: 24px; background: var(--border); }
+.ribbon .save-status { width: 112px; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.ribbon .save-status button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* groupes de boutons accolés */
 .btn-group { display: inline-flex; align-items: center; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); overflow: hidden; }
 .btn-group > .icon-btn { border: 0; border-radius: 0; height: 28px; }
@@ -476,8 +480,9 @@ const ICONS = {
   undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
   save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h9V3M7 21v-7h10v7"/></svg>',
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
-  expandAll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4v15M4.5 15.5L8 19l3.5-3.5M16 4v15M12.5 15.5L16 19l3.5-3.5"/></svg>',
-  collapseAll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20V5M4.5 8.5L8 5l3.5 3.5M16 20V5M12.5 8.5L16 5l3.5 3.5"/></svg>',
+  // développer : double flèche verticale ; réduire : deux flèches qui se rejoignent au centre
+  expandAll: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5v11" fill="none"/><path d="M12 2.5l4 4.5H8z"/><path d="M12 21.5l4-4.5H8z"/></svg>',
+  collapseAll: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v5M12 22v-5" fill="none"/><path d="M12 11l4-4.5H8z"/><path d="M12 13l4 4.5H8z"/></svg>',
   folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
   comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg>',
   file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
@@ -1437,9 +1442,9 @@ function commentDialog(task, onClose) {
     <div class="modal comment-modal" role="dialog" aria-modal="true" aria-label="Commentaires">
       <div class="comment-head">
         <h3>${ICONS.comment}<span>Commentaires — ${esc(task.label || "(sans nom)")}</span></h3>
-        <button class="icon-btn modal-close" data-act="close" ${tipAttrs("Fermer", "Les commentaires sont enregistrés", "Échap")}>${ICONS.close}</button>
+        <button class="icon-btn modal-close" data-act="close" ${tipAttrs("Fermer", "Les commentaires sont enregistrés", "Ctrl+Entrée|Échap")}>${ICONS.close}</button>
       </div>
-      <textarea class="comment-text" placeholder="Écrire un commentaire…" spellcheck="true"></textarea>
+      <textarea class="comment-text" placeholder="Écrire un commentaire… (Ctrl + Entrée pour valider)" spellcheck="true"></textarea>
     </div>`;
   const ta = bd.querySelector("textarea");
   ta.value = task.comment || "";
@@ -1449,7 +1454,10 @@ function commentDialog(task, onClose) {
     bd.remove();
     onClose(ta.value.replace(/\s+$/, ""));
   };
-  const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+  // Échap ou Ctrl + Entrée : valider et fermer
+  const onKey = (e) => {
+    if (e.key === "Escape" || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) { e.preventDefault(); e.stopPropagation(); close(); }
+  };
   document.addEventListener("keydown", onKey, true);
   bd.querySelector('[data-act="close"]').addEventListener("click", close);
   bd.addEventListener("mousedown", (e) => { if (e.target === bd) close(); });
@@ -1674,7 +1682,7 @@ const DEFAULT_ROW_H = 24;
 const MIN_ROW_H = 14;
 const MAX_ROW_H = 60;
 const ROW_H_STEP = 2;
-const ZOOMS = [6, 10, 14, 20, 28, 40, 56];
+const ZOOMS = [1, 2, 3, 4, 6, 10, 14, 20, 28, 40, 56];   // largeur d'un jour (px) : de l'année au jour
 const DEFAULT_ZOOM = 28;
 
 const CALC_KEYS = ["heures", "duree", "debut", "fin"];
@@ -2318,7 +2326,7 @@ const ProjectView = {
             <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
             <h1 class="project-title"></h1>
           </div>
-          <div class="rb-sep"></div>
+          <div class="rb-gap"></div>
           <div class="rb-block" aria-label="Tableau">
             <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
             <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans la colonne Tâche)", "Suppr")}>${ICONS.trash}</button>
@@ -2333,7 +2341,7 @@ const ProjectView = {
               <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
             </div>
           </div>
-          <div class="spacer"></div>
+          <div class="rb-gap"></div>
           <div class="rb-block" aria-label="Planning">
             <button class="icon-btn" data-act="today" ${tipAttrs("Aujourd'hui", "Afficher la date du jour sur le planning")}>${ICONS.today}</button>
             <div class="btn-group">
@@ -2342,7 +2350,7 @@ const ProjectView = {
               <button class="icon-btn" data-act="zoom-in" ${tipAttrs("Zoomer", "", "Ctrl+molette")}>${ICONS.plus}</button>
             </div>
           </div>
-          <div class="rb-sep"></div>
+          <div class="rb-gap"></div>
           <div class="rb-block" aria-label="Fichier">
             <span class="save-status"></span>
             <button class="icon-btn" data-act="undo" disabled ${tipAttrs("Annuler", "Revenir en arrière d'une action", "Ctrl+Z")}>${ICONS.undo}</button>
@@ -2494,12 +2502,13 @@ const ProjectView = {
       if (st === "saving") el.status.textContent = "Enregistrement…";
       else if (st === "saved" && name) el.status.textContent = "Enregistré";
       else if (st === "permission") {
-        el.status.innerHTML = `<button type="button">Autoriser l'enregistrement dans « ${esc(name)} »</button>`;
+        el.status.innerHTML = `<button type="button" title="Autoriser l'enregistrement dans « ${esc(name)} »">Autoriser l'enregistrement</button>`;
         el.status.querySelector("button").addEventListener("click", async () => {
           if (await Files.allow(p)) toast("Enregistrement en temps réel activé");
         });
       } else if (st === "error") el.status.textContent = "Échec de l'enregistrement : fichier ouvert dans Excel ? Fermez-le puis Ctrl + S";
       else el.status.textContent = Files.supported ? "Non enregistré — Ctrl + S" : "Ctrl + S pour télécharger le fichier";
+      el.status.title = st === "permission" ? "" : el.status.textContent;   // texte complet si coupé (largeur fixe)
     };
     Files.onStatus = (pid) => { if (pid === id) paintStatus(); };
     cleanups.push(() => { if (Files.onStatus) Files.onStatus = null; });
@@ -2813,11 +2822,19 @@ const ProjectView = {
       renderRows();
       highlightGantt();
     };
-    // clic ailleurs que sur une cellule (bas vide du tableau, fond du planning, en-têtes…) : plus de cellule sélectionnée
-    // (les boutons des barres d'outils, les barres du planning et les fenêtres gardent la sélection)
+    // clic ailleurs que sur une ligne (bas vide du tableau ou du planning, en-têtes…) : plus de cellule sélectionnée
+    // (les boutons du ruban, les lignes du planning et les fenêtres gardent la sélection)
     on(document, "pointerdown", (e) => {
       if (!sel || e.button !== 0) return;
-      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .topbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      if (e.target.closest(".pane-left .pane-body .tcell[data-r], .pane-right .grow, .topbar button, .bar, .link-hit, .modal-backdrop, .settings-panel, .cal-pop")) return;
+      deselect();
+    });
+
+    // Échap : plus de ligne sélectionnée (sauf pendant une saisie ou dans une fenêtre, où Échap a son propre rôle)
+    on(document, "keydown", (e) => {
+      if (e.key !== "Escape" || !sel || editor || document.querySelector(".modal-backdrop")) return;
+      const a = document.activeElement;
+      if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
       deselect();
     });
 
@@ -3152,7 +3169,6 @@ const ProjectView = {
         return;
       }
       if (e.key === "Backspace") { e.preventDefault(); clearRange(); return; }
-      if (e.key === "Escape") { select(sel.r, sel.c); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
         sel = { r: 0, c: 0, r2: p.tasks.length - 1, c2: COLUMNS.length - 1 };
@@ -3348,13 +3364,14 @@ const ProjectView = {
         push(segs.months, d.getFullYear() * 12 + d.getMonth(), i, d);
         push(segs.weeks, Dates.mondayOf(iso), i, d);
         const cls = (Dates.isWeekend(d) ? " we" : "") + (iso === today ? " today" : "");
-        days += `<div class="gh-cell${cls}" style="left:${i * dw}px;width:${dw}px">${dw >= 16 ? d.getDate() : ""}</div>`;
+        // vue « Année » (moins de 4 px par jour) : pas de case par jour, illisible
+        if (dw >= 4) days += `<div class="gh-cell${cls}" style="left:${i * dw}px;width:${dw}px">${dw >= 16 ? d.getDate() : ""}</div>`;
       }
       const cells = (arr, fmt) => arr.map((sg) => `<div class="gh-cell" style="left:${sg.i * dw}px;width:${sg.n * dw}px"><span class="stick">${fmt(sg)}</span></div>`).join("");
       const monthFmt = (sg) => {
         const w = sg.n * dw;
-        if (w < 28) return "";
-        return sg.label.toLocaleDateString("fr-FR", { month: w > 90 ? "long" : "short" });
+        if (w < 14) return "";
+        return sg.label.toLocaleDateString("fr-FR", { month: w > 90 ? "long" : w >= 45 ? "short" : "narrow" });
       };
       const weekFmt = (sg) => {
         const w = sg.n * dw;
@@ -3366,9 +3383,9 @@ const ProjectView = {
       el.ganttHead.innerHTML = `
         <div class="gh-row years">${cells(segs.years, (sg) => sg.label)}</div>
         <div class="gh-row months">${cells(segs.months, monthFmt)}</div>
-        <div class="gh-row weeks">${cells(segs.weeks, weekFmt)}</div>
+        <div class="gh-row weeks">${dw >= 4 ? cells(segs.weeks, weekFmt) : ""}</div>
         <div class="gh-row days">${days}</div>`;
-      el.zoomLabel.textContent = dw >= 40 ? "Jours" : dw >= 14 ? "Semaines" : "Mois";
+      el.zoomLabel.textContent = dw >= 40 ? "Jours" : dw >= 14 ? "Semaines" : dw >= 4 ? "Mois" : "Année";
     };
 
     const barGeom = (start, dur) => {
@@ -3431,7 +3448,8 @@ const ProjectView = {
         : `linear-gradient(to right, var(--grid-line) 1px, transparent 1px) 0 0 / ${7 * dw}px 100%,`;
       el.canvas.style.width = W + "px";
       el.canvas.style.height = H + "px";
-      el.canvas.style.background = `${bg} linear-gradient(to right, transparent ${5 * dw}px, var(--weekend) ${5 * dw}px) 0 0 / ${7 * dw}px 100%`;
+      // vue « Année » : ni quadrillage ni week-ends grisés (une rayure par jour brouillerait tout)
+      el.canvas.style.background = dw < 4 ? "none" : `${bg} linear-gradient(to right, transparent ${5 * dw}px, var(--weekend) ${5 * dw}px) 0 0 / ${7 * dw}px 100%`;
       el.canvas.innerHTML = `${rows}
         <div class="today-line" style="left:${today * dw + dw / 2 - 1}px" title="Aujourd'hui"></div>
         <svg class="links-svg" width="${W}" height="${Math.max(H, 1)}">
@@ -3540,7 +3558,7 @@ const ProjectView = {
             const r = +row.dataset.r, now = performance.now();
             const dbl = lastBgClick.r === r && now - lastBgClick.time < 450;
             lastBgClick = dbl ? { r: -1, time: 0 } : { r, time: now };
-            if (dbl) placeTask(r, ev.clientX);
+            if (dbl) placeTask(r, ev.clientX); else select(r, sel ? sel.c : COL.label);   // clic sur une ligne du planning : elle est sélectionnée
           }
         };
         el.rightBody.addEventListener("pointermove", move);

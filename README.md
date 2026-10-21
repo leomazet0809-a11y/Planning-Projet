@@ -22,15 +22,16 @@ Chaque projet est un classeur **`.xlsx`** enregistré sur l'ordinateur, dans le 
 - Sur les autres navigateurs (Firefox, Safari), l'enregistrement se fait en téléchargeant le fichier (Ctrl + S).
 
 ### Tableau
-Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » (⇊) / « Tout réduire » (⇈) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
+Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » (double flèche ↕) / « Tout réduire » (deux flèches qui se rejoignent) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
 
 | Action | Comment |
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic, Entrée ou F2 pour modifier le contenu existant) |
 | Colonne Tâche | Dans l'application, le nom de la tâche occupe une seule colonne « Tâche » (retrait selon le niveau, largeur réglable) ; dans Excel et pour le copier / coller, il reste réparti sur une colonne par niveau (1, 2, 3, 4… : 4 colonnes au moins, jusqu'à 10 si le projet a des tâches aussi fines) |
-| Désélectionner | Cliquer ailleurs : bas vide du tableau, fond du planning, en-têtes… (les boutons et les barres du planning gardent la sélection) |
+| Sélectionner une ligne | Cliquer sur la ligne, dans le tableau ou dans le planning (même à côté de la barre) : elle est surlignée des deux côtés |
+| Désélectionner | Échap, ou cliquer ailleurs : bas vide du tableau ou du planning, en-têtes… (les boutons du ruban gardent la sélection) |
 | Renommer une tâche | Un simple clic sur son nom (colonne Tâche) ouvre la modification après un court instant |
-| Commentaires | Double-clic sur le nom de la tâche, ou sur sa barre dans le planning : une fenêtre s'ouvre ; la croix (ou Échap) la ferme et enregistre. Une bulle signale les tâches commentées (dans le tableau, et au survol de la barre). Les commentaires sont aussi dans la colonne « Commentaires » du fichier Excel |
+| Commentaires | Double-clic sur le nom de la tâche, ou sur sa barre dans le planning : une fenêtre s'ouvre ; la croix, Échap ou Ctrl + Entrée la ferme et enregistre. Une bulle signale les tâches commentées (dans le tableau, et au survol de la barre). Les commentaires sont aussi dans la colonne « Commentaires » du fichier Excel |
 | Valider / annuler | Entrée / Échap |
 | Filtrer | Bouton entonnoir : une recherche par colonne (Tâche, Responsable, Heures, Durée, Dates, Avancement), sans tenir compte des majuscules ni des accents ; les filtres se combinent. Les tâches mères des tâches trouvées restent affichées en pâle. Échap efface le filtre en cours. |
 | Choisir une date | Double-clic sur Date début ou Date fin : un calendrier s'ouvre (la saisie au clavier reste possible) |
@@ -64,7 +65,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Lier deux tâches | Glisser le petit rond à droite de la barre sur une autre tâche puis relâcher (glisser le milieu de la barre la déplace seulement) ; pendant le glissement, la ligne visée est surlignée dans le planning et dans le tableau (en rouge si le lien est impossible) |
 | Supprimer un lien | Cliquer sur la flèche |
 | Tâche liée décalée | Si une tâche liée commence plus tard que le plus tôt possible, sa flèche est en pointillés (le survol indique l'écart en jours ouvrés) |
-| Zoomer / dézoomer | Boutons − / + ou Ctrl + molette |
+| Zoomer / dézoomer | Boutons − / + ou Ctrl + molette, du jour à l'année (vue « Année » : environ un an et demi sur un écran large) |
 | Revenir à aujourd'hui | Bouton « Aujourd'hui » |
 | Se déplacer dans le planning | Clic gauche maintenu sur le fond et glisser dans tous les sens |
 
