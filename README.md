@@ -14,7 +14,7 @@ Un clic sur le **logo** en haut à gauche ramène au menu (ouvrir ou créer un p
 Chaque projet est un classeur **`.xlsx`** enregistré sur l'ordinateur, dans le dossier choisi par l'utilisateur. Rien n'est envoyé sur Internet.
 - Le classeur s'ouvre **aussi dans Excel** (double-clic ou glisser-déposer) : la feuille visible présente le planning (colonnes `N° · 1 · 2 · 3 · 4 · Responsable · Heures · Durée · Dates · Avancement · Dépend de`). Une feuille masquée contient les données propres à l'application (liens, groupes réduits, réglages).
 - **Modifications faites dans Excel** (libellés, heures, lignes ajoutées…) : elles sont reprises à la prochaine ouverture dans l'application ; la mise en forme ajoutée dans Excel n'est pas conservée. Fermer le classeur dans Excel avant de l'ouvrir dans l'application (Windows empêche d'écrire dans un fichier ouvert dans Excel).
-- **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier. **Ouvrir un fichier** : choisir un projet `.xlsx` (les anciens `.proj` restent lisibles). Un classeur Excel quelconque peut être importé dans un nouveau projet.
+- **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier. **Ouvrir un fichier** : choisir un projet `.xlsx` (un ancien fichier `.proj` est converti une fois pour toutes en `.xlsx` à l'ouverture). Un classeur Excel quelconque peut être importé dans un nouveau projet.
 - **Enregistrement en temps réel** dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
 - Le titre du projet et le nom du fichier sont liés ; le nom du fichier ouvert est affiché dans le bandeau.
 - Actualiser la page (F5) garde le projet ouvert.
@@ -27,6 +27,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic ou Entrée pour modifier le contenu existant) |
 | Valider / annuler | Entrée / Échap |
+| Filtrer | Bouton entonnoir : une recherche par colonne (Tâche, Responsable, Heures, Durée, Dates, Avancement), sans tenir compte des majuscules ni des accents ; les filtres se combinent. Les tâches mères des tâches trouvées restent affichées en pâle. Échap efface le filtre en cours. |
 | Choisir une date | Double-clic sur Date début ou Date fin : un calendrier s'ouvre (la saisie au clavier reste possible) |
 | Se déplacer | Flèches du clavier |
 | Changer de niveau | Tab (niveau inférieur) · Maj + Tab (niveau supérieur), depuis une cellule des colonnes de niveau (1 à 4) |
@@ -37,12 +38,13 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
 | Effacer le contenu des cellules | Retour arrière (⌫), ou Suppr dans les colonnes Responsable à Avancement |
 | Supprimer les tâches sélectionnées | Suppr dans une colonne de niveau (1 à 4), puis Entrée pour confirmer (Oui) |
-| Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture) / Ctrl + Y |
+| Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture du projet, même après F5) / Ctrl + Y |
 | Largeur d'une colonne | Glisser le bord droit de son en-tête (double-clic : taille d'origine) |
 
 - **Durée jours** = Heures effectives × 1,5, arrondie à l'entier le plus proche (jours ouvrés, lundi → vendredi).
 - Une valeur non numérique dans Heures ou Durée s'affiche en rouge et bloque le calcul.
-- **Avancement** : affiché en pourcentage. Un nombre saisi (ex. `50`) affiche « 50 % » ; commencer par `=` pour un calcul (ex. `=32/3` affiche « 10,67 % » ; opérations + - * / et parenthèses). Un texte reste affiché tel quel. Une formule incorrecte s'affiche en rouge.
+- **Avancement** : affiché en pourcentage. Un nombre saisi (ex. `50`) affiche « 50 % » ; commencer par `=` pour un calcul (ex. `=32/3` affiche « 10,67 % » ; opérations + - * / et parenthèses). Un texte reste affiché tel quel. Une formule incorrecte s'affiche en rouge. Sur le planning, la partie réalisée de la barre est de la couleur de la tâche et le reste plus clair (barre pleine si l'avancement est vide).
+- **Boutons** : au survol, une infobulle donne le nom du bouton, son rôle et son raccourci clavier.
 - Modifier Durée, Date début ou Date fin recalcule les heures (arrondies à l'heure entière).
 - **Tâches mères** (une tâche suivie de tâches de niveau inférieur) : Heures = somme des heures des tâches filles, Durée = somme de leurs durées, Début = début le plus tôt des filles, Date fin = fin la plus tardive des filles. Ces valeurs (en gris) ne se saisissent pas ; sur le planning, la tâche mère est une barre récapitulative noire qui couvre la période réelle de ses filles. La déplacer déplace toutes ses tâches filles.
 

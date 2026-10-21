@@ -165,6 +165,25 @@ button { font: inherit; color: inherit; }
   padding: 4px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
 }
 .toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+/* groupes de boutons accolés */
+.btn-group { display: inline-flex; align-items: center; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); overflow: hidden; }
+.btn-group > .icon-btn { border: 0; border-radius: 0; height: 28px; }
+.btn-group > * + * { border-left: 1px solid var(--border) !important; }
+.btn-group > .zoom-label { align-self: stretch; display: grid; place-items: center; padding: 0 8px; }
+/* infobulles : nom, explication et raccourci clavier */
+.tip {
+  position: fixed; z-index: 300; max-width: 280px; padding: 7px 10px; border-radius: 8px; pointer-events: none;
+  background: var(--text); color: var(--surface); font-size: 12px; line-height: 1.4; box-shadow: var(--shadow);
+  opacity: 0; transform: translateY(-2px); transition: opacity .12s, transform .12s;
+}
+.tip.on { opacity: 1; transform: none; }
+.tip b { font-weight: 600; }
+.tip .tip-desc { opacity: .75; }
+.tip .tip-kbd { margin-top: 4px; opacity: .9; }
+.tip kbd {
+  display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 4px; text-align: center;
+  border: 1px solid color-mix(in srgb, var(--surface) 35%, transparent); font: inherit; font-size: 11px;
+}
 .hint { font-size: 12px; color: var(--text-muted); }
 .zoom-label { font-size: 12px; color: var(--text-muted); min-width: 64px; text-align: center; }
 .split { flex: 1; min-height: 0; display: flex; background: var(--surface); }
@@ -223,7 +242,22 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 .tcell.in-range { background: var(--accent-soft); }
 .tcell.sel { box-shadow: inset 0 0 0 2px var(--accent); }
 .trow.row-sel { background: color-mix(in srgb, var(--accent) 6%, transparent); }
-.thead-row { height: var(--head-h); border-bottom: 0; }
+.thead-row { height: 72px; border-bottom: 0; }
+/* ligne de filtres sous les en-têtes du tableau */
+.filter-row { height: 28px; border-bottom: 0; border-top: 1px solid var(--border); background: var(--surface-2); }
+.filter-row .fcell { flex: 0 0 auto; padding: 3px 3px; position: relative; }
+.filter-input {
+  width: 100%; height: 22px; border: 1px solid var(--border); border-radius: 6px; padding: 0 20px 0 6px;
+  font: inherit; font-size: 12px; color: var(--text); background: var(--surface);
+}
+.filter-input:focus { outline: none; border-color: var(--accent); }
+.filter-input.active { border-color: var(--accent); background: var(--accent-soft); }
+.filter-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--text-muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; }
+.filter-btn { position: relative; }
+.filter-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.filter-btn .badge { position: absolute; top: -5px; right: -5px; min-width: 15px; height: 15px; border-radius: 8px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; padding: 0 3px; }
+/* tâche mère affichée seulement pour situer une tâche trouvée */
+.trow.filter-context .tcell { opacity: .45; }
 .thead-row .tcell { border-right-color: var(--border); }
 .thead-row .tcell[data-fixed] { padding: 0 0 8px; justify-content: center; text-align: center; font-size: 11px; }
 .thead-row .tcell {
@@ -273,7 +307,8 @@ body.resizing, body.resizing * { cursor: col-resize !important; user-select: non
 body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-select: none !important; }
 
 /* ---------- Planning Gantt ---------- */
-.gantt-head { position: relative; height: 100%; }
+.pane-right .pane-head { display: flex; flex-direction: column; justify-content: flex-end; }
+.gantt-head { position: relative; height: 72px; flex: 0 0 auto; }
 .gh-row { position: relative; height: 18px; border-bottom: 1px solid var(--border); }
 .gh-row:last-child { border-bottom: 0; }
 .gh-cell {
@@ -302,7 +337,11 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 }
 .bar { --c: var(--task); }
 .bar.dragging { cursor: grabbing; opacity: .85; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
-.bar.sel { outline: 2px solid var(--text); outline-offset: 1px; }
+.bar.sel { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+/* avancement : partie réalisée de la couleur de la tâche, reste plus clair */
+.bar.has-prog { background: color-mix(in srgb, var(--c) 38%, var(--surface)); }
+.bar .prog { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 6px 0 0 6px; pointer-events: none; }
+.bar .prog.full { border-radius: 6px; }
 .bar .h-end { position: absolute; right: 0; top: 0; bottom: 0; width: 9px; cursor: ew-resize; border-radius: 0 6px 6px 0; }
 .bar .h-end::after { content: ""; position: absolute; right: 3px; top: 25%; bottom: 25%; width: 2px; border-radius: 1px; background: rgba(255, 255, 255, .7); }
 .bar .link-dot {
@@ -427,10 +466,11 @@ const ICONS = {
   exitFullscreen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
   exportFile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3 3 3-3"/></svg>',
   importFile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15l3-3 3 3"/></svg>',
+  filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7.5V19l-4 1.5v-8z"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>',
 };
 
-const LOGO_SVG = `<svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5bf0"/><stop offset="1" stop-color="#b07cff"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#logo-g)"/><rect x="19" y="19" width="26" height="26" rx="3" fill="#fff"/><path d="M27.7 19v26M36.3 19v26M19 27.7h26M19 36.3h26" stroke="#8a6cf6" stroke-width="1.6"/></svg>`;
+const LOGO_SVG = `<svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5bf0"/><stop offset="1" stop-color="#b07cff"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#logo-g)"/><rect x="13" y="16" width="22" height="7.5" rx="3.75" fill="#fff"/><rect x="24" y="28.25" width="21" height="7.5" rx="3.75" fill="#fff"/><rect x="34" y="40.5" width="17" height="7.5" rx="3.75" fill="#fff" fill-opacity=".6"/></svg>`;
 
 function toast(msg) {
   document.querySelectorAll(".toast").forEach((t) => t.remove());
@@ -544,6 +584,13 @@ function parseNum(s) {
 const Task = {
   create(level = 1) {
     return { id: uid("t"), level, label: "", responsable: "", heures: "", start: Dates.nextWorkday(todayISO()) };
+  },
+  // avancement en % (0 à 100) : nombre saisi ou résultat d'un calcul « = » ; null si vide ou incorrect
+  progress(t) {
+    const raw = String(t.avancement || "").trim();
+    if (!raw) return null;
+    const n = raw.startsWith("=") ? evalFormula(raw) : parseNum(raw.replace(/\s*%$/, ""));
+    return n == null || isNaN(n) ? null : Math.max(0, Math.min(100, n));
   },
   // Durée jours = Heures effectives × 1,5, arrondie à l'entier le plus proche ; null si incalculable
   duration(t) {
@@ -705,7 +752,7 @@ const Links = {
 
 /* ============================================================
    Store — projets ouverts (en mémoire) + préférences (navigateur)
-   Les projets eux-mêmes sont des fichiers .proj sur l'ordinateur (voir Files).
+   Les projets eux-mêmes sont des classeurs .xlsx sur l'ordinateur (voir Files).
    ============================================================ */
 const STORAGE_KEY = "plan-projet:v1";
 
@@ -765,11 +812,11 @@ const Store = {
 };
 
 /* ============================================================
-   Fichiers .proj : ouvrir, créer, enregistrer en temps réel
+   Fichiers de projet (.xlsx) : ouvrir, créer, enregistrer en temps réel
    (Chrome / Edge : écriture directe dans le fichier ; autres navigateurs : téléchargement)
    ============================================================ */
 // Le projet est un vrai classeur Excel : feuille « Planning » visible + feuille masquée avec les données de l'application.
-// L'ancien format .proj (texte JSON) reste lisible et enregistrable.
+// L'ancien format .proj (texte JSON) n'est plus enregistré : à l'ouverture, il est converti en classeur .xlsx.
 const PROJ_EXT = ".xlsx";
 const LEGACY_EXT = ".proj";
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -797,9 +844,8 @@ const Files = {
     return JSON.stringify({ app: "Plan Projet", version: 1, title, createdAt, updatedAt, ui, tasks, links }, null, 2);
   },
   isLegacy(name) { return /\.proj$/i.test(name || ""); },
-  extOf(name) { return this.isLegacy(name) ? LEGACY_EXT : PROJ_EXT; },
-  // contenu écrit dans le fichier : classeur Excel (ou texte JSON pour un ancien .proj)
-  toBytes(p, name) { return this.isLegacy(name) ? this.toText(p) : Exchange.toXLSX(p, true); },
+  // contenu écrit dans le fichier : classeur Excel
+  toBytes(p) { return Exchange.toXLSX(p, true); },
   // lit un fichier de projet → { p, foreign, edited }
   async fromFile(file, name) {
     if (this.isLegacy(name)) return { p: this.fromText(await file.text(), this.baseName(name)) };
@@ -875,6 +921,7 @@ const Files = {
     }
     const file = await handle.getFile();
     const res = await this.fromFile(file, handle.name);
+    if (this.isLegacy(handle.name)) return this.convertLegacy(handle, res.p);
     if (res.foreign) {
       // classeur qui ne vient pas de Plan Projet : l'importer, ou l'ouvrir en acceptant de le réécrire
       const choice = await this.confirmForeign(handle.name, true);
@@ -887,6 +934,25 @@ const Files = {
     const perm = await handle.queryPermission?.({ mode: "readwrite" });
     if (perm && perm !== "granted") this.setState(p.id, "permission");
     this.recentKeys.set(p.id, await Recents.add(handle, p.title));
+    return p;
+  },
+
+  // ancien fichier .proj : on l'enregistre une fois en classeur .xlsx, qui devient le fichier du projet
+  async convertLegacy(handle, old) {
+    const ok = await confirmDialog({
+      title: "Ancien format de fichier",
+      message: `« ${handle.name} » est au format .proj, qui n'est plus utilisé.\n` +
+        "Le projet va être enregistré en classeur Excel (.xlsx). L'ancien fichier ne sera plus modifié : vous pourrez le supprimer.",
+      okLabel: "Enregistrer en .xlsx", cancelLabel: "Annuler", focusOk: true,
+    });
+    if (!ok) return null;
+    const p = await this.createFrom(this.baseName(handle.name), (q) => {
+      q.tasks = old.tasks; q.links = old.links; q.ui = old.ui; q.createdAt = old.createdAt;
+    });
+    if (!p) return null;
+    const entry = await Recents.find(handle);
+    if (entry) await Recents.remove(entry.key);
+    toast("Projet converti en classeur Excel");
     return p;
   },
 
@@ -918,7 +984,7 @@ const Files = {
     if (!handle) return false;
     const job = (this.chains.get(p.id) || Promise.resolve()).then(async () => {
       const w = await handle.createWritable();
-      await w.write(this.toBytes(p, handle.name));
+      await w.write(this.toBytes(p));
       await w.close();
     });
     this.chains.set(p.id, job.catch(() => {}));
@@ -960,7 +1026,7 @@ const Files = {
   async rename(p) {
     const handle = this.handles.get(p.id);
     if (!handle) return "same";
-    const newName = this.safeName(p.title) + this.extOf(handle.name);
+    const newName = this.safeName(p.title) + PROJ_EXT;
     if (handle.name === newName) return "same";
     if (typeof handle.move !== "function") return "unsupported";
     clearTimeout(this.timers.get(p.id));
@@ -992,7 +1058,7 @@ const Files = {
 
   download(p) {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([this.toBytes(p, PROJ_EXT)], { type: XLSX_MIME }));
+    a.href = URL.createObjectURL(new Blob([this.toBytes(p)], { type: XLSX_MIME }));
     a.download = this.safeName(p.title) + PROJ_EXT;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -1012,7 +1078,7 @@ const Files = {
       }));
     } catch (e) { /* stockage de l'onglet indisponible */ }
   },
-  forget() { try { sessionStorage.removeItem(this.SESSION_KEY); } catch (e) { /* ignoré */ } },
+  forget() { try { sessionStorage.removeItem(this.SESSION_KEY); sessionStorage.removeItem(HISTORY_KEY); } catch (e) { /* ignoré */ } },
   async restore(id) {
     let snap = null;
     try { snap = JSON.parse(sessionStorage.getItem(this.SESSION_KEY)); } catch (e) { snap = null; }
@@ -1198,8 +1264,7 @@ const Settings = {
     const b = document.createElement("button");
     b.className = "icon-btn";
     b.innerHTML = ICONS.gear;
-    b.title = "Paramètres : couleurs et police d'écriture";
-    b.setAttribute("aria-label", "Paramètres");
+    setTip(b, "Paramètres", "Couleurs et police d'écriture");
     b.addEventListener("click", () => {
       if (document.querySelector(".settings-panel")) document.querySelector(".settings-panel").remove();
       else this.open(b);
@@ -1223,8 +1288,8 @@ const Fullscreen = {
   paint(btn) {
     const on = this.active();
     btn.innerHTML = on ? ICONS.exitFullscreen : ICONS.fullscreen;
-    btn.title = on ? "Quitter le plein écran (F ou Échap)" : "Plein écran (F)";
-    btn.setAttribute("aria-label", btn.title);
+    if (on) setTip(btn, "Quitter le plein écran", "", "F|Échap");
+    else setTip(btn, "Plein écran", "", "F");
   },
   button() {
     const b = document.createElement("button");
@@ -1273,8 +1338,7 @@ const Theme = {
   paintButton(btn) {
     const dark = this.current() === "dark";
     btn.innerHTML = dark ? ICONS.sun : ICONS.moon;
-    btn.title = dark ? "Passer en mode clair" : "Passer en mode sombre";
-    btn.setAttribute("aria-label", btn.title);
+    setTip(btn, dark ? "Mode clair" : "Mode sombre", dark ? "Passer en mode clair" : "Passer en mode sombre");
   },
   button() {
     const b = document.createElement("button");
@@ -1333,6 +1397,50 @@ function bindInlineEdit(input, onCommit) {
 /* ============================================================
    Page Menu : nouveau projet, ouvrir un fichier, fichiers récents
    ============================================================ */
+/* ============================================================
+   Infobulles des boutons : nom, explication et raccourci clavier
+   ============================================================ */
+// attributs d'un bouton : kbd = touches séparées par « + », variantes par « | »
+const tipAttrs = (name, desc = "", kbd = "") =>
+  `aria-label="${esc(name)}" data-tip="${esc(name)}"${desc ? ` data-desc="${esc(desc)}"` : ""}${kbd ? ` data-kbd="${esc(kbd)}"` : ""}`;
+const setTip = (el, name, desc = "", kbd = "") => {
+  el.removeAttribute("title");
+  el.setAttribute("aria-label", name);
+  el.dataset.tip = name;
+  if (desc) el.dataset.desc = desc; else delete el.dataset.desc;
+  if (kbd) el.dataset.kbd = kbd; else delete el.dataset.kbd;
+};
+const Tip = {
+  el: null, timer: null, target: null,
+  show(t) {
+    this.target = t;
+    if (!this.el) { this.el = document.createElement("div"); this.el.className = "tip"; this.el.setAttribute("role", "tooltip"); }
+    const kbd = t.dataset.kbd ? t.dataset.kbd.split("|").map((v) => v.split("+").map((k) => `<kbd>${esc(k.trim())}</kbd>`).join(" + ")).join(" ou ") : "";
+    this.el.innerHTML = `<b>${esc(t.dataset.tip)}</b>${t.dataset.desc ? `<div class="tip-desc">${esc(t.dataset.desc)}</div>` : ""}${kbd ? `<div class="tip-kbd">${kbd}</div>` : ""}`;
+    this.el.classList.remove("on");
+    document.body.appendChild(this.el);
+    const r = t.getBoundingClientRect(), w = this.el.offsetWidth, h = this.el.offsetHeight;
+    const left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+    const top = r.bottom + 8 + h > window.innerHeight ? r.top - h - 8 : r.bottom + 8;
+    Object.assign(this.el.style, { left: left + "px", top: top + "px" });
+    requestAnimationFrame(() => this.el && this.el.classList.add("on"));
+  },
+  hide() {
+    clearTimeout(this.timer);
+    this.target = null;
+    if (this.el) this.el.remove();
+  },
+};
+document.addEventListener("pointerover", (e) => {
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (t === Tip.target) return;
+  Tip.hide();
+  if (t && e.pointerType !== "touch") { Tip.target = t; Tip.timer = setTimeout(() => { if (t.isConnected) Tip.show(t); }, 350); }
+});
+document.addEventListener("pointerdown", () => Tip.hide(), true);
+document.addEventListener("keydown", () => Tip.hide(), true);
+window.addEventListener("blur", () => Tip.hide());
+
 const openProject = (p) => { if (p) Router.go("projet/" + p.id); };
 
 const MenuView = {
@@ -1341,8 +1449,8 @@ const MenuView = {
       <header class="topbar">
         <div class="brand">${LOGO_SVG}<span>Plan Projet</span></div>
         <div class="spacer"></div>
-        <button class="icon-btn" data-act="import" title="Importer un fichier Excel ou CSV dans un nouveau projet" aria-label="Importer">${ICONS.importFile}</button>
-        <div data-slot="theme"></div>
+        <button class="icon-btn" data-act="import" ${tipAttrs("Importer", "Un fichier Excel ou CSV dans un nouveau projet")}>${ICONS.importFile}</button>
+        <div class="btn-group" data-slot="view"><div data-slot="theme"></div></div>
       </header>
       <main class="menu-page">
         <div class="menu-head">
@@ -2027,8 +2135,29 @@ function choiceDialog({ title, message, choices }) {
   });
 }
 
-// historique d'annulation par projet, depuis l'ouverture de l'application
+// historique d'annulation par projet ; celui du projet ouvert est gardé pour l'onglet (retrouvé après F5)
 const History = new Map();   // id du projet → { undo: [], redo: [], last }
+const HISTORY_KEY = "plan-projet:historique";
+const HistoryStore = {
+  load(id) {
+    try {
+      const o = JSON.parse(sessionStorage.getItem(HISTORY_KEY));
+      return o && o.id === id ? { undo: o.undo || [], redo: o.redo || [] } : null;
+    } catch (e) { return null; }
+  },
+  save(id, hist) {
+    // stockage de l'onglet limité : en cas de manque de place, on oublie les étapes les plus anciennes
+    let undo = hist.undo, redo = hist.redo;
+    for (;;) {
+      try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify({ id, undo, redo })); return; }
+      catch (e) {
+        if (!undo.length && !redo.length) return;
+        undo = undo.slice(Math.ceil(undo.length / 2));
+        if (!undo.length) redo = redo.slice(Math.ceil(redo.length / 2));
+      }
+    }
+  },
+};
 
 const ProjectView = {
   render(root, id) {
@@ -2039,33 +2168,40 @@ const ProjectView = {
     root.innerHTML = `
       <div class="project-page">
         <header class="topbar">
-          <button class="logo-btn" data-act="back" title="Retour au menu : ouvrir ou créer un projet" aria-label="Retour au menu">${LOGO_SVG}</button>
+          <button class="logo-btn" data-act="back" ${tipAttrs("Retour au menu", "Ouvrir ou créer un projet")}>${LOGO_SVG}</button>
           <input class="project-title" value="${esc(p.title)}" aria-label="Titre du projet" maxlength="120">
           <span class="file-chip" hidden></span>
           <span class="save-status"></span>
-          <button class="icon-btn" data-act="save" title="Enregistrer maintenant (Ctrl + S) — l'enregistrement est aussi automatique" aria-label="Enregistrer">${ICONS.save}</button>
-          <button class="icon-btn" data-act="save-as" title="Enregistrer sous… : choisir un autre dossier ou un autre nom (Ctrl + Maj + S)" aria-label="Enregistrer sous">${ICONS.saveAs}</button>
-          <button class="icon-btn" data-act="export" title="Exporter le projet (Excel ou CSV)" aria-label="Exporter">${ICONS.exportFile}</button>
-          <button class="icon-btn" data-act="import" title="Importer un fichier Excel ou CSV" aria-label="Importer">${ICONS.importFile}</button>
-          <div data-slot="theme"></div>
+          <div class="btn-group">
+            <button class="icon-btn" data-act="save" ${tipAttrs("Enregistrer", "L'enregistrement est aussi automatique", "Ctrl+S")}>${ICONS.save}</button>
+            <button class="icon-btn" data-act="save-as" ${tipAttrs("Enregistrer sous…", "Choisir un autre dossier ou un autre nom", "Ctrl+Maj+S")}>${ICONS.saveAs}</button>
+            <button class="icon-btn" data-act="export" ${tipAttrs("Exporter", "Le projet en Excel ou CSV")}>${ICONS.exportFile}</button>
+            <button class="icon-btn" data-act="import" ${tipAttrs("Importer", "Un fichier Excel ou CSV")}>${ICONS.importFile}</button>
+          </div>
+          <div class="btn-group"><div data-slot="theme"></div></div>
         </header>
         <div class="toolbar">
-          <button class="btn btn-primary btn-icon-wide" data-act="add" title="Ajouter une tâche — Ajoute une ligne sous la ligne sélectionnée" aria-label="Ajouter une tâche">${ICONS.plus}</button>
-          <button class="btn btn-danger btn-icon-wide" data-act="del" disabled title="Supprimer les tâches sélectionnées (touche Suppr)" aria-label="Supprimer les tâches sélectionnées">${ICONS.trash}</button>
+          <button class="btn btn-primary btn-icon-wide" data-act="add" ${tipAttrs("Ajouter une tâche", "Sous la ligne sélectionnée")}>${ICONS.plus}</button>
+          <button class="btn btn-danger btn-icon-wide" data-act="del" disabled ${tipAttrs("Supprimer", "Les tâches sélectionnées (Suppr dans une colonne 1 à 4)", "Suppr")}>${ICONS.trash}</button>
           <div class="sep"></div>
-          <button class="icon-btn" data-act="expand-all" title="Tout développer : le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)" aria-label="Tout développer">${ICONS.expandAll}</button>
-          <button class="icon-btn" data-act="collapse-all" title="Tout réduire : le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)" aria-label="Tout réduire">${ICONS.collapseAll}</button>
-          <div class="sep"></div>
-          <button class="icon-btn" data-act="row-down" title="Réduire la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Réduire la hauteur des lignes">${ICONS.minus}</button>
-          <span class="zoom-label">Hauteur</span>
-          <button class="icon-btn" data-act="row-up" title="Augmenter la hauteur des lignes (Ctrl + molette sur le tableau)" aria-label="Augmenter la hauteur des lignes">${ICONS.plus}</button>
+          <div class="btn-group">
+            <button class="icon-btn" data-act="expand-all" ${tipAttrs("Tout développer", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.expandAll}</button>
+            <button class="icon-btn" data-act="collapse-all" ${tipAttrs("Tout réduire", "Le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)")}>${ICONS.collapseAll}</button>
+          </div>
+          <button class="icon-btn filter-btn" data-act="filter" ${tipAttrs("Filtrer", "Une recherche par colonne · Échap efface le filtre en cours")}>${ICONS.filter}<span class="badge" hidden></span></button>
+          <div class="btn-group">
+            <button class="icon-btn" data-act="row-down" ${tipAttrs("Lignes moins hautes", "", "Ctrl+molette")}>${ICONS.minus}</button>
+            <span class="zoom-label">Hauteur</span>
+            <button class="icon-btn" data-act="row-up" ${tipAttrs("Lignes plus hautes", "", "Ctrl+molette")}>${ICONS.plus}</button>
+          </div>
           <span class="hint">Tab / Maj+Tab dans une colonne de niveau (1 à 4) : changer de niveau · Suppr : supprimer · Ctrl+Z : annuler · Ctrl+C / Ctrl+V : copier / coller avec Excel</span>
           <div class="spacer"></div>
-          <button class="btn" data-act="today" title="Afficher la date du jour">${ICONS.today}<span class="lbl">Aujourd'hui</span></button>
-          <div class="sep"></div>
-          <button class="icon-btn" data-act="zoom-out" title="Dézoomer (Ctrl + molette)" aria-label="Dézoomer">${ICONS.minus}</button>
-          <span class="zoom-label" data-slot="zoom"></span>
-          <button class="icon-btn" data-act="zoom-in" title="Zoomer (Ctrl + molette)" aria-label="Zoomer">${ICONS.plus}</button>
+          <button class="icon-btn" data-act="today" ${tipAttrs("Aujourd'hui", "Afficher la date du jour sur le planning")}>${ICONS.today}</button>
+          <div class="btn-group">
+            <button class="icon-btn" data-act="zoom-out" ${tipAttrs("Dézoomer", "", "Ctrl+molette")}>${ICONS.minus}</button>
+            <span class="zoom-label" data-slot="zoom"></span>
+            <button class="icon-btn" data-act="zoom-in" ${tipAttrs("Zoomer", "", "Ctrl+molette")}>${ICONS.plus}</button>
+          </div>
         </div>
         <div class="split">
           <section class="pane pane-left">
@@ -2125,7 +2261,7 @@ const ProjectView = {
 
     /* ---------- Historique : chaque enregistrement est une étape annulable ---------- */
     const snapshot = () => JSON.stringify({ title: p.title, tasks: p.tasks, links: p.links });
-    if (!History.has(id)) History.set(id, { undo: [], redo: [], last: snapshot() });
+    if (!History.has(id)) History.set(id, { undo: [], redo: [], ...HistoryStore.load(id), last: snapshot() });
     const hist = History.get(id);
     hist.last = snapshot();
 
@@ -2144,6 +2280,7 @@ const ProjectView = {
       if (!hist.undo.length) { toast("Rien à annuler"); return; }
       hist.redo.push(hist.last);
       restore(hist.undo.pop());
+      HistoryStore.save(id, hist);
       toast(`Action annulée${hist.undo.length ? ` · encore ${hist.undo.length} possible${hist.undo.length > 1 ? "s" : ""}` : ""}`);
     };
     const redo = () => {
@@ -2151,6 +2288,7 @@ const ProjectView = {
       if (!hist.redo.length) { toast("Rien à rétablir"); return; }
       hist.undo.push(hist.last);
       restore(hist.redo.pop());
+      HistoryStore.save(id, hist);
       toast("Action rétablie");
     };
     on(document, "keydown", (e) => {
@@ -2168,7 +2306,7 @@ const ProjectView = {
     /* ---------- Enregistrer (bouton + Ctrl + S) ---------- */
     const save = () => {
       const now = snapshot();
-      if (now !== hist.last) { hist.undo.push(hist.last); hist.redo = []; hist.last = now; }
+      if (now !== hist.last) { hist.undo.push(hist.last); hist.redo = []; hist.last = now; HistoryStore.save(id, hist); }
       Store.updateProject(id, {});
       el.status.textContent = "";
     };
@@ -2289,8 +2427,16 @@ const ProjectView = {
     };
 
     const renderTableHead = () => {
-      el.leftHead.innerHTML = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
+      let html = `<div class="trow thead-row">${COLUMNS.map((c, i) =>
         `<div class="tcell"${c.fixed ? " data-fixed" : ""}${c.title ? ` title="${c.title}"` : ""} style="width:${colWidth(c)}px">${esc(c.label)}${c.fixed ? "" : `<span class="col-resize" data-c="${i}" title="Glisser pour élargir (double-clic : taille d'origine)"></span>`}</div>`).join("")}</div>`;
+      if (showFilters) {
+        // colonnes 1 à 4 : une seule recherche « Tâche » ; puis une recherche par colonne
+        const field = (k, w, ph) => `<div class="fcell" style="width:${w}px"><input class="filter-input${normTxt(filters[k]) ? " active" : ""}" data-k="${k}" value="${esc(filters[k] || "")}" placeholder="${ph}" title="Filtrer : ${ph}" spellcheck="false">${normTxt(filters[k]) ? `<button class="filter-clear" data-clear="${k}" title="Effacer ce filtre">×</button>` : ""}</div>`;
+        let cells = field("label", colLeft(COL.niv4 + 1), "Tâche…");
+        COLUMNS.forEach((c) => { if (!isNivCol(COL[c.key])) cells += field(c.key, colWidth(c), c.label + "…"); });
+        html += `<div class="trow filter-row">${cells}</div>`;
+      }
+      el.leftHead.innerHTML = html;
       el.leftHead.scrollLeft = el.leftBody.scrollLeft;
     };
 
@@ -2301,10 +2447,41 @@ const ProjectView = {
     const twistyLeft = () => -14;
     const labelLeft = () => 4;
 
-    /* ---------- Lignes visibles (groupes réduits masqués) ---------- */
+    /* ---------- Filtres : une recherche texte par colonne ---------- */
+    // « label » cherche dans le nom des tâches (colonnes 1 à 4) ; les autres clés sont celles des colonnes
+    const FILTER_COLS = ["label", "responsable", "heures", "duree", "debut", "fin", "avancement"];
+    let filters = {}, showFilters = false;
+    const keepVisible = new Set();   // tâches ajoutées pendant un filtrage : restent visibles
+    const normTxt = (v) => String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const filterActive = () => FILTER_COLS.some((k) => normTxt(filters[k]));
+    const matches = (t) => FILTER_COLS.every((k) => {
+      const q = normTxt(filters[k]);
+      if (!q) return true;
+      const text = k === "label" ? t.label : cellDisplay(t, k).text;
+      return normTxt(text).includes(q);
+    });
+    let filterCtx = new Set();   // tâches mères affichées seulement pour situer une tâche trouvée
+
+    /* ---------- Lignes visibles (groupes réduits masqués, filtres) ---------- */
     let vis = [], visPos = [];   // vis : indices des tâches affichées ; visPos[r] : rang affiché (-1 si masquée)
     const refreshVis = () => {
       vis = []; visPos = new Array(p.tasks.length).fill(-1);
+      filterCtx = new Set();
+      if (filterActive()) {
+        // tâches trouvées + leurs tâches mères (pour garder la hiérarchie lisible)
+        const show = new Set();
+        p.tasks.forEach((t, r) => {
+          if (!matches(t) && !keepVisible.has(t.id)) return;
+          show.add(r);
+          let lvl = t.level;
+          for (let k = r - 1; k >= 0 && lvl > 1; k--) {
+            if (p.tasks[k].level < lvl) { if (!show.has(k)) filterCtx.add(k); show.add(k); lvl = p.tasks[k].level; }
+          }
+        });
+        filterCtx.forEach((k) => { if (matches(p.tasks[k])) filterCtx.delete(k); });
+        p.tasks.forEach((t, r) => { if (show.has(r)) { visPos[r] = vis.length; vis.push(r); } });
+        return;
+      }
       for (let r = 0; r < p.tasks.length; ) {
         visPos[r] = vis.length;
         vis.push(r);
@@ -2343,12 +2520,14 @@ const ProjectView = {
       Tree.compute(p);
       refreshVis();
       const R = rect();
-      el.leftBody.innerHTML = p.tasks.length
+      el.leftBody.innerHTML = p.tasks.length && !vis.length
+        ? `<div class="table-empty">Aucune tâche ne correspond aux filtres.</div>`
+        : p.tasks.length
         ? vis.map((r) => {
             const t = p.tasks[r];
             const inRows = R && r >= R.r1 && r <= R.r2;
             const c0 = t.level - 1, spill = spillCount(t), parent = Task.isParent(t);
-            return `<div class="trow${inRows ? " row-sel" : ""}">${COLUMNS.map((c, i) => {
+            return `<div class="trow${inRows ? " row-sel" : ""}${filterCtx.has(r) ? " filter-context" : ""}">${COLUMNS.map((c, i) => {
               const d = cellDisplay(t, c.key);
               let content = esc(d.text), spillCls = "";
               let style = `width:${colWidth(c)}px`;
@@ -2380,6 +2559,48 @@ const ProjectView = {
     };
 
     const renderAll = () => { renderTableHead(); renderRows(); renderGantt(); };
+
+    const filterBtn = root.querySelector('[data-act="filter"]');
+    const paintFilterBtn = () => {
+      const n = FILTER_COLS.filter((k) => normTxt(filters[k])).length;
+      filterBtn.classList.toggle("on", showFilters);
+      const badge = filterBtn.querySelector(".badge");
+      badge.hidden = !n;
+      badge.textContent = n;
+      el.page.style.setProperty("--head-h", showFilters ? "101px" : "72px");
+    };
+    const applyFilters = () => {
+      keepVisible.clear();
+      renderRows(); renderGantt();
+      if (sel && visPos[sel.r] < 0) { sel = null; renderRows(); }
+      paintFilterBtn();
+    };
+    filterBtn.addEventListener("click", () => {
+      showFilters = !showFilters;
+      if (!showFilters) filters = {};   // fermer la ligne de filtres les efface
+      renderTableHead(); applyFilters();
+      if (showFilters) el.leftHead.querySelector(".filter-input").focus();
+    });
+    el.leftHead.addEventListener("input", (e) => {
+      const inp = e.target.closest(".filter-input");
+      if (!inp) return;
+      filters[inp.dataset.k] = inp.value;
+      inp.classList.toggle("active", !!normTxt(inp.value));
+      applyFilters();
+    });
+    el.leftHead.addEventListener("keydown", (e) => {
+      const inp = e.target.closest(".filter-input");
+      if (!inp) return;
+      e.stopPropagation();
+      if (e.key === "Escape") { filters[inp.dataset.k] = ""; renderTableHead(); applyFilters(); }
+      if (e.key === "Enter") el.leftBody.focus({ preventScroll: true });
+    });
+    el.leftHead.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-clear]");
+      if (!b) return;
+      filters[b.dataset.clear] = "";
+      renderTableHead(); applyFilters();
+    });
 
     const cellEl = (r, c) => el.leftBody.querySelector(`.tcell[data-r="${r}"][data-c="${c}"]`);
 
@@ -2535,6 +2756,7 @@ const ProjectView = {
     const blockEnd = (r) => Tree.blockEnd(p, r);
 
     const startRowDrag = (e, r) => {
+      if (filterActive()) { toast("Effacez les filtres pour déplacer des tâches"); return; }
       if (editor) editor.input.blur();
       const end = blockEnd(r);
       for (let k = r; k < end; k++) el.leftBody.querySelector(`.tcell[data-r="${k}"]`)?.parentElement.classList.add("moving");
@@ -2755,8 +2977,11 @@ const ProjectView = {
       const R = rect();
       // une nouvelle tâche se place après le groupe de la tâche sélectionnée (pas au milieu de ses filles)
       const at = R ? Tree.blockEnd(p, R.r2) : p.tasks.length;
+      // pendant un filtrage, la nouvelle tâche reste visible même si elle ne correspond pas aux filtres
+      const added = () => keepVisible.add(p.tasks[at].id);
       const level = R ? p.tasks[R.r2].level : 1;
       p.tasks.splice(at, 0, Task.create(level));
+      added();
       save();
       renderAll();
       select(at, level - 1);
@@ -2921,7 +3146,9 @@ const ProjectView = {
           const tip = `${t.label || "(sans nom)"}\n${Dates.format(st)} → ${Dates.format(Task.end(t))} · ${d} jour${d > 1 ? "s" : ""} ouvré${d > 1 ? "s" : ""}${parent ? "\nTâche mère : durée = somme des tâches filles, barre = période de ses tâches filles" : ""}`;
           const ms = d === 0 && !parent;
           const left = ms ? g.left + dw / 2 - 7 : g.left + 1;
-          bar = `<div class="bar lvl${t.level}${ms ? " ms" : ""}${parent ? " summary" : ""}${R && r >= R.r1 && r <= R.r2 ? " sel" : ""}" data-r="${r}" style="left:${left}px;width:${Math.max(g.width - 2, 4)}px" title="${esc(tip)}">
+          const pct = ms || parent ? null : Task.progress(t);
+          const prog = pct == null ? "" : `<span class="prog${pct >= 100 ? " full" : ""}" style="width:${pct}%"></span>`;
+          bar = `<div class="bar lvl${t.level}${ms ? " ms" : ""}${parent ? " summary" : ""}${pct == null ? "" : " has-prog"}${R && r >= R.r1 && r <= R.r2 ? " sel" : ""}" data-r="${r}" style="left:${left}px;width:${Math.max(g.width - 2, 4)}px" title="${esc(tip + (pct == null ? "" : `\nAvancement : ${fmtNum(pct)} %`))}">${prog}
             <span class="h-end" title="Glisser pour allonger ou réduire"></span>
             <span class="link-dot" title="Glisser vers une autre tâche pour les lier"></span></div>`;
         }
@@ -3232,7 +3459,7 @@ Theme.init();
 window.addEventListener("beforeunload", (e) => {
   if (Store.currentId || Files.hasPending()) { e.preventDefault(); e.returnValue = ""; }
 });
-// application installée (Chrome / Edge) : ouverture d'un fichier .proj par double-clic
+// application installée (Chrome / Edge) : ouverture d'un fichier de projet par double-clic
 if ("launchQueue" in window) {
   window.launchQueue.setConsumer(async (params) => {
     if (params.files && params.files.length) {

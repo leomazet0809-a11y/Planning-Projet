@@ -37,9 +37,6 @@
       "accept": {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
           ".xlsx"
-        ],
-        "application/x-plan-projet": [
-          ".proj"
         ]
       }
     }
