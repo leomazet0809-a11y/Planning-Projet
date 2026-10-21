@@ -7,7 +7,15 @@ En ligne : https://leomazet0809-a11y.github.io/Planning-Projet/
 ## Utilisation
 
 Ouvrir `index.html` dans Chrome ou Edge (ou l'adresse ci-dessus). Aucune installation nécessaire.
-Les données sont enregistrées dans le navigateur ; **Exporter** (page Menu) crée un fichier de sauvegarde, **Importer** le recharge.
+
+### Fichiers de projet (.proj)
+Chaque projet est un fichier **`.proj`** enregistré sur l'ordinateur, dans le dossier choisi par l'utilisateur. Rien n'est envoyé sur Internet.
+- **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier.
+- **Ouvrir un fichier** : choisir un fichier `.proj` existant. Les **fichiers récents** se rouvrent en un clic depuis la page Menu.
+- **Enregistrement en temps réel** : chaque modification est écrite dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
+- Le nom du fichier ouvert est affiché dans le bandeau. Le navigateur ne communique pas le dossier où il se trouve.
+- Sur les autres navigateurs (Firefox, Safari), l'enregistrement se fait en téléchargeant le fichier (Ctrl + S).
+- Application installée (menu du navigateur › Installer) : un fichier `.proj` peut s'ouvrir par double-clic.
 
 ### Tableau
 Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la hiérarchie. Le petit chevron devant une tâche mère réduit ou déploie son groupe ; les boutons « Tout développer » / « Tout réduire » (doubles chevrons) agissent sur le groupe sélectionné et ses sous-groupes, ou sur tout le projet si rien n'est sélectionné.
@@ -47,8 +55,6 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 
 Une tâche liée commence toujours après la fin de sa tâche d'origine et suit ses déplacements.
 Les samedis et dimanches sont grisés : aucune tâche ne peut y commencer ou y finir.
-
-**Enregistrer** (ou Ctrl + S) confirme l'enregistrement du projet.
 
 **Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 
