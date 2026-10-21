@@ -39,6 +39,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
 | Effacer le contenu des cellules | Retour arrière (⌫), ou Suppr dans les colonnes Responsable à Avancement |
 | Supprimer les tâches sélectionnées | Suppr dans une colonne de niveau (1 à 4), puis Entrée pour confirmer (Oui) |
+| Monter / descendre une tâche | Alt + ↑ / Alt + ↓ : la tâche (avec ses sous-tâches) passe au-dessus / en dessous de la tâche voisine du même groupe |
 | Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture du projet, même après F5) / Ctrl + Y |
 | Largeur d'une colonne | Glisser le bord droit de son en-tête (double-clic : taille d'origine) |
 
@@ -54,7 +55,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 |---|---|
 | Déplacer une tâche | Glisser la barre à gauche ou à droite |
 | Allonger / réduire | Glisser le bord droit de la barre |
-| Lier deux tâches | Glisser la barre (ou le petit rond à sa droite) sur une autre tâche puis relâcher |
+| Lier deux tâches | Glisser la barre (ou le petit rond à sa droite) sur une autre tâche puis relâcher ; pendant le glissement, la ligne visée est surlignée dans le planning et dans le tableau (en rouge si le lien est impossible) |
 | Supprimer un lien | Cliquer sur la flèche |
 | Tâche liée décalée | Si une tâche liée commence plus tard que le plus tôt possible, sa flèche est en pointillés (le survol indique l'écart en jours ouvrés) |
 | Zoomer / dézoomer | Boutons − / + ou Ctrl + molette |

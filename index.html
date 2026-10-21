@@ -332,7 +332,8 @@ body.row-dragging, body.row-dragging * { cursor: grabbing !important; user-selec
 .gantt-canvas.panning, .gantt-canvas.panning * { cursor: grabbing !important; }
 .grow { position: relative; height: var(--row-h); border-bottom: 1px solid var(--grid-line); }
 .grow.row-sel { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-.grow.drop-target { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.grow.drop-target, .trow.drop-target { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.grow.drop-bad, .trow.drop-bad { background: color-mix(in srgb, var(--danger) 14%, transparent); }
 .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: .55; pointer-events: none; z-index: 1; }
 .bar {
   position: absolute; top: calc((var(--row-h) - var(--bar-h)) / 2 - .5px); height: var(--bar-h); border-radius: 6px; z-index: 2;
@@ -2929,8 +2930,35 @@ const ProjectView = {
     });
 
     /* ---------- Clavier ---------- */
+    // Alt + ↑ / ↓ : la tâche (avec ses sous-tâches) passe au-dessus / en dessous de la tâche voisine du même groupe
+    const moveTask = (dir) => {
+      if (filterActive()) { toast("Effacez les filtres pour déplacer des tâches"); return; }
+      const r = sel.r, c = sel.c, t = p.tasks[r], end = blockEnd(r);
+      let at;
+      if (dir < 0) {
+        let q = r - 1;
+        while (q >= 0 && p.tasks[q].level > t.level) q--;
+        if (q < 0 || p.tasks[q].level < t.level) { toast("La tâche est déjà la première de son groupe"); return; }
+        at = q;
+      } else {
+        if (end >= p.tasks.length || p.tasks[end].level < t.level) { toast("La tâche est déjà la dernière de son groupe"); return; }
+        at = blockEnd(end) - (end - r);
+      }
+      sel = null;
+      mutate(() => {
+        const block = p.tasks.splice(r, end - r);
+        p.tasks.splice(at, 0, ...block);
+      });
+      select(at, c);
+    };
+
     el.leftBody.addEventListener("keydown", (e) => {
       if (editor || !sel) return;
+      if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        e.preventDefault();
+        moveTask(e.key === "ArrowUp" ? -1 : 1);
+        return;
+      }
       const moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
       if (moves[e.key]) {
         e.preventDefault();
@@ -3337,13 +3365,14 @@ const ProjectView = {
         bar.style.left = (isMs ? dayX(tStart) + dw / 2 - 7 : dayX(tStart) + 1) + "px";   // la largeur ne change pas
       };
 
+      const clearDrop = () => el.page.querySelectorAll(".drop-target, .drop-bad").forEach((n) => n.classList.remove("drop-target", "drop-bad"));
       const onMove = (ev) => {
         const dx = ev.clientX - sx, dy = ev.clientY - sy;
         if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
         moved = true;
         if (startMode === "move") mode = Math.abs(dy) > rowH * 0.7 ? "link" : "move";
         const days = Math.round(dx / dw);
-        el.canvas.querySelector(".drop-target")?.classList.remove("drop-target");
+        clearDrop();
         ghost.setAttribute("d", "");
         dropRow = null;
 
@@ -3372,8 +3401,11 @@ const ProjectView = {
           const target = p.tasks[rr];
           if (target && rr !== r && Task.start(target) && Task.duration(target) != null) {
             dropRow = rr;
-            el.canvas.querySelector(`.grow[data-r="${rr}"]`)?.classList.add("drop-target");
-            showTip(ev, Links.canLink(p, t, target) ? `Lier à « ${target.label || "(sans nom)"} »` : "Lien impossible (boucle ou déjà lié)");
+            // ligne visée en surbrillance, dans le planning et dans le tableau
+            const ok = Links.canLink(p, t, target);
+            el.canvas.querySelector(`.grow[data-r="${rr}"]`)?.classList.add(ok ? "drop-target" : "drop-bad");
+            el.leftBody.querySelector(`.tcell[data-r="${rr}"]`)?.parentElement.classList.add(ok ? "drop-target" : "drop-bad");
+            showTip(ev, ok ? `Lier à « ${target.label || "(sans nom)"} »` : "Lien impossible (boucle ou déjà lié)");
           } else showTip(ev, "Relâcher sur une autre tâche pour la lier");
         }
       };
@@ -3381,6 +3413,7 @@ const ProjectView = {
       const onUp = () => {
         bar.removeEventListener("pointermove", onMove);
         bar.classList.remove("dragging");
+        clearDrop();
         tip.remove();
         if (!moved) { select(r, sel ? sel.c : 0); return; }
         if (mode === "move" && preview && preview.start !== tStart) {
