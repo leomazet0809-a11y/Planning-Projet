@@ -1,6 +1,6 @@
 # Plan Projet
 
-Application web simple pour découper un projet en tâches (4 niveaux) et les planifier sur un diagramme de Gantt, inspirée de [GanttProject](https://www.ganttproject.biz/).
+Application web simple pour découper un projet en tâches (jusqu'à 10 niveaux) et les planifier sur un diagramme de Gantt, inspirée de [GanttProject](https://www.ganttproject.biz/).
 
 En ligne : https://leomazet0809-a11y.github.io/Planning-Projet/
 
@@ -27,7 +27,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Action | Comment |
 |---|---|
 | Saisir | Cliquer sur une cellule et taper au clavier (double-clic, Entrée ou F2 pour modifier le contenu existant) |
-| Colonne Tâche | Dans l'application, le nom de la tâche occupe une seule colonne « Tâche » (retrait selon le niveau, largeur réglable) ; dans Excel et pour le copier / coller, il reste réparti sur les colonnes 1 à 4 |
+| Colonne Tâche | Dans l'application, le nom de la tâche occupe une seule colonne « Tâche » (retrait selon le niveau, largeur réglable) ; dans Excel et pour le copier / coller, il reste réparti sur une colonne par niveau (1, 2, 3, 4… : 4 colonnes au moins, jusqu'à 10 si le projet a des tâches aussi fines) |
 | Renommer une tâche | Un simple clic sur son nom (colonne Tâche) ouvre la modification après un court instant |
 | Commentaires | Double-clic sur le nom de la tâche, ou sur sa barre dans le planning : une fenêtre s'ouvre ; la croix (ou Échap) la ferme et enregistre. Une bulle signale les tâches commentées (dans le tableau, et au survol de la barre). Les commentaires sont aussi dans la colonne « Commentaires » du fichier Excel |
 | Valider / annuler | Entrée / Échap |
@@ -80,7 +80,7 @@ Boutons **Exporter** et **Importer** dans le bandeau (l'import existe aussi sur 
 
 **Fermeture** : si un projet est ouvert, le navigateur demande confirmation avant de fermer l'onglet ou la fenêtre.
 
-**Plein écran** : bouton à quatre coins dans le bandeau, ou touche **F** (bascule) ; Échap pour en sortir. Pour taper un mot commençant par « f » dans une cellule, ouvrir d'abord la saisie (double-clic, Entrée ou F2).
+**Plein écran** : bouton à quatre coins dans le bandeau ; Échap pour en sortir.
 
 **Paramètres** (roue dentée en haut à droite) : police d'écriture, couleur de fond (pour le mode clair et le mode sombre séparément) et couleur des tâches et couleur des tâches mères.
 
