@@ -9,6 +9,7 @@ En ligne : https://leomazet0809-a11y.github.io/Planning-Projet/
 Ouvrir `index.html` dans Chrome ou Edge (ou l'adresse ci-dessus). Aucune installation nécessaire.
 
 ### Fichiers de projet (.proj)
+Un clic sur le **logo** en haut à gauche ramène au menu (ouvrir ou créer un projet).
 Chaque projet est un fichier **`.proj`** enregistré sur l'ordinateur, dans le dossier choisi par l'utilisateur. Rien n'est envoyé sur Internet.
 - **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier.
 - **Ouvrir un fichier** : choisir un fichier `.proj` existant. Les **fichiers récents** se rouvrent en un clic depuis la page Menu.
