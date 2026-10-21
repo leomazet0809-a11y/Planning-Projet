@@ -14,7 +14,7 @@ Un clic sur le **logo** en haut à gauche ramène au menu (ouvrir ou créer un p
 Chaque projet est un classeur **`.xlsx`** enregistré sur l'ordinateur, dans le dossier choisi par l'utilisateur. Rien n'est envoyé sur Internet.
 - Le classeur s'ouvre **aussi dans Excel** (double-clic ou glisser-déposer) : la feuille visible présente le planning (colonnes `N° · 1 · 2 · 3 · 4 · Responsable · Heures · Durée · Dates · Avancement · Dépend de`). Une feuille masquée contient les données propres à l'application (liens, groupes réduits, réglages).
 - **Modifications faites dans Excel** (libellés, heures, lignes ajoutées…) : elles sont reprises à la prochaine ouverture dans l'application ; la mise en forme ajoutée dans Excel n'est pas conservée. Fermer le classeur dans Excel avant de l'ouvrir dans l'application (Windows empêche d'écrire dans un fichier ouvert dans Excel).
-- **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier. **Ouvrir un fichier** : choisir un projet `.xlsx` (les anciens `.proj` restent lisibles). Un classeur Excel quelconque peut être importé dans un nouveau projet.
+- **Nouveau projet** : choisir tout de suite le dossier et le nom du fichier. **Ouvrir un fichier** : choisir un projet `.xlsx` (un ancien fichier `.proj` est converti une fois pour toutes en `.xlsx` à l'ouverture). Un classeur Excel quelconque peut être importé dans un nouveau projet.
 - **Enregistrement en temps réel** dans le fichier (Chrome / Edge). **Ctrl + S** force l'enregistrement, **Ctrl + Maj + S** (Enregistrer sous) en fait une copie ailleurs.
 - Le titre du projet et le nom du fichier sont liés ; le nom du fichier ouvert est affiché dans le bandeau.
 - Actualiser la page (F5) garde le projet ouvert.
@@ -38,7 +38,7 @@ Des flèches grises relient chaque tâche à sa tâche mère pour visualiser la 
 | Copier / couper / coller avec Excel | Ctrl + C · Ctrl + X · Ctrl + V |
 | Effacer le contenu des cellules | Retour arrière (⌫), ou Suppr dans les colonnes Responsable à Avancement |
 | Supprimer les tâches sélectionnées | Suppr dans une colonne de niveau (1 à 4), puis Entrée pour confirmer (Oui) |
-| Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture) / Ctrl + Y |
+| Annuler / rétablir | Ctrl + Z (autant de fois que nécessaire depuis l'ouverture du projet, même après F5) / Ctrl + Y |
 | Largeur d'une colonne | Glisser le bord droit de son en-tête (double-clic : taille d'origine) |
 
 - **Durée jours** = Heures effectives × 1,5, arrondie à l'entier le plus proche (jours ouvrés, lundi → vendredi).

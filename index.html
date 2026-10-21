@@ -722,7 +722,7 @@ const Links = {
 
 /* ============================================================
    Store — projets ouverts (en mémoire) + préférences (navigateur)
-   Les projets eux-mêmes sont des fichiers .proj sur l'ordinateur (voir Files).
+   Les projets eux-mêmes sont des classeurs .xlsx sur l'ordinateur (voir Files).
    ============================================================ */
 const STORAGE_KEY = "plan-projet:v1";
 
@@ -782,11 +782,11 @@ const Store = {
 };
 
 /* ============================================================
-   Fichiers .proj : ouvrir, créer, enregistrer en temps réel
+   Fichiers de projet (.xlsx) : ouvrir, créer, enregistrer en temps réel
    (Chrome / Edge : écriture directe dans le fichier ; autres navigateurs : téléchargement)
    ============================================================ */
 // Le projet est un vrai classeur Excel : feuille « Planning » visible + feuille masquée avec les données de l'application.
-// L'ancien format .proj (texte JSON) reste lisible et enregistrable.
+// L'ancien format .proj (texte JSON) n'est plus enregistré : à l'ouverture, il est converti en classeur .xlsx.
 const PROJ_EXT = ".xlsx";
 const LEGACY_EXT = ".proj";
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -814,9 +814,8 @@ const Files = {
     return JSON.stringify({ app: "Plan Projet", version: 1, title, createdAt, updatedAt, ui, tasks, links }, null, 2);
   },
   isLegacy(name) { return /\.proj$/i.test(name || ""); },
-  extOf(name) { return this.isLegacy(name) ? LEGACY_EXT : PROJ_EXT; },
-  // contenu écrit dans le fichier : classeur Excel (ou texte JSON pour un ancien .proj)
-  toBytes(p, name) { return this.isLegacy(name) ? this.toText(p) : Exchange.toXLSX(p, true); },
+  // contenu écrit dans le fichier : classeur Excel
+  toBytes(p) { return Exchange.toXLSX(p, true); },
   // lit un fichier de projet → { p, foreign, edited }
   async fromFile(file, name) {
     if (this.isLegacy(name)) return { p: this.fromText(await file.text(), this.baseName(name)) };
@@ -892,6 +891,7 @@ const Files = {
     }
     const file = await handle.getFile();
     const res = await this.fromFile(file, handle.name);
+    if (this.isLegacy(handle.name)) return this.convertLegacy(handle, res.p);
     if (res.foreign) {
       // classeur qui ne vient pas de Plan Projet : l'importer, ou l'ouvrir en acceptant de le réécrire
       const choice = await this.confirmForeign(handle.name, true);
@@ -904,6 +904,25 @@ const Files = {
     const perm = await handle.queryPermission?.({ mode: "readwrite" });
     if (perm && perm !== "granted") this.setState(p.id, "permission");
     this.recentKeys.set(p.id, await Recents.add(handle, p.title));
+    return p;
+  },
+
+  // ancien fichier .proj : on l'enregistre une fois en classeur .xlsx, qui devient le fichier du projet
+  async convertLegacy(handle, old) {
+    const ok = await confirmDialog({
+      title: "Ancien format de fichier",
+      message: `« ${handle.name} » est au format .proj, qui n'est plus utilisé.\n` +
+        "Le projet va être enregistré en classeur Excel (.xlsx). L'ancien fichier ne sera plus modifié : vous pourrez le supprimer.",
+      okLabel: "Enregistrer en .xlsx", cancelLabel: "Annuler", focusOk: true,
+    });
+    if (!ok) return null;
+    const p = await this.createFrom(this.baseName(handle.name), (q) => {
+      q.tasks = old.tasks; q.links = old.links; q.ui = old.ui; q.createdAt = old.createdAt;
+    });
+    if (!p) return null;
+    const entry = await Recents.find(handle);
+    if (entry) await Recents.remove(entry.key);
+    toast("Projet converti en classeur Excel");
     return p;
   },
 
@@ -935,7 +954,7 @@ const Files = {
     if (!handle) return false;
     const job = (this.chains.get(p.id) || Promise.resolve()).then(async () => {
       const w = await handle.createWritable();
-      await w.write(this.toBytes(p, handle.name));
+      await w.write(this.toBytes(p));
       await w.close();
     });
     this.chains.set(p.id, job.catch(() => {}));
@@ -977,7 +996,7 @@ const Files = {
   async rename(p) {
     const handle = this.handles.get(p.id);
     if (!handle) return "same";
-    const newName = this.safeName(p.title) + this.extOf(handle.name);
+    const newName = this.safeName(p.title) + PROJ_EXT;
     if (handle.name === newName) return "same";
     if (typeof handle.move !== "function") return "unsupported";
     clearTimeout(this.timers.get(p.id));
@@ -1009,7 +1028,7 @@ const Files = {
 
   download(p) {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([this.toBytes(p, PROJ_EXT)], { type: XLSX_MIME }));
+    a.href = URL.createObjectURL(new Blob([this.toBytes(p)], { type: XLSX_MIME }));
     a.download = this.safeName(p.title) + PROJ_EXT;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -1029,7 +1048,7 @@ const Files = {
       }));
     } catch (e) { /* stockage de l'onglet indisponible */ }
   },
-  forget() { try { sessionStorage.removeItem(this.SESSION_KEY); } catch (e) { /* ignoré */ } },
+  forget() { try { sessionStorage.removeItem(this.SESSION_KEY); sessionStorage.removeItem(HISTORY_KEY); } catch (e) { /* ignoré */ } },
   async restore(id) {
     let snap = null;
     try { snap = JSON.parse(sessionStorage.getItem(this.SESSION_KEY)); } catch (e) { snap = null; }
@@ -2044,8 +2063,29 @@ function choiceDialog({ title, message, choices }) {
   });
 }
 
-// historique d'annulation par projet, depuis l'ouverture de l'application
+// historique d'annulation par projet ; celui du projet ouvert est gardé pour l'onglet (retrouvé après F5)
 const History = new Map();   // id du projet → { undo: [], redo: [], last }
+const HISTORY_KEY = "plan-projet:historique";
+const HistoryStore = {
+  load(id) {
+    try {
+      const o = JSON.parse(sessionStorage.getItem(HISTORY_KEY));
+      return o && o.id === id ? { undo: o.undo || [], redo: o.redo || [] } : null;
+    } catch (e) { return null; }
+  },
+  save(id, hist) {
+    // stockage de l'onglet limité : en cas de manque de place, on oublie les étapes les plus anciennes
+    let undo = hist.undo, redo = hist.redo;
+    for (;;) {
+      try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify({ id, undo, redo })); return; }
+      catch (e) {
+        if (!undo.length && !redo.length) return;
+        undo = undo.slice(Math.ceil(undo.length / 2));
+        if (!undo.length) redo = redo.slice(Math.ceil(redo.length / 2));
+      }
+    }
+  },
+};
 
 const ProjectView = {
   render(root, id) {
@@ -2144,7 +2184,7 @@ const ProjectView = {
 
     /* ---------- Historique : chaque enregistrement est une étape annulable ---------- */
     const snapshot = () => JSON.stringify({ title: p.title, tasks: p.tasks, links: p.links });
-    if (!History.has(id)) History.set(id, { undo: [], redo: [], last: snapshot() });
+    if (!History.has(id)) History.set(id, { undo: [], redo: [], ...HistoryStore.load(id), last: snapshot() });
     const hist = History.get(id);
     hist.last = snapshot();
 
@@ -2163,6 +2203,7 @@ const ProjectView = {
       if (!hist.undo.length) { toast("Rien à annuler"); return; }
       hist.redo.push(hist.last);
       restore(hist.undo.pop());
+      HistoryStore.save(id, hist);
       toast(`Action annulée${hist.undo.length ? ` · encore ${hist.undo.length} possible${hist.undo.length > 1 ? "s" : ""}` : ""}`);
     };
     const redo = () => {
@@ -2170,6 +2211,7 @@ const ProjectView = {
       if (!hist.redo.length) { toast("Rien à rétablir"); return; }
       hist.undo.push(hist.last);
       restore(hist.redo.pop());
+      HistoryStore.save(id, hist);
       toast("Action rétablie");
     };
     on(document, "keydown", (e) => {
@@ -2187,7 +2229,7 @@ const ProjectView = {
     /* ---------- Enregistrer (bouton + Ctrl + S) ---------- */
     const save = () => {
       const now = snapshot();
-      if (now !== hist.last) { hist.undo.push(hist.last); hist.redo = []; hist.last = now; }
+      if (now !== hist.last) { hist.undo.push(hist.last); hist.redo = []; hist.last = now; HistoryStore.save(id, hist); }
       Store.updateProject(id, {});
       el.status.textContent = "";
     };
@@ -3338,7 +3380,7 @@ Theme.init();
 window.addEventListener("beforeunload", (e) => {
   if (Store.currentId || Files.hasPending()) { e.preventDefault(); e.returnValue = ""; }
 });
-// application installée (Chrome / Edge) : ouverture d'un fichier .proj par double-clic
+// application installée (Chrome / Edge) : ouverture d'un fichier de projet par double-clic
 if ("launchQueue" in window) {
   window.launchQueue.setConsumer(async (params) => {
     if (params.files && params.files.length) {
