@@ -96,6 +96,8 @@ button { font: inherit; color: inherit; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .btn-primary:hover { background: var(--accent); filter: brightness(1.08); }
 .btn-danger { color: var(--danger); }
+/* boutons Ajouter / Supprimer : icône seule, un peu plus larges que les boutons carrés */
+.btn-icon-wide { width: 44px; padding: 0; justify-content: center; }
 .btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
 .icon-btn {
   width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto;
@@ -1485,8 +1487,8 @@ const ProjectView = {
           <div data-slot="theme"></div>
         </header>
         <div class="toolbar">
-          <button class="btn btn-primary" data-act="add" title="Ajoute une ligne sous la ligne sélectionnée">${ICONS.plus}<span class="lbl">Ajouter une tâche</span></button>
-          <button class="btn btn-danger" data-act="del" disabled title="Supprime les lignes sélectionnées (touche Suppr)">${ICONS.trash}<span class="lbl">Supprimer</span></button>
+          <button class="btn btn-primary btn-icon-wide" data-act="add" title="Ajouter une tâche — Ajoute une ligne sous la ligne sélectionnée" aria-label="Ajouter une tâche">${ICONS.plus}</button>
+          <button class="btn btn-danger btn-icon-wide" data-act="del" disabled title="Supprimer les tâches sélectionnées (touche Suppr)" aria-label="Supprimer les tâches sélectionnées">${ICONS.trash}</button>
           <div class="sep"></div>
           <button class="icon-btn" data-act="expand-all" title="Tout développer : le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)" aria-label="Tout développer">${ICONS.expandAll}</button>
           <button class="icon-btn" data-act="collapse-all" title="Tout réduire : le groupe sélectionné et ses sous-groupes (tout le projet si rien n'est sélectionné)" aria-label="Tout réduire">${ICONS.collapseAll}</button>
