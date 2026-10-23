@@ -3425,14 +3425,18 @@ const ProjectView = {
       const y1 = ra * rowH + rowH / 2;
       const x2 = msB ? dayX(sb) + dw / 2 - 8 : dayX(sb);
       const y2 = rb * rowH + rowH / 2;
-      if (x2 - x1 >= 16) return `M${x1} ${y1} H${x1 + 8} V${y2} H${x2 - 1}`;
+      const turn = (dx) => linkTurns.set(a.id, Math.max(linkTurns.get(a.id) || 0, dx));   // où la flèche descend
+      if (x2 - x1 >= 16) { turn(8); return `M${x1} ${y1} H${x1 + 8} V${y2} H${x2 - 1}`; }
       // tâches très proches : la flèche arrive par-dessus (ou par-dessous) la tâche liée
       const wB = msB ? 14 : (Dates.diffDays(sb, Task.end(b)) + 1) * dw;
       const xv = Math.max(x1 + 6, (msB ? dayX(sb) + dw / 2 : x2) + Math.min(10, wB / 2));
       const half = Task.isParent(b) ? (rb > ra ? 4 : 10) : msB ? 6 : barH() / 2;
       const yEnd = rb > ra ? y2 - half - 1 : y2 + half + 1;
+      turn(xv - x1);
       return `M${x1} ${y1} H${xv} V${yEnd}`;
     };
+    // pour chaque tâche d'origine : distance entre le bout de sa barre et la descente de ses flèches
+    const linkTurns = new Map();
 
     const renderGantt = () => {
       Tree.compute(p);
@@ -3441,6 +3445,14 @@ const ProjectView = {
       refreshVis();
       const W = range.days * dw, H = vis.length * rowH;
       const R = rect();
+      linkTurns.clear();
+      const links = (p.links || []).map((l, i) => {
+        const d = linkPath(Links.byId(p, l.from), Links.byId(p, l.to));
+        if (!d) return "";
+        const gap = Links.slack(p, l);
+        const info = gap ? `Commence ${gap} jour${gap > 1 ? "s" : ""} ouvré${gap > 1 ? "s" : ""} après le plus tôt possible\n` : "";
+        return `<path class="link-hit" data-link="${i}" d="${d}" data-text="${esc(info + "Cliquer pour supprimer ce lien")}"></path><path class="link${gap ? " slack" : ""}" d="${d}" marker-end="url(#arrow)"/>`;
+      }).join("");
       const rows = vis.map((r) => {
         const t = p.tasks[r];
         const d = Task.duration(t), st = Task.start(t), parent = Task.isParent(t);
@@ -3454,16 +3466,9 @@ const ProjectView = {
           const prog = pct == null ? "" : `<span class="prog${pct >= 100 ? " full" : ""}" style="width:${pct}%"></span>`;
           bar = `<div class="bar lvl${t.level}${ms ? " ms" : ""}${parent ? " summary" : ""}${pct == null ? "" : " has-prog"}${R && r >= R.r1 && r <= R.r2 ? " sel" : ""}" data-r="${r}" style="left:${left}px;width:${Math.max(g.width - 2, 4)}px" title="${esc(tip + (pct == null ? "" : `\nAvancement : ${fmtNum(pct)} %`) + (t.comment ? `\nCommentaire : ${commentPreview(t)}` : "\nDouble-clic : commentaires"))}">${prog}
             <span class="h-end" title="Glisser pour allonger ou réduire"></span>
-            <span class="link-dot" title="Glisser vers une autre tâche pour les lier"></span>${t.comment ? `<span class="cmt-ico">${ICONS.comment}</span>` : ""}</div>`;
+            <span class="link-dot"${linkTurns.has(t.id) ? ` style="right:${-(linkTurns.get(t.id) + 16)}px"` : ""} title="Glisser vers une autre tâche pour les lier"></span>${t.comment ? `<span class="cmt-ico">${ICONS.comment}</span>` : ""}</div>`;
         }
         return `<div class="grow${R && r >= R.r1 && r <= R.r2 ? " row-sel" : ""}" data-r="${r}">${bar}</div>`;
-      }).join("");
-      const links = (p.links || []).map((l, i) => {
-        const d = linkPath(Links.byId(p, l.from), Links.byId(p, l.to));
-        if (!d) return "";
-        const gap = Links.slack(p, l);
-        const info = gap ? `Commence ${gap} jour${gap > 1 ? "s" : ""} ouvré${gap > 1 ? "s" : ""} après le plus tôt possible\n` : "";
-        return `<path class="link-hit" data-link="${i}" d="${d}" data-text="${esc(info + "Cliquer pour supprimer ce lien")}"></path><path class="link${gap ? " slack" : ""}" d="${d}" marker-end="url(#arrow)"/>`;
       }).join("");
       const today = Dates.diffDays(range.start, todayISO());
       const bg = dw >= 14
